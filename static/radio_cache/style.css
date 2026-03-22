@@ -1,0 +1,3 @@
+/* Additional styles for the radio cache web UI */
+.programme-card .card-body { padding: 1rem; }
+.get-iplayer-cmd { word-break: break-all; }

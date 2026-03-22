@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Brands - BBC Radio Drama Cache{% endblock %}
+
+{% block content %}
+<h2>All Brands</h2>
+<p class="text-muted">{{ brands|length }} brands in the cache</p>
+
+<div class="row g-3">
+    {% for b in brands %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card programme-card h-100">
+            <div class="card-body">
+                <h6 class="card-title">
+                    <a href="/brands/{{ b.brand_pid }}" class="text-decoration-none">
+                        {{ b.brand_title or b.brand_pid }}
+                    </a>
+                </h6>
+                <span class="badge bg-info">{{ b.series_count }} series</span>
+                <span class="badge bg-secondary">{{ b.total_episodes }} episodes</span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

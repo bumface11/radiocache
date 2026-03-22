@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Brand Detail - BBC Radio Drama Cache{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="/brands">Brands</a></li>
+        <li class="breadcrumb-item active">{{ brand_pid }}</li>
+    </ol>
+</nav>
+
+<h2>{{ brand_pid }}</h2>
+<p class="text-muted">{{ series|length }} series</p>
+
+<div class="list-group">
+    {% for s in series %}
+    <a href="/series/{{ s.series_pid }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+        {{ s.series_title or s.series_pid }}
+        <span class="badge bg-primary">{{ s.episode_count }} episodes</span>
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}

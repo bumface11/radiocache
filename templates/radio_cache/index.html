@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}BBC Radio Drama Cache - Search{% endblock %}
+
+{% block content %}
+<div class="search-hero text-center">
+    <h1 class="display-5">BBC Radio Drama Cache</h1>
+    <p class="lead text-muted">
+        Search and browse BBC Radio dramas. Download with get_iplayer.
+    </p>
+    <form action="/search" method="get" class="row g-2 justify-content-center mt-3">
+        <div class="col-md-6">
+            <input type="search" class="form-control form-control-lg" name="q"
+                   placeholder="Search by title, series, genre..."
+                   autofocus>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-primary btn-lg">Search</button>
+        </div>
+    </form>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h2 class="card-title">{{ stats.total_programmes }}</h2>
+                <p class="card-text text-muted">Programmes</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h2 class="card-title">{{ stats.total_series }}</h2>
+                <p class="card-text text-muted">Series</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h2 class="card-title">{{ stats.total_brands }}</h2>
+                <p class="card-text text-muted">Brands</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if recent %}
+<h3 class="mt-5">Recently Added</h3>
+<div class="row g-3">
+    {% for prog in recent %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card programme-card h-100">
+            <div class="card-body">
+                <h6 class="card-title">{{ prog.title }}</h6>
+                {% if prog.series_title %}
+                    <span class="badge bg-info series-badge">{{ prog.series_title }}</span>
+                {% endif %}
+                {% if prog.duration_secs %}
+                    <span class="badge bg-secondary badge-duration">
+                        {{ prog.duration_secs | format_duration }}
+                    </span>
+                {% endif %}
+                <p class="card-text small text-muted mt-2">
+                    {{ prog.synopsis[:150] }}{% if prog.synopsis|length > 150 %}...{% endif %}
+                </p>
+                <div class="get-iplayer-cmd" title="Click to copy">
+                    get_iplayer --pid={{ prog.pid }} --type=radio
+                </div>
+            </div>
+            <div class="card-footer small text-muted">
+                <a href="{{ prog.url }}" target="_blank" rel="noopener">BBC Sounds</a>
+                {% if prog.first_broadcast %}
+                    | {{ prog.first_broadcast[:10] }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="row mt-5 g-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Browse by Series</h5>
+                <p class="card-text">View dramas grouped by their parent series.</p>
+                <a href="/series" class="btn btn-outline-primary">View Series</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Browse by Brand</h5>
+                <p class="card-text">View programme brands and their series.</p>
+                <a href="/brands" class="btn btn-outline-primary">View Brands</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <h5 class="card-title">Download with get_iplayer</h5>
+        <p>Find a programme above, then use the command shown to download it locally:</p>
+        <pre class="bg-dark text-light p-3 rounded"><code>get_iplayer --pid=&lt;PID&gt; --type=radio</code></pre>
+        <p class="text-muted small mb-0">
+            Requires <a href="https://github.com/get-iplayer/get_iplayer" target="_blank"
+            rel="noopener">get_iplayer</a> installed on your machine.
+        </p>
+    </div>
+</div>
+{% endblock %}

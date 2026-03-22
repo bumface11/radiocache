@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}{{ series_title }} - BBC Radio Drama Cache{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item"><a href="/series">Series</a></li>
+        <li class="breadcrumb-item active">{{ series_title }}</li>
+    </ol>
+</nav>
+
+<h2>{{ series_title }}</h2>
+<p class="text-muted">{{ episodes|length }} episodes</p>
+
+{% if episodes %}
+<div class="list-group">
+    {% for ep in episodes %}
+    <div class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+                <h6 class="mb-1">
+                    {% if ep.episode_number %}
+                        <span class="badge bg-secondary me-1">Ep {{ ep.episode_number }}</span>
+                    {% endif %}
+                    {{ ep.title }}
+                </h6>
+                <p class="mb-1 text-muted">
+                    {{ ep.synopsis[:300] }}{% if ep.synopsis|length > 300 %}...{% endif %}
+                </p>
+                <div class="get-iplayer-cmd" title="Click to copy">
+                    get_iplayer --pid={{ ep.pid }} --type=radio
+                </div>
+                <small class="text-muted">
+                    {% if ep.first_broadcast %}Broadcast: {{ ep.first_broadcast[:10] }}{% endif %}
+                    {% if ep.channel %}| {{ ep.channel }}{% endif %}
+                </small>
+            </div>
+            <div class="text-end ms-3">
+                {% if ep.duration_secs %}
+                    <span class="badge bg-secondary badge-duration">
+                        {{ ep.duration_secs | format_duration }}
+                    </span>
+                {% endif %}
+                <br>
+                <a href="{{ ep.url }}" class="btn btn-sm btn-outline-primary mt-1"
+                   target="_blank" rel="noopener">BBC Sounds</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<div class="card mt-4">
+    <div class="card-body">
+        <h6 class="card-title">Download entire series</h6>
+        <p class="text-muted small">Run each command or use a script to download all episodes:</p>
+        <pre class="bg-dark text-light p-3 rounded small"><code>{% for ep in episodes %}get_iplayer --pid={{ ep.pid }} --type=radio
+{% endfor %}</code></pre>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">No episodes found for this series.</div>
+{% endif %}
+{% endblock %}

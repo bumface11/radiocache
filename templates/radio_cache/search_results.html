@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Search: {{ query }} - BBC Radio Drama Cache{% endblock %}
+
+{% block content %}
+<h2>
+    {% if query %}
+        Search: "{{ query }}"
+    {% else %}
+        Recent Programmes
+    {% endif %}
+</h2>
+<p class="text-muted">{{ programmes|length }} results{% if page > 1 %} (page {{ page }}){% endif %}</p>
+
+{% if series_groups|length > 1 or (series_groups|length == 1 and series_groups[0].series_pid != 'standalone') %}
+<div class="accordion mb-4" id="seriesAccordion">
+    {% for group in series_groups %}
+    <div class="accordion-item">
+        <h2 class="accordion-header">
+            <button class="accordion-button {% if not loop.first %}collapsed{% endif %}"
+                    type="button" data-bs-toggle="collapse"
+                    data-bs-target="#series-{{ loop.index }}">
+                {% if group.series_pid != 'standalone' %}
+                    {{ group.series_title }}
+                    {% if group.brand_title %}
+                        <span class="text-muted ms-2 small">({{ group.brand_title }})</span>
+                    {% endif %}
+                {% else %}
+                    Standalone Programmes
+                {% endif %}
+                <span class="badge bg-primary ms-2">{{ group.episode_count }}</span>
+            </button>
+        </h2>
+        <div id="series-{{ loop.index }}"
+             class="accordion-collapse collapse {% if loop.first %}show{% endif %}">
+            <div class="accordion-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for ep in group.episodes %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    {% if ep.episode_number %}
+                                        <span class="badge bg-secondary me-1">Ep {{ ep.episode_number }}</span>
+                                    {% endif %}
+                                    {{ ep.title }}
+                                </h6>
+                                <p class="mb-1 small text-muted">
+                                    {{ ep.synopsis[:200] }}{% if ep.synopsis|length > 200 %}...{% endif %}
+                                </p>
+                                <div class="get-iplayer-cmd" title="Click to copy">
+                                    get_iplayer --pid={{ ep.pid }} --type=radio
+                                </div>
+                            </div>
+                            <div class="text-end ms-3">
+                                {% if ep.duration_secs %}
+                                    <span class="badge bg-secondary badge-duration">
+                                        {{ ep.duration_secs | format_duration }}
+                                    </span>
+                                {% endif %}
+                                <br>
+                                <a href="{{ ep.url }}" class="btn btn-sm btn-outline-primary mt-1"
+                                   target="_blank" rel="noopener">BBC Sounds</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="row g-3">
+    {% for prog in programmes %}
+    <div class="col-md-6 col-lg-4">
+        <div class="card programme-card h-100">
+            <div class="card-body">
+                <h6 class="card-title">{{ prog.title }}</h6>
+                {% if prog.series_title %}
+                    <a href="/series/{{ prog.series_pid }}" class="badge bg-info series-badge text-decoration-none">
+                        {{ prog.series_title }}
+                    </a>
+                {% endif %}
+                {% if prog.duration_secs %}
+                    <span class="badge bg-secondary badge-duration">
+                        {{ prog.duration_secs | format_duration }}
+                    </span>
+                {% endif %}
+                <p class="card-text small text-muted mt-2">
+                    {{ prog.synopsis[:150] }}{% if prog.synopsis|length > 150 %}...{% endif %}
+                </p>
+                <div class="get-iplayer-cmd" title="Click to copy">
+                    get_iplayer --pid={{ prog.pid }} --type=radio
+                </div>
+            </div>
+            <div class="card-footer small text-muted">
+                <a href="{{ prog.url }}" target="_blank" rel="noopener">BBC Sounds</a>
+                {% if prog.first_broadcast %}
+                    | {{ prog.first_broadcast[:10] }}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if programmes|length >= per_page %}
+<nav class="mt-4" aria-label="Pagination">
+    <ul class="pagination justify-content-center">
+        {% if page > 1 %}
+        <li class="page-item">
+            <a class="page-link" href="/search?q={{ query }}&page={{ page - 1 }}">Previous</a>
+        </li>
+        {% endif %}
+        <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
+        <li class="page-item">
+            <a class="page-link" href="/search?q={{ query }}&page={{ page + 1 }}">Next</a>
+        </li>
+    </ul>
+</nav>
+{% endif %}
+{% endblock %}

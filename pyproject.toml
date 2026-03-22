@@ -1,0 +1,36 @@
+[project]
+name = "radiocache"
+version = "0.1.0"
+description = "Cloud-hostable cache of BBC Radio drama programme metadata with search"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115",
+    "jinja2>=3.1",
+    "uvicorn[standard]>=0.34",
+]
+
+[tool.setuptools.packages.find]
+include = ["radio_cache*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_unused_configs = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+show_error_codes = true
+files = ["radio_cache", "radio_cache_api.py", "tests"]
