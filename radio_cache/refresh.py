@@ -24,6 +24,8 @@ def refresh_cache(
     export_json: bool = True,
     json_path: str = "radio_cache_export.json",
     purge_expired: bool = True,
+    export_get_iplayer: bool = True,
+    get_iplayer_path: str = "radio.cache",
 ) -> int:
     """Refresh the programme cache from BBC feeds.
 
@@ -32,6 +34,8 @@ def refresh_cache(
         export_json: Whether to also export a static JSON snapshot.
         json_path: Output path for the JSON export.
         purge_expired: Whether to remove expired programmes.
+        export_get_iplayer: Whether to export a get_iplayer-compatible cache file.
+        get_iplayer_path: Output path for the get_iplayer cache file.
 
     Returns:
         Number of programmes in the updated cache.
@@ -64,6 +68,9 @@ def refresh_cache(
         if export_json:
             _export_json(db, json_path)
 
+        if export_get_iplayer:
+            _export_get_iplayer_cache(db, get_iplayer_path)
+
         return stats.total_programmes
 
 
@@ -89,6 +96,86 @@ def _export_json(db: CacheDB, json_path: str) -> None:
     path = Path(json_path)
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     logger.info("Exported %d programmes to %s", len(programmes), json_path)
+
+
+_GET_IPLAYER_CACHE_HEADINGS = (
+    "index",
+    "thumbnail",
+    "pid",
+    "available",
+    "expires",
+    "type",
+    "name",
+    "episode",
+    "versions",
+    "duration",
+    "desc",
+    "channel",
+    "categories",
+    "timeadded",
+    "guidance",
+    "web",
+    "seriesnum",
+    "episodenum",
+    "filename",
+    "mode",
+)
+
+
+def _export_get_iplayer_cache(db: CacheDB, cache_path: str) -> None:
+    """Export the cache as a get_iplayer-compatible pipe-delimited file.
+
+    The output file can be hosted on GitHub and consumed by a modified
+    get_iplayer Web PVR Manager as a remote radio programme cache.
+
+    Each line is an ``ENTRY`` record with fields matching the get_iplayer
+    CGI ``@headings`` array:
+    index|thumbnail|pid|available|expires|type|name|episode|versions|
+    duration|desc|channel|categories|timeadded|guidance|web|seriesnum|
+    episodenum|filename|mode
+
+    Args:
+        db: Open cache database.
+        cache_path: Output file path.
+    """
+    programmes = db.all_programmes()
+
+    def _escape(value: str | None) -> str:
+        return (value or "").replace("|", "-")
+
+    lines: list[str] = [
+        "#" + "|".join(_GET_IPLAYER_CACHE_HEADINGS),
+    ]
+
+    for index, prog in enumerate(programmes, start=1):
+        name = _escape(prog.brand_title or prog.series_title or prog.title)
+        fields = (
+            str(index),
+            _escape(prog.thumbnail_url),
+            _escape(prog.pid),
+            _escape(prog.first_broadcast),
+            _escape(prog.available_until),
+            "radio",
+            name,
+            _escape(prog.title),
+            "default",
+            str(prog.duration_secs) if prog.duration_secs is not None else "0",
+            _escape(prog.synopsis),
+            _escape(prog.channel),
+            _escape(prog.categories),
+            "",
+            "",
+            _escape(prog.url),
+            "",
+            str(prog.episode_number) if prog.episode_number else "",
+            "<filename>",
+            "default",
+        )
+        lines.append("ENTRY|" + "|".join(fields))
+
+    path = Path(cache_path)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    logger.info("Exported %d programmes to get_iplayer cache %s", len(programmes), cache_path)
 
 
 def _programme_to_dict(prog: Programme) -> dict:
@@ -170,6 +257,16 @@ def main() -> None:
         help="Skip JSON export",
     )
     parser.add_argument(
+        "--get-iplayer-cache",
+        default="radio.cache",
+        help="get_iplayer cache export path (default: radio.cache)",
+    )
+    parser.add_argument(
+        "--no-get-iplayer-cache",
+        action="store_true",
+        help="Skip get_iplayer cache export",
+    )
+    parser.add_argument(
         "--import-json",
         metavar="FILE",
         help="Import from JSON file instead of fetching from BBC",
@@ -196,6 +293,8 @@ def main() -> None:
             db_path=args.db,
             export_json=not args.no_json,
             json_path=args.json,
+            export_get_iplayer=not args.no_get_iplayer_cache,
+            get_iplayer_path=args.get_iplayer_cache,
         )
         logger.info("Cache contains %d programmes", count)
 
