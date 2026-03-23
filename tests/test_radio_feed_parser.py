@@ -63,9 +63,23 @@ class TestParseProgrammeItem:
         assert "624x624" in prog.thumbnail_url
         assert "Drama" in prog.categories
 
-    def test_pid_fallback(self) -> None:
+    def test_pid_preferred_over_id(self) -> None:
+        """Uses 'pid' field over 'id' when both are present."""
+        item = {"id": "p0n6f5q8", "pid": "m002snjn", "title": "Both PIDs"}
+        prog = _parse_programme_item(item)
+        assert prog is not None
+        assert prog.pid == "m002snjn"
+
+    def test_id_fallback(self) -> None:
+        """Uses 'id' field when 'pid' is not present."""
+        item = {"id": "b09test", "title": "ID fallback"}
+        prog = _parse_programme_item(item)
+        assert prog is not None
+        assert prog.pid == "b09test"
+
+    def test_pid_only(self) -> None:
         """Uses 'pid' field when 'id' is not present."""
-        item = {"pid": "b09pid", "title": "PID fallback"}
+        item = {"pid": "b09pid", "title": "PID only"}
         prog = _parse_programme_item(item)
         assert prog is not None
         assert prog.pid == "b09pid"
