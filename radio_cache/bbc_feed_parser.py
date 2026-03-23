@@ -21,18 +21,17 @@ from radio_cache.models import Programme, programme_sounds_url
 
 logger = logging.getLogger(__name__)
 
-_BBC_SOUNDS_API: Final[str] = (
-    "https://rms.api.bbc.co.uk/v2/experience/inline/categories"
+_BBC_PLAYABLE_API: Final[str] = (
+    "https://rms.api.bbc.co.uk/v2/programmes/playable"
 )
 _BBC_PROGRAMMES_API: Final[str] = "https://www.bbc.co.uk/programmes"
-_BBC_SOUNDS_PLAY: Final[str] = "https://www.bbc.co.uk/sounds/play"
 
-_DRAMA_CATEGORY: Final[str] = "drama"
+_PAGE_LIMIT: Final[int] = 30
 _REQUEST_DELAY_SECS: Final[float] = 1.0
 _REQUEST_TIMEOUT_SECS: Final[int] = 30
 _USER_AGENT: Final[str] = (
     "Mozilla/5.0 (compatible; RadioCacheBot/1.0; "
-    "+https://github.com/bumface11/ifa)"
+    "+https://github.com/bumface11/radiocache)"
 )
 
 _CATEGORY_SLUGS: Final[list[str]] = [
@@ -183,10 +182,12 @@ def fetch_drama_programmes(
 
     for slug in slugs:
         logger.info("Fetching category: %s", slug)
-        for page in range(1, max_pages + 1):
+        for page in range(max_pages):
+            offset = page * _PAGE_LIMIT
             url = (
-                f"{_BBC_SOUNDS_API}/{slug}/programmes?"
-                f"sort=date&page={page}"
+                f"{_BBC_PLAYABLE_API}?category={slug}"
+                f"&sort=date&tleoDistinct=true"
+                f"&offset={offset}&limit={_PAGE_LIMIT}"
             )
             data = _fetch_json(url)
             if data is None:
@@ -204,12 +205,13 @@ def fetch_drama_programmes(
 
             logger.info(
                 "  page %d: %d items (total %d)",
-                page,
+                page + 1,
                 len(items),
                 len(programmes),
             )
 
-            if len(items) < 20:
+            total = data.get("total", 0)
+            if offset + len(items) >= total or len(items) < _PAGE_LIMIT:
                 break
 
             time.sleep(delay)
