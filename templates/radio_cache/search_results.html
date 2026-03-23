@@ -22,9 +22,6 @@
                     data-bs-target="#series-{{ loop.index }}">
                 {% if group.series_pid != 'standalone' %}
                     {{ group.series_title }}
-                    {% if group.brand_title %}
-                        <span class="text-muted ms-2 small">({{ group.brand_title }})</span>
-                    {% endif %}
                 {% else %}
                     Standalone Programmes
                 {% endif %}

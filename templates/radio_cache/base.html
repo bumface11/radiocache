@@ -39,9 +39,6 @@
                         <a class="nav-link" href="/series">Series</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/brands">Brands</a>
-                    </li>
-                    <li class="nav-item">
                         <a class="nav-link" href="/api/stats">API</a>
                     </li>
                 </ul>
@@ -64,8 +61,7 @@
             <div class="col-md-6">
                 {% if stats %}
                     {{ stats.total_programmes }} programmes |
-                    {{ stats.total_series }} series |
-                    {{ stats.total_brands }} brands
+                    {{ stats.total_series }} series
                     {% if stats.last_refreshed %}
                         | Last refreshed: {{ stats.last_refreshed[:19] }}
                     {% endif %}

@@ -84,7 +84,10 @@ def _parse_programme_item(item: dict) -> Programme | None:
     # ``id`` field may be an opaque API identifier – neither works
     # reliably in BBC Sounds ``/sounds/play/…`` URLs.
     urn = item.get("urn") or ""
-    pid = urn.rsplit(":", 1)[-1] if urn else item.get("id") or item.get("pid") or ""
+    if not urn or ":" not in urn:
+        return None
+
+    pid = urn.rsplit(":", 1)[-1].strip()
     if not pid:
         return None
 

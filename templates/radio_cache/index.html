@@ -21,7 +21,7 @@
 </div>
 
 <div class="row mt-4">
-    <div class="col-md-4">
+    <div class="col-md-6">
         <div class="card text-center">
             <div class="card-body">
                 <h2 class="card-title">{{ stats.total_programmes }}</h2>
@@ -29,19 +29,11 @@
             </div>
         </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-md-6">
         <div class="card text-center">
             <div class="card-body">
                 <h2 class="card-title">{{ stats.total_series }}</h2>
                 <p class="card-text text-muted">Series</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card text-center">
-            <div class="card-body">
-                <h2 class="card-title">{{ stats.total_brands }}</h2>
-                <p class="card-text text-muted">Brands</p>
             </div>
         </div>
     </div>
@@ -83,21 +75,12 @@
 {% endif %}
 
 <div class="row mt-5 g-3">
-    <div class="col-md-6">
+    <div class="col-md-12">
         <div class="card">
             <div class="card-body">
                 <h5 class="card-title">Browse by Series</h5>
                 <p class="card-text">View dramas grouped by their parent series.</p>
                 <a href="/series" class="btn btn-outline-primary">View Series</a>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Browse by Brand</h5>
-                <p class="card-text">View programme brands and their series.</p>
-                <a href="/brands" class="btn btn-outline-primary">View Brands</a>
             </div>
         </div>
     </div>
