@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
-from radio_cache.bbc_feed_parser import _parse_programme_item
+from unittest.mock import MagicMock, patch
+
+from radio_cache.bbc_feed_parser import (
+    _PAGE_LIMIT,
+    _parse_programme_item,
+    fetch_drama_programmes,
+)
 
 
 class TestParseProgrammeItem:
@@ -73,3 +79,51 @@ class TestParseProgrammeItem:
         prog = _parse_programme_item(item)
         assert prog is not None
         assert prog.synopsis == "Long description only"
+
+
+class TestFetchDramaProgrammes:
+    """Tests for fetch_drama_programmes."""
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_uses_playable_endpoint(self, mock_fetch: MagicMock) -> None:
+        """Uses the /v2/programmes/playable endpoint."""
+        mock_fetch.return_value = {"data": [], "total": 0}
+        fetch_drama_programmes(category_slugs=["drama"], max_pages=1, delay=0)
+        url = mock_fetch.call_args[0][0]
+        assert "/v2/programmes/playable?" in url
+        assert "category=drama" in url
+        assert "inline/categories" not in url
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_pagination_uses_offset(self, mock_fetch: MagicMock) -> None:
+        """Pagination uses offset and limit query parameters."""
+        items = [
+            {"id": f"p{i:04d}", "title": f"P{i}"} for i in range(_PAGE_LIMIT)
+        ]
+        mock_fetch.side_effect = [
+            {"data": items, "total": _PAGE_LIMIT + 5},
+            {"data": [{"id": "p9999", "title": "Last"}], "total": _PAGE_LIMIT + 5},
+        ]
+        fetch_drama_programmes(category_slugs=["drama"], max_pages=5, delay=0)
+        urls = [c[0][0] for c in mock_fetch.call_args_list]
+        assert "offset=0" in urls[0]
+        assert f"offset={_PAGE_LIMIT}" in urls[1]
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_includes_tleo_distinct(self, mock_fetch: MagicMock) -> None:
+        """URL includes tleoDistinct=true."""
+        mock_fetch.return_value = {"data": [], "total": 0}
+        fetch_drama_programmes(category_slugs=["drama"], max_pages=1, delay=0)
+        url = mock_fetch.call_args[0][0]
+        assert "tleoDistinct=true" in url
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_deduplicates_across_categories(self, mock_fetch: MagicMock) -> None:
+        """Programmes seen in multiple categories are returned once."""
+        item = {"id": "b09dup", "title": "Shared Drama"}
+        mock_fetch.return_value = {"data": [item], "total": 1}
+        result = fetch_drama_programmes(
+            category_slugs=["drama", "thriller"], max_pages=1, delay=0
+        )
+        assert len(result) == 1
+        assert result[0].pid == "b09dup"
