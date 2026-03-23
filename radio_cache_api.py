@@ -6,7 +6,7 @@ hosting (Render free tier, Fly.io, Railway, etc.).
 
 Run locally with::
 
-    uvicorn radio_cache_api:app --reload
+    uv run uvicorn radio_cache_api:app --reload
 """
 
 from __future__ import annotations

@@ -20,14 +20,15 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .
+        run: uv sync
 
       - name: Refresh cache
         run: |
-          python -m radio_cache.refresh \
+          uv run python -m radio_cache.refresh \
             --db radio_cache.db \
             --json radio_cache_export.json \
             --verbose

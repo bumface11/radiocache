@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "radiocache"
 version = "0.1.0"
@@ -7,6 +11,13 @@ dependencies = [
     "fastapi>=0.115",
     "jinja2>=3.1",
     "uvicorn[standard]>=0.34",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.11",
+    "pytest>=8.0",
+    "ruff>=0.11",
 ]
 
 [tool.setuptools.packages.find]

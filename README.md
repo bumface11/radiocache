@@ -20,17 +20,19 @@ search interface.
 ## Quick Start
 
 ```bash
-# Install in editable mode
-pip install -e .
+# Install uv (one-time; https://docs.astral.sh/uv/)
+
+# Create a virtual environment and sync dependencies
+uv sync --group dev
 
 # Refresh the cache (fetches from BBC feeds)
-python -m radio_cache.refresh --verbose
+uv run python -m radio_cache.refresh --verbose
 
 # Or import from a JSON export
-python -m radio_cache.refresh --import-json radio_cache_export.json
+uv run python -m radio_cache.refresh --import-json radio_cache_export.json
 
 # Start the web search UI
-uvicorn radio_cache_api:app --reload
+uv run uvicorn radio_cache_api:app --reload
 ```
 
 Open `http://localhost:8000` to search and browse programmes.  Each programme
@@ -60,9 +62,8 @@ locally.
 ## Running Tests
 
 ```bash
-pip install -e .
-pip install pytest
-python -m pytest
+uv sync --group dev
+uv run pytest
 ```
 
 ## Project Structure
