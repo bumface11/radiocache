@@ -78,7 +78,13 @@ def _parse_programme_item(item: dict) -> Programme | None:
     Returns:
         A ``Programme`` instance, or ``None`` if essential fields are missing.
     """
-    pid = item.get("pid") or item.get("id") or ""
+    # The URN (e.g. "urn:bbc:radio:episode:m002snjn") contains the
+    # correct episode PID as its last colon-separated segment.  The
+    # top-level ``pid`` field is typically a *version* PID and the
+    # ``id`` field may be an opaque API identifier – neither works
+    # reliably in BBC Sounds ``/sounds/play/…`` URLs.
+    urn = item.get("urn") or ""
+    pid = urn.rsplit(":", 1)[-1] if urn else item.get("id") or item.get("pid") or ""
     if not pid:
         return None
 
