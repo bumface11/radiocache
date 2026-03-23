@@ -68,6 +68,7 @@ async def index(request: Request) -> HTMLResponse:
         stats = db.stats()
         recent = db.recent_programmes(limit=20)
     return templates.TemplateResponse(
+        request,
         "index.html",
         {"request": request, "stats": stats, "recent": recent},
     )
@@ -101,6 +102,7 @@ async def search_page(
 
     series_groups = group_by_series(programmes)
     return templates.TemplateResponse(
+        request,
         "search_results.html",
         {
             "request": request,
@@ -128,6 +130,7 @@ async def series_list(request: Request) -> HTMLResponse:
         series = db.list_series()
         stats = db.stats()
     return templates.TemplateResponse(
+        request,
         "series_list.html",
         {"request": request, "series": series, "stats": stats},
     )
@@ -149,6 +152,7 @@ async def series_detail(request: Request, series_pid: str) -> HTMLResponse:
         stats = db.stats()
     series_title = episodes[0].series_title if episodes else series_pid
     return templates.TemplateResponse(
+        request,
         "series_detail.html",
         {
             "request": request,
@@ -174,6 +178,7 @@ async def brand_list(request: Request) -> HTMLResponse:
         brands = db.list_brands()
         stats = db.stats()
     return templates.TemplateResponse(
+        request,
         "brand_list.html",
         {"request": request, "brands": brands, "stats": stats},
     )
@@ -194,6 +199,7 @@ async def brand_detail(request: Request, brand_pid: str) -> HTMLResponse:
         series = db.get_brand_series(brand_pid)
         stats = db.stats()
     return templates.TemplateResponse(
+        request,
         "brand_detail.html",
         {
             "request": request,
