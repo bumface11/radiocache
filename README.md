@@ -66,11 +66,27 @@ uv sync --group dev
 uv run pytest
 ```
 
+## BBC Programme Identifiers
+
+The BBC API exposes several identifier fields for each programme.  Only the
+**URN-derived PID** works reliably in BBC Sounds URLs and `get_iplayer`
+commands:
+
+| Field | Example | Purpose |
+|---|---|---|
+| `urn` | `urn:bbc:radio:episode:m002snjn` | Canonical identifier. The last colon-separated segment (`m002snjn`) is the **episode PID** used in BBC Sounds URLs and `get_iplayer`. |
+| `pid` | `m002t10q` | **Version PID** — identifies a specific broadcast version of an episode, *not* the episode itself. Does not work in `/sounds/play/` URLs. |
+| `id` | `p0n6f5q8` | Opaque API identifier. May differ from both the episode and version PIDs. Also does not work in `/sounds/play/` URLs. |
+
+This project extracts the episode PID from the `urn` field, following the same
+approach used by other BBC Sounds clients such as
+[auntie-sounds](https://github.com/kieranhogg/auntie-sounds).
+
 ## Project Structure
 
 - `radio_cache/` -- core Python package (models, database, parser, search)
 - `radio_cache_api.py` -- FastAPI web application
 - `templates/radio_cache/` -- Jinja2 HTML templates
 - `static/radio_cache/` -- CSS styles
-- `tests/` -- unit tests (54 tests)
+- `tests/` -- unit tests (61 tests)
 - `.github/workflows/refresh-radio-cache.yml` -- daily cache refresh cron job
