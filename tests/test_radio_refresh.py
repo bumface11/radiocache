@@ -258,6 +258,7 @@ class TestRefreshCache:
                 db_path=db_path,
                 export_json=True,
                 json_path=json_path,
+                get_iplayer_path=str(tmp_path / "radio.cache"),
             )
 
         assert count == 2
