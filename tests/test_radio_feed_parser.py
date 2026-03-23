@@ -63,22 +63,38 @@ class TestParseProgrammeItem:
         assert "624x624" in prog.thumbnail_url
         assert "Drama" in prog.categories
 
-    def test_pid_preferred_over_id(self) -> None:
-        """Uses 'pid' field over 'id' when both are present."""
-        item = {"id": "p0n6f5q8", "pid": "m002snjn", "title": "Both PIDs"}
+    def test_urn_extracts_episode_pid(self) -> None:
+        """Extracts episode PID from the URN, ignoring pid and id fields."""
+        item = {
+            "id": "p0n6f5q8",
+            "pid": "m002t10q",
+            "urn": "urn:bbc:radio:episode:m002snjn",
+            "title": "URN Episode",
+        }
         prog = _parse_programme_item(item)
         assert prog is not None
         assert prog.pid == "m002snjn"
 
-    def test_id_fallback(self) -> None:
-        """Uses 'id' field when 'pid' is not present."""
+    def test_urn_clip(self) -> None:
+        """Extracts clip PID from a clip URN."""
+        item = {
+            "id": "some_id",
+            "urn": "urn:bbc:radio:clip:p0abc123",
+            "title": "Clip",
+        }
+        prog = _parse_programme_item(item)
+        assert prog is not None
+        assert prog.pid == "p0abc123"
+
+    def test_id_fallback_without_urn(self) -> None:
+        """Uses 'id' field when 'urn' is not present."""
         item = {"id": "b09test", "title": "ID fallback"}
         prog = _parse_programme_item(item)
         assert prog is not None
         assert prog.pid == "b09test"
 
-    def test_pid_only(self) -> None:
-        """Uses 'pid' field when 'id' is not present."""
+    def test_pid_fallback_without_urn_or_id(self) -> None:
+        """Uses 'pid' field when neither 'urn' nor 'id' is present."""
         item = {"pid": "b09pid", "title": "PID only"}
         prog = _parse_programme_item(item)
         assert prog is not None
