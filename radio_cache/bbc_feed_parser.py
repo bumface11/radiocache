@@ -78,7 +78,7 @@ def _parse_programme_item(item: dict) -> Programme | None:
     Returns:
         A ``Programme`` instance, or ``None`` if essential fields are missing.
     """
-    pid = item.get("id") or item.get("pid") or ""
+    pid = item.get("pid") or item.get("id") or ""
     if not pid:
         return None
 
