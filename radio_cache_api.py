@@ -11,12 +11,13 @@ Run locally with::
 
 from __future__ import annotations
 
+import io
 import os
 from pathlib import Path
 from typing import Final
 
 from fastapi import FastAPI, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -304,6 +305,25 @@ async def api_stats() -> dict:
         "total_brands": stats.total_brands,
         "last_refreshed": stats.last_refreshed,
     }
+
+
+@app.get("/export/radio.cache", response_class=PlainTextResponse)
+async def export_radio_cache() -> PlainTextResponse:
+    """Stream the get_iplayer-compatible radio cache flat file.
+
+    Returns:
+        Plain-text pipe-delimited cache in the native get_iplayer v3.36 format::
+
+            #index|type|name|episode|seriesnum|episodenum|pid|channel|available|expires|duration|desc|web|thumbnail|timeadded
+    """
+    buf = io.StringIO()
+    with _get_db() as db:
+        db.export_get_iplayer_cache(buf)
+    return PlainTextResponse(
+        buf.getvalue(),
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="radio.cache"'},
+    )
 
 
 def _prog_dict(prog: object) -> dict:

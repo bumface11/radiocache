@@ -12,9 +12,11 @@ search over titles and synopses.
 
 from __future__ import annotations
 
+import io
 import logging
 import sqlite3
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Final
 
 from radio_cache.models import CacheStats, Programme
@@ -490,6 +492,89 @@ class CacheDB:
             "INSERT INTO programmes_fts(programmes_fts) VALUES('rebuild')"
         )
         self._conn.commit()
+
+    def export_get_iplayer_cache(
+        self,
+        dest: str | io.TextIOBase,
+    ) -> int:
+        """Export all programmes as a get_iplayer-compatible flat cache file.
+
+        The output uses the native get_iplayer v3.36 pipe-delimited format::
+
+            #index|type|name|episode|seriesnum|episodenum|pid|channel|available|expires|duration|desc|web|thumbnail|timeadded
+
+        ISO-8601 datetime strings are converted to Unix epoch seconds.
+        Missing or zero values are written as empty strings.
+
+        Args:
+            dest: File path string, or a writable text file-like object.
+
+        Returns:
+            Number of programme rows written.
+        """
+        rows = self._conn.execute(
+            "SELECT * FROM programmes ORDER BY title"
+        ).fetchall()
+
+        header = (
+            "#index|type|name|episode|seriesnum|episodenum"
+            "|pid|channel|available|expires|duration|desc|web|thumbnail|timeadded\n"
+        )
+
+        def _field(value: str | None) -> str:
+            return (value or "").replace("|", "-")
+
+        def _ts(iso: str | None) -> str:
+            if not iso:
+                return ""
+            try:
+                dt = datetime.fromisoformat(iso.replace("Z", "+00:00"))
+                return str(int(dt.timestamp()))
+            except (ValueError, OSError):
+                return ""
+
+        lines: list[str] = [header]
+        for index, row in enumerate(rows, start=1):
+            series_title = row["series_title"] or ""
+            brand_title = row["brand_title"] or ""
+            title = row["title"] or ""
+            name = _field(series_title or brand_title or title)
+            episode = _field(title)
+            episodenum = str(row["episode_number"]) if row["episode_number"] else ""
+            duration = str(row["duration_secs"]) if row["duration_secs"] else ""
+            available = _ts(row["first_broadcast"])
+            expires = _ts(row["available_until"])
+            timeadded = _ts(row["updated_at"])
+            fields = (
+                str(index),
+                "radio",
+                name,
+                episode,
+                "",  # seriesnum — no series number field in schema
+                episodenum,
+                _field(row["pid"]),
+                _field(row["channel"]),
+                available,
+                expires,
+                duration,
+                _field(row["synopsis"]),
+                _field(row["url"]),
+                _field(row["thumbnail_url"]),
+                timeadded,
+            )
+            lines.append("|".join(fields) + "\n")
+
+        content = "".join(lines)
+
+        if isinstance(dest, str):
+            Path(dest).write_text(content, encoding="utf-8")
+        else:
+            dest.write(content)
+
+        logger.info(
+            "Exported %d programmes to get_iplayer cache", len(rows)
+        )
+        return len(rows)
 
 
 def _row_to_programme(row: sqlite3.Row) -> Programme:
