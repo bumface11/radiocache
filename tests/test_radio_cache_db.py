@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import io
+from pathlib import Path
+
 import pytest
 
 from radio_cache.cache_db import CacheDB, _sanitise_fts_query
@@ -220,3 +223,203 @@ class TestSanitiseFtsQuery:
 
     def test_whitespace_only(self) -> None:
         assert _sanitise_fts_query("   ") == ""
+
+
+class TestExportGetIplayerCache:
+    """Tests for CacheDB.export_get_iplayer_cache."""
+
+    _HEADER = (
+        "#index|type|name|episode|seriesnum|episodenum"
+        "|pid|channel|available|expires|duration|desc|web|thumbnail|timeadded"
+    )
+
+    def test_header_line(self, tmp_path: Path) -> None:
+        """First line is the correct header."""
+        db = CacheDB(":memory:")
+        path = str(tmp_path / "radio.cache")
+        db.export_get_iplayer_cache(path)
+        with open(path) as fh:
+            first_line = fh.readline().rstrip("\n")
+        assert first_line == self._HEADER
+
+    def test_correct_row_count(self, tmp_path: Path) -> None:
+        """Number of data rows matches number of programmes."""
+        db = CacheDB(":memory:")
+        db.upsert_programmes([
+            Programme(pid="r1", title="Prog 1"),
+            Programme(pid="r2", title="Prog 2"),
+            Programme(pid="r3", title="Prog 3"),
+        ])
+        path = str(tmp_path / "radio.cache")
+        count = db.export_get_iplayer_cache(path)
+        assert count == 3
+        with open(path) as fh:
+            data_lines = [
+                ln for ln in fh.read().splitlines()
+                if ln and not ln.startswith("#")
+            ]
+        assert len(data_lines) == 3
+
+    def test_field_mapping(self, tmp_path: Path) -> None:
+        """All 15 fields are written in the correct column positions."""
+        db = CacheDB(":memory:")
+        db.upsert_programme(
+            Programme(
+                pid="fm1",
+                title="Ep Title",
+                series_title="Series Name",
+                brand_title="Brand Name",
+                synopsis="The synopsis",
+                duration_secs=1800,
+                episode_number=2,
+                channel="BBC Radio 4",
+                url="https://www.bbc.co.uk/sounds/play/fm1",
+                thumbnail_url="https://img.example.com/t.jpg",
+                first_broadcast="2025-06-01T09:00:00Z",
+                available_until="2026-06-01T09:00:00Z",
+            )
+        )
+        path = str(tmp_path / "radio.cache")
+        db.export_get_iplayer_cache(path)
+        with open(path) as fh:
+            lines = fh.read().splitlines()
+        fields = lines[1].split("|")
+        assert len(fields) == 15
+        assert fields[0] == "1"               # index
+        assert fields[1] == "radio"           # type
+        assert fields[2] == "Series Name"     # name (series_title preferred)
+        assert fields[3] == "Ep Title"        # episode
+        assert fields[4] == ""                # seriesnum (always empty)
+        assert fields[5] == "2"              # episodenum
+        assert fields[6] == "fm1"            # pid
+        assert fields[7] == "BBC Radio 4"    # channel
+        assert fields[8].isdigit()           # available (unix ts)
+        assert fields[9].isdigit()           # expires (unix ts)
+        assert fields[10] == "1800"          # duration
+        assert fields[11] == "The synopsis"  # desc
+        assert fields[12] == "https://www.bbc.co.uk/sounds/play/fm1"  # web
+        assert fields[13] == "https://img.example.com/t.jpg"  # thumbnail
+        assert fields[14].isdigit()          # timeadded (unix ts)
+
+    def test_iso_to_unix_timestamp_conversion(self, tmp_path: Path) -> None:
+        """ISO-8601 dates are converted to Unix epoch integers."""
+        db = CacheDB(":memory:")
+        db.upsert_programme(
+            Programme(
+                pid="ts1",
+                title="Timestamp Test",
+                first_broadcast="2025-01-01T00:00:00Z",
+                available_until="2026-01-01T00:00:00Z",
+            )
+        )
+        path = str(tmp_path / "radio.cache")
+        db.export_get_iplayer_cache(path)
+        with open(path) as fh:
+            fields = fh.read().splitlines()[1].split("|")
+        available = int(fields[8])
+        expires = int(fields[9])
+        assert available == 1735689600   # 2025-01-01T00:00:00Z
+        assert expires == 1767225600     # 2026-01-01T00:00:00Z
+
+    def test_zero_and_empty_values_become_empty_string(
+        self, tmp_path: Path
+    ) -> None:
+        """Zero duration/episode_number and empty timestamps write as empty strings."""
+        db = CacheDB(":memory:")
+        db.upsert_programme(
+            Programme(
+                pid="ev1",
+                title="Empty Values",
+                duration_secs=0,
+                episode_number=0,
+                first_broadcast="",
+                available_until="",
+            )
+        )
+        path = str(tmp_path / "radio.cache")
+        db.export_get_iplayer_cache(path)
+        with open(path) as fh:
+            fields = fh.read().splitlines()[1].split("|")
+        assert fields[5] == ""   # episodenum
+        assert fields[8] == ""   # available
+        assert fields[9] == ""   # expires
+        assert fields[10] == ""  # duration
+
+    def test_pipe_chars_in_fields_are_replaced(self, tmp_path: Path) -> None:
+        """Pipe characters inside field values are replaced with hyphens."""
+        db = CacheDB(":memory:")
+        db.upsert_programme(
+            Programme(
+                pid="pc1",
+                title="Title|With|Pipes",
+                synopsis="Desc|pipes",
+            )
+        )
+        path = str(tmp_path / "radio.cache")
+        db.export_get_iplayer_cache(path)
+        with open(path) as fh:
+            line = fh.read().splitlines()[1]
+        assert line.count("|") == 14  # exactly 14 separators for 15 fields
+
+    def test_write_to_file_like_object(self) -> None:
+        """export_get_iplayer_cache accepts a text file-like object."""
+        db = CacheDB(":memory:")
+        db.upsert_programme(Programme(pid="fl1", title="File Like"))
+        buf = io.StringIO()
+        count = db.export_get_iplayer_cache(buf)
+        assert count == 1
+        content = buf.getvalue()
+        assert content.startswith("#index|type|")
+        assert "fl1" in content
+
+    def test_empty_db_writes_only_header(self, tmp_path: Path) -> None:
+        """An empty database produces only the header line."""
+        db = CacheDB(":memory:")
+        path = str(tmp_path / "empty.cache")
+        count = db.export_get_iplayer_cache(path)
+        assert count == 0
+        with open(path) as fh:
+            lines = [ln for ln in fh.read().splitlines() if ln]
+        assert len(lines) == 1
+        assert lines[0] == self._HEADER
+
+    def test_name_prefers_series_title_over_brand(self, tmp_path: Path) -> None:
+        """name field prefers series_title, then brand_title, then title."""
+        db = CacheDB(":memory:")
+        db.upsert_programme(
+            Programme(
+                pid="nb1",
+                title="Episode",
+                series_title="My Series",
+                brand_title="My Brand",
+            )
+        )
+        path = str(tmp_path / "name.cache")
+        db.export_get_iplayer_cache(path)
+        with open(path) as fh:
+            fields = fh.read().splitlines()[1].split("|")
+        assert fields[2] == "My Series"
+
+    def test_name_falls_back_to_brand_when_no_series(
+        self, tmp_path: Path
+    ) -> None:
+        """name field uses brand_title when series_title is empty."""
+        db = CacheDB(":memory:")
+        db.upsert_programme(
+            Programme(pid="nb2", title="Episode", brand_title="My Brand")
+        )
+        path = str(tmp_path / "name2.cache")
+        db.export_get_iplayer_cache(path)
+        with open(path) as fh:
+            fields = fh.read().splitlines()[1].split("|")
+        assert fields[2] == "My Brand"
+
+    def test_name_falls_back_to_title(self, tmp_path: Path) -> None:
+        """name field uses title when both series_title and brand_title are empty."""
+        db = CacheDB(":memory:")
+        db.upsert_programme(Programme(pid="nb3", title="Standalone"))
+        path = str(tmp_path / "name3.cache")
+        db.export_get_iplayer_cache(path)
+        with open(path) as fh:
+            fields = fh.read().splitlines()[1].split("|")
+        assert fields[2] == "Standalone"

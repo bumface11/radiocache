@@ -98,84 +98,19 @@ def _export_json(db: CacheDB, json_path: str) -> None:
     logger.info("Exported %d programmes to %s", len(programmes), json_path)
 
 
-_GET_IPLAYER_CACHE_HEADINGS = (
-    "index",
-    "thumbnail",
-    "pid",
-    "available",
-    "expires",
-    "type",
-    "name",
-    "episode",
-    "versions",
-    "duration",
-    "desc",
-    "channel",
-    "categories",
-    "timeadded",
-    "guidance",
-    "web",
-    "seriesnum",
-    "episodenum",
-    "filename",
-    "mode",
-)
-
-
 def _export_get_iplayer_cache(db: CacheDB, cache_path: str) -> None:
     """Export the cache as a get_iplayer-compatible pipe-delimited file.
 
-    The output file can be hosted on GitHub and consumed by a modified
-    get_iplayer Web PVR Manager as a remote radio programme cache.
+    Writes the native get_iplayer v3.36 format::
 
-    Each line is an ``ENTRY`` record with fields matching the get_iplayer
-    CGI ``@headings`` array:
-    index|thumbnail|pid|available|expires|type|name|episode|versions|
-    duration|desc|channel|categories|timeadded|guidance|web|seriesnum|
-    episodenum|filename|mode
+        #index|type|name|episode|seriesnum|episodenum|pid|channel|available|expires|duration|desc|web|thumbnail|timeadded
 
     Args:
         db: Open cache database.
         cache_path: Output file path.
     """
-    programmes = db.all_programmes()
-
-    def _escape(value: str | None) -> str:
-        return (value or "").replace("|", "-")
-
-    lines: list[str] = [
-        "#" + "|".join(_GET_IPLAYER_CACHE_HEADINGS),
-    ]
-
-    for index, prog in enumerate(programmes, start=1):
-        name = _escape(prog.brand_title or prog.series_title or prog.title)
-        fields = (
-            str(index),
-            _escape(prog.thumbnail_url),
-            _escape(prog.pid),
-            _escape(prog.first_broadcast),
-            _escape(prog.available_until),
-            "radio",
-            name,
-            _escape(prog.title),
-            "default",
-            str(prog.duration_secs) if prog.duration_secs is not None else "0",
-            _escape(prog.synopsis),
-            _escape(prog.channel),
-            _escape(prog.categories),
-            "",
-            "",
-            _escape(prog.url),
-            "",
-            str(prog.episode_number) if prog.episode_number else "",
-            "<filename>",
-            "default",
-        )
-        lines.append("ENTRY|" + "|".join(fields))
-
-    path = Path(cache_path)
-    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    logger.info("Exported %d programmes to get_iplayer cache %s", len(programmes), cache_path)
+    count = db.export_get_iplayer_cache(cache_path)
+    logger.info("Exported %d programmes to get_iplayer cache %s", count, cache_path)
 
 
 def _programme_to_dict(prog: Programme) -> dict:

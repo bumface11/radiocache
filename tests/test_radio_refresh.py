@@ -77,7 +77,7 @@ class TestExportGetIplayerCache:
     """Tests for get_iplayer cache export functionality."""
 
     def test_export_creates_file(self, tmp_path: Path) -> None:
-        """Exporting creates a pipe-delimited cache file."""
+        """Exporting creates a pipe-delimited cache file in the new format."""
         db = CacheDB(":memory:")
         db.upsert_programme(
             Programme(
@@ -94,11 +94,17 @@ class TestExportGetIplayerCache:
         _export_get_iplayer_cache(db, cache_path)
 
         lines = Path(cache_path).read_text().splitlines()
-        assert lines[0].startswith("#index|thumbnail|pid|")
-        assert lines[1].startswith("ENTRY|")
+        expected_header = (
+            "#index|type|name|episode|seriesnum|episodenum"
+            "|pid|channel|available|expires|duration|desc|web|thumbnail|timeadded"
+        )
+        assert lines[0] == expected_header
+        # entry line is plain pipe-delimited (no ENTRY prefix)
+        assert not lines[1].startswith("ENTRY|")
+        assert lines[1].startswith("1|radio|")
 
     def test_entry_fields(self, tmp_path: Path) -> None:
-        """ENTRY line contains correct field values."""
+        """Entry line contains correct field values in the new column order."""
         db = CacheDB(":memory:")
         db.upsert_programme(
             Programme(
@@ -120,23 +126,25 @@ class TestExportGetIplayerCache:
         _export_get_iplayer_cache(db, cache_path)
 
         entry = Path(cache_path).read_text().splitlines()[1]
-        assert entry.startswith("ENTRY|")
         fields = entry.split("|")
-        # fields[0] is "ENTRY", then positional fields follow in heading order
-        assert fields[1] == "1"  # index
-        assert fields[3] == "gi2"  # pid
-        assert fields[6] == "radio"  # type
-        assert fields[7] == "Brand Name"  # name
-        assert fields[8] == "Episode Title"  # episode
-        assert fields[9] == "default"  # versions
-        assert fields[10] == "3600"  # duration
-        assert fields[11] == "Some desc"  # desc
-        assert fields[12] == "BBC Radio 4"  # channel
-        assert fields[13] == "Drama,Crime"  # categories
-        assert fields[16] == "https://www.bbc.co.uk/sounds/play/gi2"  # web
-        assert fields[18] == "3"  # episodenum
-        assert fields[19] == "<filename>"  # filename
-        assert fields[20] == "default"  # mode
+        # index|type|name|episode|seriesnum|episodenum|pid|channel|...
+        assert fields[0] == "1"            # index
+        assert fields[1] == "radio"        # type
+        assert fields[2] == "Brand Name"   # name
+        assert fields[3] == "Episode Title"  # episode
+        assert fields[4] == ""             # seriesnum (always empty)
+        assert fields[5] == "3"            # episodenum
+        assert fields[6] == "gi2"          # pid
+        assert fields[7] == "BBC Radio 4"  # channel
+        assert fields[10] == "3600"        # duration
+        assert fields[11] == "Some desc"   # desc
+        assert fields[12] == "https://www.bbc.co.uk/sounds/play/gi2"  # web
+        assert fields[13] == "https://example.com/thumb.jpg"  # thumbnail
+        # available (fields[8]) and expires (fields[9]) should be Unix timestamps
+        assert fields[8].isdigit()
+        assert fields[9].isdigit()
+        # timeadded (fields[14]) should be a Unix timestamp
+        assert fields[14].isdigit()
 
     def test_pipe_chars_escaped(self, tmp_path: Path) -> None:
         """Pipe characters in field values are replaced to avoid breaking the format."""
@@ -153,9 +161,9 @@ class TestExportGetIplayerCache:
         _export_get_iplayer_cache(db, cache_path)
 
         content = Path(cache_path).read_text()
-        entry = [ln for ln in content.splitlines() if ln.startswith("ENTRY|")][0]
-        # Each ENTRY line must have exactly the expected number of fields
-        assert entry.count("|") == 20  # ENTRY + 20 fields = 21 items, 20 separators
+        entry = [ln for ln in content.splitlines() if not ln.startswith("#")][0]
+        # 15 fields, 14 separators per data line
+        assert entry.count("|") == 14
 
     def test_empty_db(self, tmp_path: Path) -> None:
         """Exporting an empty database writes only the header line."""
@@ -178,7 +186,8 @@ class TestExportGetIplayerCache:
 
         entry = Path(cache_path).read_text().splitlines()[1]
         fields = entry.split("|")
-        assert fields[7] == "Series Title"  # name uses series_title fallback
+        # name (col index 2) uses series_title fallback
+        assert fields[2] == "Series Title"
 
 
 class TestRefreshCacheGetIplayer:
@@ -211,7 +220,7 @@ class TestRefreshCacheGetIplayer:
         entry_lines = [
             ln
             for ln in Path(cache_path).read_text().splitlines()
-            if ln.startswith("ENTRY|")
+            if ln and not ln.startswith("#")
         ]
         assert len(entry_lines) == 2
 
