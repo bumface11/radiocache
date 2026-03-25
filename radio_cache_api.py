@@ -6,13 +6,16 @@ hosting (Render free tier, Fly.io, Railway, etc.).
 
 Run locally with::
 
-    uv run uvicorn radio_cache_api:app --reload
+    uv run uvicorn radio_cache_api:app --reload --reload-include="*.json"
 """
 
 from __future__ import annotations
 
 import io
+import logging
 import os
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Final
 
@@ -23,18 +26,46 @@ from fastapi.templating import Jinja2Templates
 
 from radio_cache.cache_db import CacheDB
 from radio_cache.models import format_duration
+from radio_cache.refresh import import_from_json
 from radio_cache.search import (
     group_by_series,
     search_programmes,
 )
 
+logger = logging.getLogger(__name__)
+
 _DB_PATH: Final[str] = os.environ.get("RADIO_CACHE_DB", "radio_cache.db")
+_JSON_PATH: Final[str] = os.environ.get(
+    "RADIO_CACHE_JSON", "radio_cache_export.json"
+)
 _BASE_DIR: Final[Path] = Path(__file__).resolve().parent
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Import cache from the JSON export file on startup.
+
+    When the JSON export (populated by GitHub Actions) exists, its
+    contents are loaded into the SQLite database so the web UI always
+    reflects the latest data.
+    """
+    json_path = Path(_JSON_PATH)
+    if json_path.exists():
+        try:
+            count = import_from_json(str(json_path), _DB_PATH)
+            logger.info(
+                "Loaded %d programmes from %s on startup", count, json_path
+            )
+        except Exception:
+            logger.exception("Failed to import cache from %s", json_path)
+    yield
+
 
 app = FastAPI(
     title="BBC Radio Drama Cache",
     description="Search and browse BBC Radio drama programmes",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.mount(
