@@ -163,10 +163,13 @@ def import_from_json(
         for item in data.get("programmes", [])
     ]
 
+    last_refreshed = (data.get("meta") or {}).get(
+        "last_refreshed"
+    ) or datetime.now(UTC).isoformat()
+
     with CacheDB(db_path) as db:
         count = db.upsert_programmes(programmes)
-        now = datetime.now(UTC).isoformat()
-        db.set_meta("last_refreshed", now)
+        db.set_meta("last_refreshed", last_refreshed)
         logger.info("Imported %d programmes from %s", count, json_path)
         return count
 

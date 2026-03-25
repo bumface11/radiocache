@@ -1,0 +1,61 @@
+"""Tests for the radio_cache_api lifespan and startup behaviour."""
+
+from __future__ import annotations
+
+from pathlib import Path
+from unittest.mock import patch
+
+from fastapi.testclient import TestClient
+
+from radio_cache.cache_db import CacheDB
+from radio_cache.models import Programme
+from radio_cache.refresh import _export_json
+
+
+class TestLifespanImport:
+    """Tests for the lifespan startup cache import."""
+
+    def test_lifespan_imports_json_on_startup(self, tmp_path: Path) -> None:
+        """App imports radio_cache_export.json into the DB on startup."""
+        # Create a JSON export file with known data.
+        db = CacheDB(":memory:")
+        db.upsert_programme(
+            Programme(pid="ls1", title="Lifespan Test")
+        )
+        db.set_meta("last_refreshed", "2025-07-01T04:00:00+00:00")
+        json_path = str(tmp_path / "radio_cache_export.json")
+        _export_json(db, json_path)
+        db.close()
+
+        db_path = str(tmp_path / "startup.db")
+
+        with (
+            patch("radio_cache_api._JSON_PATH", json_path),
+            patch("radio_cache_api._DB_PATH", db_path),
+        ):
+            # Re-import app so the patched values are used in the lifespan.
+            from radio_cache_api import app
+
+            with TestClient(app):
+                pass  # lifespan runs on enter
+
+        with CacheDB(db_path) as db2:
+            assert db2.programme_count() == 1
+            prog = db2.get_programme("ls1")
+            assert prog is not None
+            assert prog.title == "Lifespan Test"
+            assert db2.get_meta("last_refreshed") == "2025-07-01T04:00:00+00:00"
+
+    def test_lifespan_no_json_file(self, tmp_path: Path) -> None:
+        """App starts normally when the JSON file does not exist."""
+        missing = str(tmp_path / "nonexistent.json")
+        db_path = str(tmp_path / "empty.db")
+
+        with (
+            patch("radio_cache_api._JSON_PATH", missing),
+            patch("radio_cache_api._DB_PATH", db_path),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app):
+                pass  # should not raise

@@ -72,6 +72,24 @@ class TestImportFromJson:
             assert prog is not None
             assert prog.title == "Import Test"
 
+    def test_import_preserves_last_refreshed_from_json(
+        self, tmp_path: Path
+    ) -> None:
+        """Import uses the last_refreshed timestamp from the JSON metadata."""
+        original_ts = "2025-06-15T04:00:00+00:00"
+        db = CacheDB(":memory:")
+        db.upsert_programme(Programme(pid="ts1", title="Timestamp Test"))
+        db.set_meta("last_refreshed", original_ts)
+        json_path = str(tmp_path / "ts.json")
+        _export_json(db, json_path)
+        db.close()
+
+        db_path = str(tmp_path / "ts.db")
+        import_from_json(json_path, db_path)
+
+        with CacheDB(db_path) as db2:
+            assert db2.get_meta("last_refreshed") == original_ts
+
 
 class TestExportGetIplayerCache:
     """Tests for get_iplayer cache export functionality."""

@@ -32,7 +32,7 @@ uv run python -m radio_cache.refresh --verbose
 uv run python -m radio_cache.refresh --import-json radio_cache_export.json
 
 # Start the web search UI
-uv run uvicorn radio_cache_api:app --reload
+uv run uvicorn radio_cache_api:app --reload --reload-include="*.json"
 ```
 
 Open `http://localhost:8000` to search and browse programmes.  Each programme
