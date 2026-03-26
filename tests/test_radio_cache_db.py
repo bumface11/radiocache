@@ -139,6 +139,66 @@ class TestCacheDB:
         assert len(episodes) == 2
         assert episodes[0].episode_number <= episodes[1].episode_number
 
+    def test_get_series_episodes_unnumbered_sort_last(self, db: CacheDB) -> None:
+        """Episodes with episode_number=0 sort after numbered episodes."""
+        programmes = [
+            Programme(
+                pid="ux",
+                title="Unnumbered Extra",
+                series_pid="s_test",
+                series_title="Test",
+                episode_number=0,
+                first_broadcast="2024-01-01T00:00:00Z",
+            ),
+            Programme(
+                pid="e2",
+                title="Episode 2",
+                series_pid="s_test",
+                series_title="Test",
+                episode_number=2,
+                first_broadcast="2024-01-02T00:00:00Z",
+            ),
+            Programme(
+                pid="e1",
+                title="Episode 1",
+                series_pid="s_test",
+                series_title="Test",
+                episode_number=1,
+                first_broadcast="2024-01-01T00:00:00Z",
+            ),
+        ]
+        db.upsert_programmes(programmes)
+        episodes = db.get_series_episodes("s_test")
+        assert len(episodes) == 3
+        assert episodes[0].pid == "e1"
+        assert episodes[1].pid == "e2"
+        assert episodes[2].pid == "ux"
+
+    def test_get_series_episodes_no_broadcast_last(self, db: CacheDB) -> None:
+        """Unnumbered episodes with empty first_broadcast sort after those with a date."""
+        programmes = [
+            Programme(
+                pid="no_date",
+                title="No Date",
+                series_pid="s_test",
+                series_title="Test",
+                episode_number=0,
+                first_broadcast="",
+            ),
+            Programme(
+                pid="has_date",
+                title="Has Date",
+                series_pid="s_test",
+                series_title="Test",
+                episode_number=0,
+                first_broadcast="2024-06-01T00:00:00Z",
+            ),
+        ]
+        db.upsert_programmes(programmes)
+        episodes = db.get_series_episodes("s_test")
+        assert episodes[0].pid == "has_date"
+        assert episodes[1].pid == "no_date"
+
     def test_list_brands(self, populated_db: CacheDB) -> None:
         """List brands returns distinct brands."""
         brands = populated_db.list_brands()

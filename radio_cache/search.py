@@ -84,7 +84,17 @@ def group_by_series(programmes: list[Programme]) -> list[SeriesGroup]:
     for spid, eps in sorted(
         buckets.items(), key=lambda kv: (kv[0] == "standalone", kv[0])
     ):
-        eps_sorted = sorted(eps, key=lambda p: (p.episode_number, p.first_broadcast))
+        eps_sorted = sorted(
+            eps,
+            key=lambda p: (
+                0 if p.episode_number > 0 else 1,
+                p.episode_number if p.episode_number > 0 else 2147483647,
+                0 if p.first_broadcast else 1,
+                p.first_broadcast or "9999-99-99T99:99:99Z",
+                p.title,
+                p.pid,
+            ),
+        )
         meta = series_meta.get(spid, ("Standalone", "", ""))
         groups.append(
             SeriesGroup(

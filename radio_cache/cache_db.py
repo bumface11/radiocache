@@ -326,7 +326,13 @@ class CacheDB:
         sql = """
             SELECT * FROM programmes
             WHERE series_pid = ?
-            ORDER BY episode_number, first_broadcast
+            ORDER BY
+              CASE WHEN episode_number > 0 THEN 0 ELSE 1 END,
+              CASE WHEN episode_number > 0 THEN episode_number ELSE 2147483647 END,
+              CASE WHEN first_broadcast = '' THEN 1 ELSE 0 END,
+              first_broadcast,
+              title,
+              pid
         """
         rows = self._conn.execute(sql, (series_pid,)).fetchall()
         return [_row_to_programme(r) for r in rows]

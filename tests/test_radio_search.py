@@ -126,6 +126,63 @@ class TestGroupBySeries:
         assert groups[0].episodes[0].episode_number == 1
         assert groups[0].episodes[1].episode_number == 2
 
+    def test_unnumbered_episodes_sort_after_numbered(self) -> None:
+        """Episodes with episode_number=0 sort after numbered episodes."""
+        progs = [
+            Programme(
+                pid="u1",
+                title="Unnumbered",
+                series_pid="s1",
+                series_title="S",
+                episode_number=0,
+                first_broadcast="2024-01-01T00:00:00Z",
+            ),
+            Programme(
+                pid="n2",
+                title="Ep 2",
+                series_pid="s1",
+                series_title="S",
+                episode_number=2,
+            ),
+            Programme(
+                pid="n1",
+                title="Ep 1",
+                series_pid="s1",
+                series_title="S",
+                episode_number=1,
+            ),
+        ]
+        groups = group_by_series(progs)
+        eps = groups[0].episodes
+        assert eps[0].pid == "n1"
+        assert eps[1].pid == "n2"
+        assert eps[2].pid == "u1"
+
+    def test_unnumbered_no_broadcast_sorts_last(self) -> None:
+        """Unnumbered episodes with empty first_broadcast sort after those with a date."""
+        progs = [
+            Programme(
+                pid="no_date",
+                title="No Date",
+                series_pid="s1",
+                series_title="S",
+                episode_number=0,
+                first_broadcast="",
+            ),
+            Programme(
+                pid="has_date",
+                title="Has Date",
+                series_pid="s1",
+                series_title="S",
+                episode_number=0,
+                first_broadcast="2024-06-01T00:00:00Z",
+            ),
+        ]
+        groups = group_by_series(progs)
+        eps = groups[0].episodes
+        assert eps[0].pid == "has_date"
+        assert eps[1].pid == "no_date"
+
 
 class TestGroupByBrand:
     """Tests for group_by_brand."""
