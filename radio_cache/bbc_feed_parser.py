@@ -27,6 +27,7 @@ _BBC_PLAYABLE_API: Final[str] = (
 _BBC_PROGRAMMES_API: Final[str] = "https://www.bbc.co.uk/programmes"
 
 _PAGE_LIMIT: Final[int] = 30
+_DEFAULT_MAX_PAGES: Final[int] = 50
 _REQUEST_DELAY_SECS: Final[float] = 1.0
 _REQUEST_TIMEOUT_SECS: Final[int] = 30
 _USER_AGENT: Final[str] = (
@@ -167,7 +168,7 @@ def _parse_programme_item(item: dict) -> Programme | None:
 
 def fetch_drama_programmes(
     category_slugs: list[str] | None = None,
-    max_pages: int = 10,
+    max_pages: int = _DEFAULT_MAX_PAGES,
     delay: float = _REQUEST_DELAY_SECS,
 ) -> list[Programme]:
     """Fetch radio drama programme metadata from BBC Sounds feeds.
@@ -221,6 +222,17 @@ def fetch_drama_programmes(
 
             total = data.get("total", 0)
             if offset + len(items) >= total or len(items) < _PAGE_LIMIT:
+                break
+
+            if page + 1 >= max_pages:
+                logger.warning(
+                    "Reached max_pages=%d for category '%s' before exhausting "
+                    "results (offset=%d, total=%d). Some episodes may be missed.",
+                    max_pages,
+                    slug,
+                    offset + len(items),
+                    total,
+                )
                 break
 
             time.sleep(delay)

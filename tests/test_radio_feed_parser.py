@@ -150,6 +150,35 @@ class TestFetchDramaProgrammes:
         assert f"offset={_PAGE_LIMIT}" in urls[1]
 
     @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_default_fetches_beyond_ten_pages(self, mock_fetch: MagicMock) -> None:
+        """Default max_pages should allow discovery past page 10."""
+        pages = []
+        for page in range(11):
+            items = [
+                {
+                    "urn": (
+                        f"urn:bbc:radio:episode:p{page:02d}_{i:02d}"
+                    ),
+                    "title": f"Episode {page}-{i}",
+                }
+                for i in range(_PAGE_LIMIT)
+            ]
+            pages.append(
+                {
+                    "data": items,
+                    "total": 11 * _PAGE_LIMIT,
+                }
+            )
+        pages.append({"data": [], "total": 11 * _PAGE_LIMIT})
+        mock_fetch.side_effect = pages
+
+        result = fetch_drama_programmes(category_slugs=["drama"], delay=0)
+        pids = {p.pid for p in result}
+
+        assert len(result) == 11 * _PAGE_LIMIT
+        assert "p10_29" in pids
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
     def test_includes_tleo_distinct(self, mock_fetch: MagicMock) -> None:
         """URL includes tleoDistinct=true."""
         mock_fetch.return_value = {"data": [], "total": 0}
