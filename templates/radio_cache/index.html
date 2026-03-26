@@ -48,7 +48,9 @@
             <div class="card-body">
                 <h6 class="card-title">{{ prog.title }}</h6>
                 {% if prog.series_title %}
-                    <span class="badge bg-info series-badge">{{ prog.series_title }}</span>
+                    <a href="/series/{{ prog.series_pid }}" class="badge bg-info series-badge text-decoration-none">
+                        {{ prog.series_title }}
+                    </a>
                 {% endif %}
                 {% if prog.duration_secs %}
                     <span class="badge bg-secondary badge-duration">

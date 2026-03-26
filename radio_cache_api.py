@@ -183,6 +183,14 @@ async def series_detail(request: Request, series_pid: str) -> HTMLResponse:
         episodes = db.get_series_episodes(series_pid)
         stats = db.stats()
     series_title = episodes[0].series_title if episodes else series_pid
+    referer = request.headers.get("referer", "")
+    base_url = str(request.base_url)
+    if referer.startswith(base_url):
+        previous_url = "/" + referer[len(base_url) :].lstrip("/")
+    elif referer.startswith("/"):
+        previous_url = referer
+    else:
+        previous_url = "/series"
     return templates.TemplateResponse(
         request,
         "series_detail.html",
@@ -191,6 +199,7 @@ async def series_detail(request: Request, series_pid: str) -> HTMLResponse:
             "series_pid": series_pid,
             "series_title": series_title,
             "episodes": episodes,
+            "previous_url": previous_url,
             "stats": stats,
         },
     )

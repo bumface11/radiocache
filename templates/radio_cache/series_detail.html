@@ -14,6 +14,11 @@
 <h2>{{ series_title }}</h2>
 <p class="text-muted">{{ episodes|length }} episodes</p>
 
+<div class="mb-3 d-flex gap-2">
+    <a href="{{ previous_url }}" class="btn btn-sm btn-outline-secondary">Back</a>
+    <a href="/series" class="btn btn-sm btn-outline-primary">All Series</a>
+</div>
+
 {% if episodes %}
 <div class="list-group">
     {% for ep in episodes %}

@@ -11,6 +11,7 @@
         <thead>
             <tr>
                 <th>Series</th>
+                <th>Slug</th>
                 <th class="text-end">Episodes</th>
             </tr>
         </thead>
@@ -19,6 +20,9 @@
             <tr>
                 <td>
                     <a href="/series/{{ s.series_pid }}">{{ s.series_title or s.series_pid }}</a>
+                </td>
+                <td>
+                    <a href="/series/{{ s.series_pid }}" class="font-monospace">{{ s.series_pid }}</a>
                 </td>
                 <td class="text-end">
                     <span class="badge bg-primary">{{ s.episode_count }}</span>

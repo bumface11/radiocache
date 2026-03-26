@@ -1,0 +1,12 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^uv run pytest --tb=short --ignore=tests/test_radio_api\\.py -q$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^uv run pytest --tb=short --ignore=tests/test_radio_api\\.py 2>&1 \\| Select-Object -Last 2$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
