@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -17,6 +18,11 @@ from radio_cache.cache_db import CacheDB
 from radio_cache.models import Programme
 
 logger = logging.getLogger(__name__)
+
+_DEFAULT_GITHUB_URL: str = (
+    "https://raw.githubusercontent.com/bumface11/radiocache/main/"
+    "radio_cache_export.json"
+)
 
 
 def refresh_cache(
@@ -142,6 +148,33 @@ def _programme_to_dict(prog: Programme) -> dict:
     }
 
 
+def _import_json_data(data: dict, db_path: str, source: str) -> int:
+    """Import programme data from a parsed JSON dict into the cache.
+
+    Args:
+        data: Parsed JSON dict with ``meta`` and ``programmes`` keys.
+        db_path: Path to the SQLite database file.
+        source: Label describing where the data came from (for logging).
+
+    Returns:
+        Number of programmes imported.
+    """
+    programmes = [
+        Programme(**{k: v for k, v in item.items() if k != "updated_at"})
+        for item in data.get("programmes", [])
+    ]
+
+    last_refreshed = (data.get("meta") or {}).get(
+        "last_refreshed"
+    ) or datetime.now(UTC).isoformat()
+
+    with CacheDB(db_path) as db:
+        count = db.upsert_programmes(programmes)
+        db.set_meta("last_refreshed", last_refreshed)
+        logger.info("Imported %d programmes from %s", count, source)
+        return count
+
+
 def import_from_json(
     json_path: str,
     db_path: str = "radio_cache.db",
@@ -157,21 +190,31 @@ def import_from_json(
     """
     path = Path(json_path)
     data = json.loads(path.read_text(encoding="utf-8"))
+    return _import_json_data(data, db_path, json_path)
 
-    programmes = [
-        Programme(**{k: v for k, v in item.items() if k != "updated_at"})
-        for item in data.get("programmes", [])
-    ]
 
-    last_refreshed = (data.get("meta") or {}).get(
-        "last_refreshed"
-    ) or datetime.now(UTC).isoformat()
+def import_from_github(
+    url: str = _DEFAULT_GITHUB_URL,
+    db_path: str = "radio_cache.db",
+    timeout: int = 60,
+) -> int:
+    """Fetch the JSON export from a GitHub URL and import it.
 
-    with CacheDB(db_path) as db:
-        count = db.upsert_programmes(programmes)
-        db.set_meta("last_refreshed", last_refreshed)
-        logger.info("Imported %d programmes from %s", count, json_path)
-        return count
+    Args:
+        url: URL to the raw JSON file on GitHub.
+        db_path: Path to the SQLite database file.
+        timeout: HTTP request timeout in seconds.
+
+    Returns:
+        Number of programmes imported.
+    """
+    logger.info("Fetching cache from %s", url)
+    req = urllib.request.Request(url, headers={"User-Agent": "RadioCache/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+        raw = resp.read().decode("utf-8")
+
+    data = json.loads(raw)
+    return _import_json_data(data, db_path, url)
 
 
 def main() -> None:
@@ -210,6 +253,16 @@ def main() -> None:
         help="Import from JSON file instead of fetching from BBC",
     )
     parser.add_argument(
+        "--import-github",
+        nargs="?",
+        const=_DEFAULT_GITHUB_URL,
+        metavar="URL",
+        help=(
+            "Import from GitHub instead of fetching from BBC. "
+            "Optionally provide a custom raw JSON URL."
+        ),
+    )
+    parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
@@ -223,7 +276,10 @@ def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
-    if args.import_json:
+    if args.import_github:
+        count = import_from_github(args.import_github, args.db)
+        logger.info("Imported %d programmes from GitHub", count)
+    elif args.import_json:
         count = import_from_json(args.import_json, args.db)
         logger.info("Imported %d programmes", count)
     else:

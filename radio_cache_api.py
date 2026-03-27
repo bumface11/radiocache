@@ -27,7 +27,7 @@ from fastapi.templating import Jinja2Templates
 
 from radio_cache.cache_db import CacheDB
 from radio_cache.models import Programme, format_duration
-from radio_cache.refresh import import_from_json
+from radio_cache.refresh import import_from_github, import_from_json
 from radio_cache.search import (
     group_by_series,
     search_programmes,
@@ -39,6 +39,7 @@ _DB_PATH: Final[str] = os.environ.get("RADIO_CACHE_DB", "radio_cache.db")
 _JSON_PATH: Final[str] = os.environ.get(
     "RADIO_CACHE_JSON", "radio_cache_export.json"
 )
+_GITHUB_URL: Final[str] = os.environ.get("RADIO_CACHE_GITHUB_URL", "")
 _BASE_DIR: Final[Path] = Path(__file__).resolve().parent
 
 
@@ -48,7 +49,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     When the JSON export (populated by GitHub Actions) exists, its
     contents are loaded into the SQLite database so the web UI always
-    reflects the latest data.
+    reflects the latest data.  If the JSON file is missing and
+    ``RADIO_CACHE_GITHUB_URL`` is set, the export is fetched from
+    GitHub instead.
     """
     json_path = Path(_JSON_PATH)
     if json_path.exists():
@@ -59,6 +62,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             )
         except Exception:
             logger.exception("Failed to import cache from %s", json_path)
+    elif _GITHUB_URL:
+        try:
+            count = import_from_github(_GITHUB_URL, _DB_PATH)
+            logger.info(
+                "Loaded %d programmes from GitHub on startup", count
+            )
+        except Exception:
+            logger.exception("Failed to import cache from GitHub")
     yield
 
 
