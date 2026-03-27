@@ -14,9 +14,19 @@
 <h2>{{ series_title }}</h2>
 <p class="text-muted">{{ episodes|length }} episodes</p>
 
-<div class="mb-3 d-flex gap-2">
+<div class="mb-3 d-flex gap-2 flex-wrap">
     <a href="{{ previous_url }}" class="btn btn-sm btn-outline-secondary">Back</a>
     <a href="/series" class="btn btn-sm btn-outline-primary">All Series</a>
+    <form method="get" action="/series/{{ series_pid }}" class="ms-auto d-flex align-items-center gap-2">
+        <input type="hidden" name="prev" value="{{ previous_url }}">
+        <label for="sort-select" class="small text-muted">Sort:</label>
+        <select id="sort-select" name="sort" class="form-select form-select-sm" onchange="this.form.submit()">
+            {% for option in sort_options %}
+                <option value="{{ option.value }}" {% if sort == option.value %}selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
+        </select>
+        <noscript><button type="submit" class="btn btn-sm btn-primary">Apply</button></noscript>
+    </form>
 </div>
 
 {% if episodes %}
@@ -31,6 +41,12 @@
                             <span class="badge bg-secondary me-1">Ep {{ ep.episode_number }}</span>
                         {% endif %}
                         {{ ep.title }}
+                        {% if ep.first_broadcast and (ep.first_broadcast | is_recent_broadcast) %}
+                            <span class="badge text-bg-success ms-1">Recent</span>
+                        {% endif %}
+                        {% if ep.available_until and (ep.available_until | is_expiring_soon) %}
+                            <span class="badge text-bg-warning ms-1">Expiring soon</span>
+                        {% endif %}
                     </h6>
                     <button class="btn btn-sm btn-outline-info rounded-circle py-0 px-2"
                             type="button"

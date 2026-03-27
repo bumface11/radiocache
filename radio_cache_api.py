@@ -16,9 +16,9 @@ import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Final
+from typing import Final, Literal
 
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
@@ -26,7 +26,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from radio_cache.cache_db import CacheDB
-from radio_cache.models import format_duration
+from radio_cache.models import Programme, format_duration
 from radio_cache.refresh import import_from_json
 from radio_cache.search import (
     group_by_series,
@@ -90,6 +90,18 @@ def format_short_date(value: str) -> str:
     if not value:
         return ""
 
+    dt = _parse_iso_datetime(value)
+    if dt is None:
+        return value
+
+    return f"{dt.day}/{dt.month}/{dt.strftime('%y')}"
+
+
+def _parse_iso_datetime(value: str) -> datetime | None:
+    """Parse a date/time string into an aware UTC datetime."""
+    if not value:
+        return None
+
     cleaned = value.strip()
     try:
         dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
@@ -97,12 +109,108 @@ def format_short_date(value: str) -> str:
         try:
             dt = datetime.fromisoformat(cleaned[:10])
         except ValueError:
-            return value
+            return None
 
-    return f"{dt.day}/{dt.month}/{dt.strftime('%y')}"
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+def is_recent_broadcast(value: str) -> bool:
+    """Return True when ``first_broadcast`` is within the last 3 days."""
+    dt = _parse_iso_datetime(value)
+    if dt is None:
+        return False
+
+    delta = datetime.now(timezone.utc) - dt
+    return timedelta(0) <= delta <= timedelta(days=3)
+
+
+def is_expiring_soon(value: str) -> bool:
+    """Return True when ``available_until`` is within the next 7 days."""
+    dt = _parse_iso_datetime(value)
+    if dt is None:
+        return False
+
+    delta = dt - datetime.now(timezone.utc)
+    return timedelta(0) <= delta <= timedelta(days=7)
+
+
+SortOption = Literal[
+    "series_order",
+    "broadcast_newest",
+    "broadcast_oldest",
+    "expiry_soonest",
+    "title_az",
+]
+
+
+def _utc_seconds(dt: datetime) -> float:
+    """Convert a UTC datetime to seconds since epoch without using timestamp()."""
+    epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+    return (dt - epoch).total_seconds()
+
+
+def _sort_series_order_key(ep: Programme) -> tuple[object, ...]:
+    """Default logical order: numbered episodes first, then dated items."""
+    return (
+        0 if ep.episode_number > 0 else 1,
+        ep.episode_number if ep.episode_number > 0 else 2147483647,
+        0 if ep.first_broadcast else 1,
+        ep.first_broadcast or "9999-99-99T99:99:99Z",
+        ep.title.lower(),
+        ep.pid,
+    )
+
+
+def _sort_episodes(episodes: list[Programme], sort_by: SortOption) -> list[Programme]:
+    """Return a sorted copy of ``episodes`` according to the selected order."""
+    if sort_by == "broadcast_newest":
+        return sorted(
+            episodes,
+            key=lambda ep: (
+                _parse_iso_datetime(ep.first_broadcast) is None,
+                -_utc_seconds(_parse_iso_datetime(ep.first_broadcast) or datetime.max.replace(tzinfo=timezone.utc)),
+                ep.title.lower(),
+                ep.pid,
+            ),
+        )
+    if sort_by == "broadcast_oldest":
+        return sorted(
+            episodes,
+            key=lambda ep: (
+                _parse_iso_datetime(ep.first_broadcast) is None,
+                _utc_seconds(_parse_iso_datetime(ep.first_broadcast) or datetime.max.replace(tzinfo=timezone.utc)),
+                ep.title.lower(),
+                ep.pid,
+            ),
+        )
+    if sort_by == "expiry_soonest":
+        return sorted(
+            episodes,
+            key=lambda ep: (
+                _parse_iso_datetime(ep.available_until) is None,
+                _utc_seconds(_parse_iso_datetime(ep.available_until) or datetime.max.replace(tzinfo=timezone.utc)),
+                ep.title.lower(),
+                ep.pid,
+            ),
+        )
+    if sort_by == "title_az":
+        return sorted(
+            episodes,
+            key=lambda ep: (
+                ep.title.lower(),
+                _parse_iso_datetime(ep.first_broadcast) is None,
+                _utc_seconds(_parse_iso_datetime(ep.first_broadcast) or datetime.max.replace(tzinfo=timezone.utc)),
+                ep.pid,
+            ),
+        )
+    return sorted(episodes, key=_sort_series_order_key)
 
 
 templates.env.filters["format_short_date"] = format_short_date
+templates.env.filters["is_recent_broadcast"] = is_recent_broadcast
+templates.env.filters["is_expiring_soon"] = is_expiring_soon
 
 
 def _get_db() -> CacheDB:
@@ -197,7 +305,12 @@ async def series_list(request: Request) -> HTMLResponse:
 
 
 @app.get("/series/{series_pid}", response_class=HTMLResponse)
-async def series_detail(request: Request, series_pid: str) -> HTMLResponse:
+async def series_detail(
+    request: Request,
+    series_pid: str,
+    sort: SortOption = Query(default="series_order"),
+    prev: str = Query(default=""),
+) -> HTMLResponse:
     """Show episodes in a series.
 
     Args:
@@ -210,15 +323,30 @@ async def series_detail(request: Request, series_pid: str) -> HTMLResponse:
     with _get_db() as db:
         episodes = db.get_series_episodes(series_pid)
         stats = db.stats()
+    episodes = _sort_episodes(episodes, sort)
     series_title = episodes[0].series_title if episodes else series_pid
-    referer = request.headers.get("referer", "")
-    base_url = str(request.base_url)
-    if referer.startswith(base_url):
-        previous_url = "/" + referer[len(base_url) :].lstrip("/")
-    elif referer.startswith("/"):
-        previous_url = referer
+    if prev.startswith("/") and not prev.startswith("//"):
+        previous_url = prev
     else:
+        referer = request.headers.get("referer", "")
+        base_url = str(request.base_url)
+        if referer.startswith(base_url):
+            previous_url = "/" + referer[len(base_url) :].lstrip("/")
+        elif referer.startswith("/"):
+            previous_url = referer
+        else:
+            previous_url = "/series"
+
+    if previous_url.startswith(f"/series/{series_pid}"):
         previous_url = "/series"
+
+    sort_options = [
+        {"value": "series_order", "label": "Series order"},
+        {"value": "broadcast_newest", "label": "Broadcast date (newest first)"},
+        {"value": "broadcast_oldest", "label": "Broadcast date (oldest first)"},
+        {"value": "expiry_soonest", "label": "Expiry date (soonest first)"},
+        {"value": "title_az", "label": "Title (A-Z)"},
+    ]
     return templates.TemplateResponse(
         request,
         "series_detail.html",
@@ -227,6 +355,8 @@ async def series_detail(request: Request, series_pid: str) -> HTMLResponse:
             "series_pid": series_pid,
             "series_title": series_title,
             "episodes": episodes,
+            "sort": sort,
+            "sort_options": sort_options,
             "previous_url": previous_url,
             "stats": stats,
         },
