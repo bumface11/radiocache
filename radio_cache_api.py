@@ -16,6 +16,7 @@ import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import Final
 
@@ -75,6 +76,33 @@ app.mount(
 )
 templates = Jinja2Templates(directory=str(_BASE_DIR / "templates" / "radio_cache"))
 templates.env.filters["format_duration"] = format_duration
+
+
+def format_short_date(value: str) -> str:
+    """Format an ISO-like timestamp string as d/m/yy.
+
+    Args:
+        value: Date/time string, typically ISO-8601.
+
+    Returns:
+        Date in d/m/yy format, or the original input when parsing fails.
+    """
+    if not value:
+        return ""
+
+    cleaned = value.strip()
+    try:
+        dt = datetime.fromisoformat(cleaned.replace("Z", "+00:00"))
+    except ValueError:
+        try:
+            dt = datetime.fromisoformat(cleaned[:10])
+        except ValueError:
+            return value
+
+    return f"{dt.day}/{dt.month}/{dt.strftime('%y')}"
+
+
+templates.env.filters["format_short_date"] = format_short_date
 
 
 def _get_db() -> CacheDB:

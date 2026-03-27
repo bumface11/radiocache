@@ -25,20 +25,35 @@
     <div class="list-group-item">
         <div class="d-flex justify-content-between align-items-start">
             <div class="flex-grow-1">
-                <h6 class="mb-1">
-                    {% if ep.episode_number %}
-                        <span class="badge bg-secondary me-1">Ep {{ ep.episode_number }}</span>
-                    {% endif %}
-                    {{ ep.title }}
-                </h6>
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+                    <h6 class="mb-0">
+                        {% if ep.episode_number %}
+                            <span class="badge bg-secondary me-1">Ep {{ ep.episode_number }}</span>
+                        {% endif %}
+                        {{ ep.title }}
+                    </h6>
+                    <button class="btn btn-sm btn-outline-info rounded-circle py-0 px-2"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#info-series-{{ ep.pid }}"
+                            aria-expanded="false"
+                            aria-controls="info-series-{{ ep.pid }}"
+                            title="Show more details">i</button>
+                </div>
                 <p class="mb-1 text-muted">
                     {{ ep.synopsis[:300] }}{% if ep.synopsis|length > 300 %}...{% endif %}
                 </p>
+                <div class="collapse mt-2" id="info-series-{{ ep.pid }}">
+                    <div class="border rounded p-2 small text-muted">
+                        {% if ep.categories %}<div><strong>Categories:</strong> {{ ep.categories }}</div>{% endif %}
+                        {% if ep.available_until %}<div><strong>Available until:</strong> {{ ep.available_until | format_short_date }}</div>{% endif %}
+                    </div>
+                </div>
                 <div class="get-iplayer-cmd" title="Click to copy">
                     get_iplayer --pid={{ ep.pid }} --type=radio
                 </div>
                 <small class="text-muted">
-                    {% if ep.first_broadcast %}Broadcast: {{ ep.first_broadcast[:10] }}{% endif %}
+                    {% if ep.first_broadcast %}Broadcast: {{ ep.first_broadcast | format_short_date }}{% endif %}
                     {% if ep.channel %}| {{ ep.channel }}{% endif %}
                 </small>
             </div>

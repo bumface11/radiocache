@@ -63,7 +63,7 @@
                     {{ stats.total_programmes }} programmes |
                     {{ stats.total_series }} series
                     {% if stats.last_refreshed %}
-                        | Last refreshed: {{ stats.last_refreshed[:19] }}
+                        | Last refreshed: {{ stats.last_refreshed | format_short_date }}
                     {% endif %}
                 {% endif %}
             </div>

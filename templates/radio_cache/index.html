@@ -46,7 +46,16 @@
     <div class="col-md-6 col-lg-4">
         <div class="card programme-card h-100">
             <div class="card-body">
-                <h6 class="card-title">{{ prog.title }}</h6>
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <h6 class="card-title mb-1">{{ prog.title }}</h6>
+                    <button class="btn btn-sm btn-outline-info rounded-circle py-0 px-2"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#info-recent-{{ prog.pid }}"
+                            aria-expanded="false"
+                            aria-controls="info-recent-{{ prog.pid }}"
+                            title="Show more details">i</button>
+                </div>
                 {% if prog.series_title %}
                     <a href="/series/{{ prog.series_pid }}" class="badge bg-info series-badge text-decoration-none">
                         {{ prog.series_title }}
@@ -60,6 +69,13 @@
                 <p class="card-text small text-muted mt-2">
                     {{ prog.synopsis[:150] }}{% if prog.synopsis|length > 150 %}...{% endif %}
                 </p>
+                <div class="collapse mt-2" id="info-recent-{{ prog.pid }}">
+                    <div class="border rounded p-2 small text-muted">
+                        {% if prog.channel %}<div><strong>Channel:</strong> {{ prog.channel }}</div>{% endif %}
+                        {% if prog.categories %}<div><strong>Categories:</strong> {{ prog.categories }}</div>{% endif %}
+                        {% if prog.available_until %}<div><strong>Available until:</strong> {{ prog.available_until | format_short_date }}</div>{% endif %}
+                    </div>
+                </div>
                 <div class="get-iplayer-cmd" title="Click to copy">
                     get_iplayer --pid={{ prog.pid }} --type=radio
                 </div>
@@ -67,7 +83,7 @@
             <div class="card-footer small text-muted">
                 <a href="{{ prog.url }}" target="_blank" rel="noopener">BBC Sounds</a>
                 {% if prog.first_broadcast %}
-                    | {{ prog.first_broadcast[:10] }}
+                    | {{ prog.first_broadcast | format_short_date }}
                 {% endif %}
             </div>
         </div>
