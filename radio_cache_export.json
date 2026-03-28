@@ -1,6 +1,6 @@
 {
   "meta": {
-    "last_refreshed": "2026-03-27T21:12:54.187992+00:00",
+    "last_refreshed": "2026-03-28T05:23:16.256588+00:00",
     "total_programmes": 2972
   },
   "programmes": [
@@ -599,24 +599,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/b007k31q"
     },
     {
-      "pid": "b007k2vm",
-      "title": "Alison and Maud: Series 1",
-      "synopsis": "A nasty moment for Bernard - or is the landladies' daddy only joking?",
-      "duration_secs": 1800,
-      "available_until": "2026-03-28T05:00:00Z",
-      "first_broadcast": "2003-01-10T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b00bfklk",
-      "series_title": "Alison and Maud",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p067jnf8.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b007k2vm"
-    },
-    {
       "pid": "b086tfbm",
       "title": "All Those Women: Series 2",
       "synopsis": "An opportunity for Maggie to have a bit of a lie down soon gets a bit fraught.",
@@ -705,24 +687,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mzl28w.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/b00js6rf"
-    },
-    {
-      "pid": "b00jqp75",
-      "title": "Anybody Can Do Anything by Betty MacDonald: 3. The Dating Scene",
-      "synopsis": "Mary sets up a string of disastrous dates for Betty.",
-      "duration_secs": 900,
-      "available_until": "2026-03-28T03:45:00Z",
-      "first_broadcast": "2009-04-15T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "m002rqbv",
-      "series_title": "Anybody Can Do Anything by Betty MacDonald",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mzl28w.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b00jqp75"
     },
     {
       "pid": "b00jqpfl",
@@ -1713,6 +1677,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0ljr7bq.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/p0mmk03x"
+    },
+    {
+      "pid": "p0m1qqjq",
+      "title": "Big Kick Energy: PACEY AND LOOSEY?",
+      "synopsis": "Suzi and guest host Laura Checkley discuss the WSL. Maisie meets Millie Bright.",
+      "duration_secs": 3489,
+      "available_until": "2028-09-08T22:59:00Z",
+      "first_broadcast": "2025-09-09T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p0ljr71y",
+      "series_title": "Big Kick Energy",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Sounds",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0ljr7bq.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/p0m1qqjq"
     },
     {
       "pid": "p0mjnjd1",
@@ -3517,7 +3499,7 @@
     {
       "pid": "p0n5cjwc",
       "title": "Checkout Confessions: Introducing... Checkout Confessions",
-      "synopsis": "Join chef Matt Tebbutt as famous guests chat through their shopping habits.",
+      "synopsis": "Join chef Matt Tebbutt as famous guests chat through their shopping habits",
       "duration_secs": 116,
       "available_until": "",
       "first_broadcast": "2026-03-09T00:00:00Z",
@@ -3535,7 +3517,7 @@
     {
       "pid": "p0n696h0",
       "title": "Checkout Confessions: Jayde Adams: \"I'm a pork sommelier\"",
-      "synopsis": "The comedian talks her pork passion, Bristolian culinary upbringing and lots more.",
+      "synopsis": "The comedian talks her pork passion, Bristolian culinary upbringing and lots more",
       "duration_secs": 2632,
       "available_until": "",
       "first_broadcast": "2026-03-13T00:00:00Z",
@@ -3553,7 +3535,7 @@
     {
       "pid": "p0n7n9nq",
       "title": "Checkout Confessions: Mike Bubbins: \"Can you get bigger cockles!?\"",
-      "synopsis": "Mike Bubbins explains why cold curry is king and banana on a Szechuan is never the answer",
+      "synopsis": "Mammoth's star and creator explains why cold curry is king and banana on a Szechuan isn't",
       "duration_secs": 1902,
       "available_until": "",
       "first_broadcast": "2026-03-20T00:00:00Z",
@@ -8033,6 +8015,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0lmwhcj"
     },
     {
+      "pid": "p0lk5vh7",
+      "title": "David Tennant Does a Podcast With…: Stanley Tucci",
+      "synopsis": "Stanley chats experiences that shaped his life: passion for food, drink, and storytelling.",
+      "duration_secs": 4111,
+      "available_until": "2028-09-08T22:59:00Z",
+      "first_broadcast": "2025-09-09T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p0l8rpss",
+      "series_title": "David Tennant Does a Podcast With…",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Sounds",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0l9qj5z.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/p0lk5vh7"
+    },
+    {
       "pid": "p0jzcf7y",
       "title": "David Tennant: “I loved filming Rivals in Bristol”",
       "synopsis": "The former Doctor Who actor talks about filming the hit series in the city.",
@@ -8121,24 +8121,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n2bt3z.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m002rrv8"
-    },
-    {
-      "pid": "m002rqrr",
-      "title": "Dick Francis: Breaking Point",
-      "synopsis": "Rob Finn’s career as a jockey is on the up - but at what cost?",
-      "duration_secs": 1800,
-      "available_until": "2026-03-28T01:30:00Z",
-      "first_broadcast": "1974-06-22T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b0418jfp",
-      "series_title": "Dick Francis",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n2bt3z.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/m002rqrr"
     },
     {
       "pid": "m0023ftj",
@@ -18581,6 +18563,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0n8w3ls"
     },
     {
+      "pid": "b08n22ry",
+      "title": "Hal: Series 2",
+      "synopsis": "Hal Cruttenden is confronted by his wife's surprising romantic past.",
+      "duration_secs": 1800,
+      "available_until": "2026-04-27T00:00:00Z",
+      "first_broadcast": "2017-04-23T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b08mk7c9",
+      "series_title": "Hal",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n3nncg.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b08n22ry"
+    },
+    {
       "pid": "b08m9flm",
       "title": "Hal: Series 2",
       "synopsis": "Hal Cruttenden inadvertently becomes an internet sensation.",
@@ -18651,24 +18651,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m33c5h.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/b00dyp5l"
-    },
-    {
-      "pid": "b007jxpn",
-      "title": "Hancock's Half Hour: Series 6",
-      "synopsis": "When he hears his TV soundalike, the lad heads to court.",
-      "duration_secs": 1800,
-      "available_until": "2026-03-28T03:00:00Z",
-      "first_broadcast": "1959-12-29T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b009t2ld",
-      "series_title": "Hancock's Half Hour",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m33c5h.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b007jxpn"
     },
     {
       "pid": "b00rzl84",
@@ -22757,24 +22739,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/b007k3vh"
     },
     {
-      "pid": "b007k3tn",
-      "title": "Ladies of Letters: Ladies of Letters Go Global",
-      "synopsis": "Still on her package holiday, Vera is abducted by Transylvanian separatists.",
-      "duration_secs": 900,
-      "available_until": "2026-03-28T04:00:00Z",
-      "first_broadcast": "2006-01-04T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b01s5dj1",
-      "series_title": "Ladies of Letters",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0811dx0.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b007k3tn"
-    },
-    {
       "pid": "b007k3xg",
       "title": "Ladies of Letters: Ladies of Letters Go Global (Omnibus)",
       "synopsis": "Vera nabs a package to Ibiza, while Irene aims to save her friend from seduction.",
@@ -26067,24 +26031,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mg6c5c.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/b00tr63g"
-    },
-    {
-      "pid": "b00tp807",
-      "title": "Little Blighty on the Down: Series 4",
-      "synopsis": "The Parish council needs its money, but can the bank pay out?",
-      "duration_secs": 1800,
-      "available_until": "2026-03-28T02:30:00Z",
-      "first_broadcast": "1991-07-12T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b00cjsnh",
-      "series_title": "Little Blighty on the Down",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mg6c5c.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b00tp807"
     },
     {
       "pid": "b00tnrv2",
@@ -32441,24 +32387,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/m0016xnb"
     },
     {
-      "pid": "m0016xhw",
-      "title": "Personal Column: Evening Out by Jill Hyem",
-      "synopsis": "Trevor calls on his acting skills when Miss Pike hires him to escort her.",
-      "duration_secs": 1800,
-      "available_until": "2026-03-28T02:00:00Z",
-      "first_broadcast": "1967-03-27T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "m0016xd0",
-      "series_title": "Personal Column",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0c24zhz.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/m0016xhw"
-    },
-    {
       "pid": "m0016xkd",
       "title": "Personal Column: No Square Deal by Eddie Maguire",
       "synopsis": "TryIng to sell old jewellery, John and Helen get more than they bargained for...",
@@ -33447,6 +33375,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0my3xnm.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/p0m4bqdt"
+    },
+    {
+      "pid": "p0m1r4cb",
+      "title": "Radio 1's All Day Breakfast with Greg James: A Rude Awakening!",
+      "synopsis": "The Surname Game is back! This time it's (radio-friendly) rude names!",
+      "duration_secs": 2023,
+      "available_until": "",
+      "first_broadcast": "2025-09-09T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p02nrw8h",
+      "series_title": "Radio 1's All Day Breakfast with Greg James",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 1",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0my3xnm.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/p0m1r4cb"
     },
     {
       "pid": "p0mh66vg",
@@ -42485,24 +42431,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0j65w3k"
     },
     {
-      "pid": "m0017v79",
-      "title": "Thanks a Lot, Milton Jones!: Series 5",
-      "synopsis": "Milton joins the world's kindliest Secret Service at a tense spy swap on the Severn Bridge",
-      "duration_secs": 1680,
-      "available_until": "2026-03-27T22:30:00Z",
-      "first_broadcast": "2022-06-02T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b06t61qj",
-      "series_title": "Thanks a Lot, Milton Jones!",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mjpk56.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/m0017v79"
-    },
-    {
       "pid": "m002ly0m",
       "title": "The Abergele Files: Geneva",
       "synopsis": "The world's worst detective agency has come to north Wales. Relax, criminals.",
@@ -46013,6 +45941,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/m002tb7y"
     },
     {
+      "pid": "m002tb8j",
+      "title": "The Comedy Club Interviews: Hannah East 3/3",
+      "synopsis": "Esyllt Sears chats once more to sports presenter, podcaster and comedian Hannah East.",
+      "duration_secs": 300,
+      "available_until": "",
+      "first_broadcast": "2026-03-27T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b012klt2",
+      "series_title": "The Comedy Club Interviews",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n6frfy.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/m002tb8j"
+    },
+    {
       "pid": "m002mqxr",
       "title": "The Comedy Club Interviews: Ian Smith 1/3",
       "synopsis": "Isy Suttie chats to comedian, Ian Smith.",
@@ -46787,6 +46733,42 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0gxr8cg"
     },
     {
+      "pid": "p0gxr6m8",
+      "title": "The Future by Naomi Alderman: 8. This is My Island",
+      "synopsis": "The next in the blistering new novel from the award-winning author of The Power.",
+      "duration_secs": 1020,
+      "available_until": "2028-12-06T10:45:00Z",
+      "first_broadcast": "2023-12-06T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p0gxqqk3",
+      "series_title": "The Future by Naomi Alderman",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0gxqrsm.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/p0gxr6m8"
+    },
+    {
+      "pid": "p0gxr7kf",
+      "title": "The Future by Naomi Alderman: 9. Dying Without Dying",
+      "synopsis": "From the author of The Power, a novel set in a future we could be heading to - fast.",
+      "duration_secs": 1020,
+      "available_until": "2028-12-06T10:45:00Z",
+      "first_broadcast": "2023-12-06T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p0gxqqk3",
+      "series_title": "The Future by Naomi Alderman",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0gxqrsm.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/p0gxr7kf"
+    },
+    {
       "pid": "b007jr24",
       "title": "The Goon Show: Series 10",
       "synopsis": "It is 1942, and Neddie Seagoon must stop the Germans' secret weapon.",
@@ -47001,6 +46983,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m6hfdy.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/b00cgsrm"
+    },
+    {
+      "pid": "m0018x7h",
+      "title": "The Hudson and Pepperdine Show: Series 4",
+      "synopsis": "Do the bright lights of TV beckon for the comedy duo?",
+      "duration_secs": 1800,
+      "available_until": "2026-04-26T23:30:00Z",
+      "first_broadcast": "2005-07-28T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b05q0mtv",
+      "series_title": "The Hudson and Pepperdine Show",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n7545f.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/m0018x7h"
     },
     {
       "pid": "m0018q02",
@@ -47723,24 +47723,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/b00mbbkh"
     },
     {
-      "pid": "b00m67w1",
-      "title": "The Maltby Collection: Series 3",
-      "synopsis": "Walter must cut museum costs. Who's for the axe?",
-      "duration_secs": 1800,
-      "available_until": "2026-03-27T22:55:00Z",
-      "first_broadcast": "2009-08-24T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b007q99c",
-      "series_title": "The Maltby Collection",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p01lc4xv.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b00m67w1"
-    },
-    {
       "pid": "b007k4h4",
       "title": "The Mark Steel Lecture: Series 1",
       "synopsis": "The radical comedian profiles the 18th-century author and radical idealist.",
@@ -48063,24 +48045,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mf8xw1.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m000mswk"
-    },
-    {
-      "pid": "m000mkj7",
-      "title": "The Museum of Curiosity: Series 15",
-      "synopsis": "John Lloyd and Alice Levine with Suzi Ruffell, Ainsley Harriott and Helen Fielding.",
-      "duration_secs": 1680,
-      "available_until": "2026-03-28T04:30:00Z",
-      "first_broadcast": "2020-09-14T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b00k3wvk",
-      "series_title": "The Museum of Curiosity",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mf8xw1.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/m000mkj7"
     },
     {
       "pid": "b007k1qj",
@@ -50513,6 +50477,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/m001vdr6"
     },
     {
+      "pid": "b00jz5yt",
+      "title": "Unnatural Acts: Series 1",
+      "synopsis": "Is Kit really married to a dirty ruskie commie pinko lefty agitator agent?",
+      "duration_secs": 1800,
+      "available_until": "2026-04-26T22:55:00Z",
+      "first_broadcast": "1987-05-02T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b00k9h8b",
+      "series_title": "Unnatural Acts",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p01gfv3w.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b00jz5yt"
+    },
+    {
       "pid": "b00jtm1n",
       "title": "Unnatural Acts: Series 1",
       "synopsis": "The gang end up at a nuclear power plant. Starring Jeremy Hardy.",
@@ -52239,6 +52221,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0lbnmbh.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/p0m303vp"
+    },
+    {
+      "pid": "p0m1jymb",
+      "title": "You About?: Bowling, Tom's Tour & Oxbridge Tests",
+      "synopsis": "Roman Kemp & Tom Grennan talk bowling, tours and try their hand at Oxbridge questions.",
+      "duration_secs": 2049,
+      "available_until": "",
+      "first_broadcast": "2025-09-09T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p0lbnm09",
+      "series_title": "You About?",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Sounds",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0lbnmbh.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/p0m1jymb"
     },
     {
       "pid": "p0mmqtd9",
