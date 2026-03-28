@@ -14,6 +14,8 @@ from __future__ import annotations
 import io
 import logging
 import os
+import threading
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
@@ -420,6 +422,25 @@ async def brand_detail(request: Request, brand_pid: str) -> HTMLResponse:
     )
 
 
+@app.get("/recordings", response_class=HTMLResponse)
+async def recordings_page(request: Request) -> HTMLResponse:
+    """Render the recordings management page.
+
+    Args:
+        request: Incoming HTTP request.
+
+    Returns:
+        Rendered HTML page showing recording jobs and a live-station form.
+    """
+    with _get_db() as db:
+        stats = db.stats()
+    return templates.TemplateResponse(
+        request,
+        "recordings.html",
+        {"request": request, "stats": stats},
+    )
+
+
 # ── JSON API endpoints ────────────────────────────────────────────────
 
 
@@ -568,3 +589,354 @@ def _prog_dict(prog: object) -> dict:
         "url": prog.url,
         "get_iplayer_cmd": f"get_iplayer --pid={prog.pid} --type=radio",
     }
+
+
+# ── Recording endpoints ──────────────────────────────────────────────────
+
+from radio_cache.recording.job_manager import get_job_manager  # noqa: E402
+from radio_cache.recording.models import (  # noqa: E402
+    RecordingRequest,
+    RecordingStatus,
+    job_to_dict,
+)
+from radio_cache.recording import recorder as _recorder  # noqa: E402
+from radio_cache.recording.stream_resolver import (  # noqa: E402
+    StreamNotSupportedError,
+    StreamUnavailableError,
+    resolve_live_stream,
+    resolve_programme_stream,
+)
+
+
+_recording_worker_lock = threading.Lock()
+_recording_worker_thread: threading.Thread | None = None
+_PROGRAMME_DURATION_BUFFER_SECONDS: Final[int] = int(
+    os.environ.get("PROGRAMME_DURATION_BUFFER_SECONDS", "120")
+)
+
+
+def _buffered_programme_duration(duration_secs: int) -> int:
+    """Return a duration cap with slack to avoid clipping programme endings."""
+    ten_percent = int(duration_secs * 0.1)
+    return duration_secs + max(_PROGRAMME_DURATION_BUFFER_SECONDS, ten_percent)
+
+
+def _run_recording_queue_worker() -> None:
+    """Process queued recording jobs sequentially in one background thread."""
+    manager = get_job_manager()
+    try:
+        while True:
+            queued_jobs = manager.list_jobs(status="queued", limit=200)
+            if not queued_jobs:
+                return
+
+            # Process oldest queued job first to preserve FIFO behavior.
+            next_job = min(queued_jobs, key=lambda j: j.created_at)
+
+            # Job may have been cancelled between listing and execution.
+            current = manager.get_job(next_job.job_id)
+            if current is None or current.status != "queued":
+                continue
+
+            # Claim this queued job so it is not picked again.
+            manager.update_status(
+                next_job.job_id,
+                "running",
+                started_at=datetime.now(timezone.utc).isoformat(),
+            )
+            try:
+                _run_recording_job(next_job.job_id)
+            except Exception:
+                logger.exception("Recording queue worker failed for job %s", next_job.job_id)
+                manager.update_status(
+                    next_job.job_id,
+                    "failed",
+                    error_code="failed",
+                    error_message="Unexpected worker error",
+                    completed_at=datetime.now(timezone.utc).isoformat(),
+                )
+            time.sleep(0.05)
+    finally:
+        global _recording_worker_thread
+        with _recording_worker_lock:
+            _recording_worker_thread = None
+
+
+def _ensure_recording_worker() -> None:
+    """Start the sequential recording worker if it is not already running."""
+    global _recording_worker_thread
+    with _recording_worker_lock:
+        if _recording_worker_thread is not None and _recording_worker_thread.is_alive():
+            return
+        _recording_worker_thread = threading.Thread(
+            target=_run_recording_queue_worker,
+            name="recording-queue-worker",
+            daemon=True,
+        )
+        _recording_worker_thread.start()
+
+
+def _run_recording_job(job_id: str) -> None:
+    """Background task: resolve stream, record, update job state.
+
+    This function runs in a thread spawned by FastAPI BackgroundTasks.
+    It transitions the job through queued → running → completed/failed/
+    not_supported, writing structured log entries at each step.
+
+    Args:
+        job_id: ID of the job to execute.
+    """
+    manager = get_job_manager()
+    job = manager.get_job(job_id)
+    if job is None:
+        logger.error("Background task: job %s not found", job_id)
+        return
+
+    from datetime import UTC, datetime
+
+    # ── 1. Resolve stream ────────────────────────────────────────────────
+    try:
+        if job.source_type == "live":
+            resolved = resolve_live_stream(job.source_id)
+        else:
+            resolved = resolve_programme_stream(job.source_id)
+    except StreamNotSupportedError as exc:
+        logger.warning("Job %s: stream not supported: %s", job_id, exc)
+        manager.update_status(
+            job_id,
+            "not_supported",
+            error_code="not_supported",
+            error_message=str(exc),
+            completed_at=datetime.now(UTC).isoformat(),
+        )
+        return
+    except StreamUnavailableError as exc:
+        logger.warning("Job %s: stream unavailable: %s", job_id, exc)
+        manager.update_status(
+            job_id,
+            "failed",
+            error_code="unavailable",
+            error_message=str(exc),
+            completed_at=datetime.now(UTC).isoformat(),
+        )
+        return
+    except Exception as exc:
+        logger.exception("Job %s: unexpected error during stream resolution", job_id)
+        manager.update_status(
+            job_id,
+            "failed",
+            error_code="failed",
+            error_message=f"Stream resolution error: {exc}",
+            completed_at=datetime.now(UTC).isoformat(),
+        )
+        return
+
+    manager.update_status(
+        job_id,
+        "running",
+        manifest_url=resolved.manifest_url,
+        started_at=datetime.now(UTC).isoformat(),
+    )
+    logger.info("Job %s: resolved manifest %s", job_id, resolved.manifest_url)
+
+    # ── 2. Resolve metadata from the catalogue (best-effort) ─────────────
+    title = job.source_id
+    station = ""
+    programme = ""
+    date = ""
+    if job.source_type == "programme":
+        with _get_db() as db:
+            prog = db.get_programme(job.source_id)
+        if prog:
+            title = prog.title
+            station = prog.channel
+            programme = prog.series_title or prog.brand_title
+            date = (prog.first_broadcast or "")[:10]
+            if job.duration_seconds is None and prog.duration_secs > 0:
+                job.duration_seconds = _buffered_programme_duration(prog.duration_secs)
+                manager.update_status(
+                    job_id,
+                    "running",
+                    duration_seconds=job.duration_seconds,
+                )
+
+    # ── 3. Build output path ─────────────────────────────────────────────
+    output_path = _recorder.build_output_path(job, title=title)
+
+    # ── 4. Record ────────────────────────────────────────────────────────
+    def _on_progress(elapsed_secs: int) -> None:
+        manager.update_status(job_id, "running", progress_seconds=elapsed_secs)
+
+    try:
+        _recorder.record_stream(
+            job=job,
+            manifest_url=resolved.manifest_url,
+            output_path=output_path,
+            title=title,
+            station=station,
+            programme=programme,
+            date=date,
+            progress_cb=_on_progress,
+        )
+    except FileNotFoundError as exc:
+        logger.error("Job %s: ffmpeg not found: %s", job_id, exc)
+        manager.update_status(
+            job_id,
+            "failed",
+            error_code="failed",
+            error_message=str(exc),
+            completed_at=datetime.now(UTC).isoformat(),
+        )
+        return
+    except ValueError as exc:
+        # Duration cap exceeded
+        logger.warning("Job %s: invalid parameters: %s", job_id, exc)
+        manager.update_status(
+            job_id,
+            "failed",
+            error_code="failed",
+            error_message=str(exc),
+            completed_at=datetime.now(UTC).isoformat(),
+        )
+        return
+    except Exception as exc:
+        logger.exception("Job %s: recording failed", job_id)
+        manager.update_status(
+            job_id,
+            "failed",
+            error_code="failed",
+            error_message=f"Recording error: {exc}",
+            completed_at=datetime.now(UTC).isoformat(),
+        )
+        return
+
+    # ── 5. Check if cancelled mid-run ────────────────────────────────────
+    refreshed = manager.get_job(job_id)
+    if refreshed and refreshed.status == "cancelled":
+        logger.info("Job %s: marked cancelled after capture", job_id)
+        return
+
+    manager.update_status(
+        job_id,
+        "completed",
+        output_path=str(output_path),
+        completed_at=datetime.now(UTC).isoformat(),
+    )
+    logger.info("Job %s: completed -> %s", job_id, output_path)
+
+
+@app.post("/api/recordings", status_code=201)
+async def create_recording(
+    body: RecordingRequest,
+) -> dict:
+    """Submit a new recording job.
+
+    The job is queued immediately and executed asynchronously.  Poll
+    ``GET /api/recordings/{job_id}`` to track progress.
+
+    Args:
+        body: Recording request parameters.
+
+    Returns:
+        Dict with ``job_id`` and initial ``status``.
+    """
+    if body.source_type == "live" and body.duration_seconds is None:
+        body.duration_seconds = 1800
+
+    manager = get_job_manager()
+    job = manager.create_job(
+        source_type=body.source_type,
+        source_id=body.source_id,
+        output_format=body.output_format,
+        duration_seconds=body.duration_seconds,
+    )
+    _ensure_recording_worker()
+    logger.info(
+        "Created recording job %s for %s/%s",
+        job.job_id,
+        body.source_type,
+        body.source_id,
+    )
+    return {"job_id": job.job_id, "status": "queued", "created_at": job.created_at}
+
+
+@app.get("/api/recordings")
+async def list_recordings(
+    status: RecordingStatus | None = Query(default=None, description="Filter by status"),
+    limit: int = Query(default=50, ge=1, le=200),
+) -> dict:
+    """List recent recording jobs.
+
+    Args:
+        status: Optional status filter
+            (``queued|running|completed|failed|not_supported|cancelled``).
+        limit: Maximum number of results (newest first).
+
+    Returns:
+        Dict with ``count`` and ``jobs`` list.
+    """
+    manager = get_job_manager()
+    jobs = manager.list_jobs(status=status, limit=limit)
+    return {"count": len(jobs), "jobs": [job_to_dict(j) for j in jobs]}
+
+
+@app.get("/api/recordings/{job_id}")
+async def get_recording(job_id: str) -> dict:
+    """Return the current state of a recording job.
+
+    Args:
+        job_id: UUID job identifier returned by ``POST /api/recordings``.
+
+    Returns:
+        Full job dict, or ``{"error": "not_found", "job_id": "..."}``
+        with HTTP 404 when the job does not exist.
+    """
+    from fastapi import HTTPException
+
+    manager = get_job_manager()
+    job = manager.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail={"error": "not_found", "job_id": job_id})
+    return job_to_dict(job)
+
+
+@app.delete("/api/recordings/{job_id}")
+async def cancel_recording(job_id: str) -> dict:
+    """Cancel a queued or running recording job.
+
+    Marks the job as ``"cancelled"`` and, if ffmpeg is running,
+    terminates the subprocess.  Already-terminal jobs (completed,
+    failed, not_supported) cannot be cancelled.
+
+    Args:
+        job_id: UUID job identifier.
+
+    Returns:
+        Dict with ``job_id`` and updated ``status``.
+
+    Raises:
+        HTTPException 404: Job not found.
+        HTTPException 409: Job is already in a terminal state.
+    """
+    from fastapi import HTTPException
+
+    manager = get_job_manager()
+    job = manager.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail={"error": "not_found", "job_id": job_id})
+    if job.status not in ("queued", "running"):
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "not_cancellable",
+                "job_id": job_id,
+                "status": job.status,
+            },
+        )
+    # Stop the ffmpeg process if one is running for this job.
+    _recorder.terminate_job(job_id)
+    updated = manager.cancel_job(job_id)
+    if updated is None:
+        raise HTTPException(status_code=404, detail={"error": "not_found", "job_id": job_id})
+    logger.info("Cancelled recording job %s", job_id)
+    return {"job_id": updated.job_id, "status": updated.status}

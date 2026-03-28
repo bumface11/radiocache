@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+
+{% block title %}Recordings – BBC Radio Drama Cache{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active">Recordings</li>
+    </ol>
+</nav>
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="mb-0">Recordings</h2>
+    <button class="btn btn-sm btn-outline-secondary" id="refresh-btn" type="button">Refresh</button>
+</div>
+
+<!-- Live station recording form -->
+<div class="card mb-4">
+    <div class="card-header py-2">
+        <button class="btn btn-link btn-sm text-decoration-none p-0 text-body"
+                type="button" data-bs-toggle="collapse" data-bs-target="#live-record-panel"
+                aria-expanded="false" aria-controls="live-record-panel">
+            &#9654; Record a live station
+        </button>
+    </div>
+    <div id="live-record-panel" class="collapse">
+        <div class="card-body">
+            <form id="live-record-form" class="row g-3">
+                <div class="col-sm-5">
+                    <label class="form-label" for="live-station">Station</label>
+                    <select class="form-select form-select-sm" id="live-station" name="station">
+                        <option value="bbc_radio_fourfm">BBC Radio 4 FM</option>
+                        <option value="bbc_radio_four_extra">BBC Radio 4 Extra</option>
+                        <option value="bbc_radio_one">BBC Radio 1</option>
+                        <option value="bbc_radio_two">BBC Radio 2</option>
+                        <option value="bbc_radio_three">BBC Radio 3</option>
+                        <option value="bbc_radio_five_live">BBC Radio 5 Live</option>
+                        <option value="bbc_radio_five_live_sports_extra">BBC Radio 5 Live Sports Extra</option>
+                        <option value="bbc_6music">BBC 6 Music</option>
+                        <option value="bbc_world_service">BBC World Service</option>
+                        <option value="bbc_radio_asian_network_england">BBC Asian Network</option>
+                        <option value="bbc_radio_scotland_fm">BBC Radio Scotland</option>
+                        <option value="bbc_radio_wales_fm">BBC Radio Wales</option>
+                        <option value="bbc_radio_cymru">BBC Radio Cymru</option>
+                        <option value="bbc_radio_ulster">BBC Radio Ulster</option>
+                    </select>
+                </div>
+                <div class="col-sm-3">
+                    <label class="form-label" for="live-duration">Duration</label>
+                    <select class="form-select form-select-sm" id="live-duration" name="duration">
+                        <option value="1800">30 minutes</option>
+                        <option value="3600">1 hour</option>
+                        <option value="5400">1.5 hours</option>
+                        <option value="7200">2 hours</option>
+                        <option value="10800">3 hours</option>
+                    </select>
+                </div>
+                <div class="col-sm-2">
+                    <label class="form-label" for="live-format">Format</label>
+                    <select class="form-select form-select-sm" id="live-format" name="format">
+                        <option value="m4a">m4a</option>
+                        <option value="mp3">mp3</option>
+                    </select>
+                </div>
+                <div class="col-sm-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-danger btn-sm w-100">Record</button>
+                </div>
+            </form>
+            <div id="live-record-result" class="mt-2"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Job list -->
+<div id="jobs-summary" class="text-muted small mb-2">Loading&hellip;</div>
+<div id="jobs-container"></div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const STATUS_BADGE = {
+        queued:        'bg-secondary',
+        running:       'bg-primary',
+        completed:     'bg-success',
+        failed:        'bg-danger',
+        not_supported: 'bg-warning text-dark',
+        cancelled:     'bg-secondary',
+    };
+
+    function esc(s) {
+        return (s || '').toString()
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function fmtSecs(s) {
+        if (!s) return '0:00';
+        const h = Math.floor(s / 3600);
+        const m = Math.floor((s % 3600) / 60);
+        const sec = s % 60;
+        if (h) return h + ':' + String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+        return m + ':' + String(sec).padStart(2, '0');
+    }
+
+    function fmtTs(iso) {
+        if (!iso) return '';
+        return iso.slice(0, 16).replace('T', ' ');
+    }
+
+    function renderJob(j) {
+        const badgeCls  = STATUS_BADGE[j.status] || 'bg-secondary';
+        const label     = j.status.replace('_', ' ');
+        const canCancel = j.status === 'queued' || j.status === 'running';
+
+        let progressHtml = '';
+        if (j.status === 'running') {
+            if (j.duration_seconds) {
+                const pct = Math.min(100, Math.round(j.progress_seconds / j.duration_seconds * 100));
+                progressHtml = '<div class="progress mt-2" style="height:6px" role="progressbar"'
+                    + ' aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100">'
+                    + '<div class="progress-bar progress-bar-striped progress-bar-animated" style="width:' + pct + '%"></div>'
+                    + '</div>'
+                    + '<div class="small text-muted mt-1">' + fmtSecs(j.progress_seconds) + ' / ' + fmtSecs(j.duration_seconds) + '</div>';
+            } else {
+                progressHtml = '<div class="small text-muted mt-1">Elapsed: ' + fmtSecs(j.progress_seconds) + '</div>';
+            }
+        }
+
+        const sourceLabel = j.source_type === 'live'
+            ? '<span class="badge bg-info text-dark me-1">Live</span>' + esc(j.source_id)
+            : '<span class="badge bg-secondary me-1">Programme</span>' + esc(j.source_id);
+
+        const errorHtml = j.error_message
+            ? '<p class="text-danger small mt-1 mb-0">' + esc(j.error_message) + '</p>' : '';
+
+        const pathHtml = j.output_path
+            ? '<p class="font-monospace small text-success mt-1 mb-0">' + esc(j.output_path) + '</p>' : '';
+
+        const timing = [
+            j.created_at   ? 'Created: '  + fmtTs(j.created_at)   : '',
+            j.started_at   ? 'Started: '  + fmtTs(j.started_at)   : '',
+            j.completed_at ? 'Finished: ' + fmtTs(j.completed_at) : '',
+        ].filter(Boolean).join(' &nbsp;|&nbsp; ');
+
+        const cancelBtn = canCancel
+            ? '<button class="btn btn-sm btn-outline-danger cancel-btn flex-shrink-0"'
+              + ' data-job-id="' + esc(j.job_id) + '">Cancel</button>' : '';
+
+        return '<div class="card mb-2" id="job-' + esc(j.job_id) + '">'
+            + '<div class="card-body py-2">'
+            + '<div class="d-flex justify-content-between align-items-start gap-2">'
+            + '<div class="flex-grow-1 min-width-0">'
+            + '<div class="d-flex align-items-center gap-2 flex-wrap mb-1">'
+            + '<span class="badge ' + badgeCls + '">' + label + '</span>'
+            + '<span class="badge bg-secondary">' + esc(j.output_format) + '</span>'
+            + '<span>' + sourceLabel + '</span>'
+            + '</div>'
+            + progressHtml + errorHtml + pathHtml
+            + '<div class="text-muted" style="font-size:0.75rem">' + timing + '</div>'
+            + '</div>'
+            + '<div>' + cancelBtn + '</div>'
+            + '</div></div></div>';
+    }
+
+    let pollTimer = null;
+
+    async function loadJobs() {
+        try {
+            const resp = await fetch('/api/recordings?limit=100');
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const container = document.getElementById('jobs-container');
+            const summary   = document.getElementById('jobs-summary');
+
+            if (!data.jobs.length) {
+                summary.textContent = 'No recordings yet.';
+                container.innerHTML = '<div class="alert alert-info">'
+                    + 'Use the <strong>Record</strong> button on any episode, '
+                    + 'or record a live station using the form above.'
+                    + '</div>';
+            } else {
+                summary.textContent = data.count + ' job' + (data.count === 1 ? '' : 's');
+                container.innerHTML = data.jobs.map(renderJob).join('');
+            }
+
+            const active = data.jobs.filter(j => j.status === 'queued' || j.status === 'running').length;
+            clearTimeout(pollTimer);
+            pollTimer = active > 0 ? setTimeout(loadJobs, 3000) : null;
+        } catch (err) {
+            console.error('Failed to load recordings', err);
+        }
+    }
+
+    // Cancel button (event delegation)
+    document.getElementById('jobs-container').addEventListener('click', async e => {
+        const btn = e.target.closest('.cancel-btn');
+        if (!btn) return;
+        const jobId = btn.dataset.jobId;
+        btn.disabled = true;
+        btn.textContent = 'Cancelling\u2026';
+        try {
+            const resp = await fetch('/api/recordings/' + encodeURIComponent(jobId), {method: 'DELETE'});
+            if (resp.ok || resp.status === 409) {
+                await loadJobs();
+            } else {
+                btn.disabled = false;
+                btn.textContent = 'Cancel';
+            }
+        } catch {
+            btn.disabled = false;
+            btn.textContent = 'Cancel';
+        }
+    });
+
+    // Manual refresh
+    document.getElementById('refresh-btn').addEventListener('click', () => {
+        clearTimeout(pollTimer);
+        loadJobs();
+    });
+
+    // Live station form
+    document.getElementById('live-record-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const form     = e.target;
+        const submitBtn = form.querySelector('[type=submit]');
+        const resultEl  = document.getElementById('live-record-result');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Queuing\u2026';
+        resultEl.innerHTML = '';
+        try {
+            const resp = await fetch('/api/recordings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    source_type:      'live',
+                    source_id:        form.station.value,
+                    duration_seconds: parseInt(form.duration.value, 10),
+                    output_format:    form.format.value,
+                })
+            });
+            const data = await resp.json();
+            if (resp.ok) {
+                resultEl.innerHTML = '<div class="alert alert-success py-1 mb-0">Queued &mdash; job <code>'
+                    + esc(data.job_id) + '</code></div>';
+                clearTimeout(pollTimer);
+                loadJobs();
+            } else {
+                resultEl.innerHTML = '<div class="alert alert-danger py-1 mb-0">'
+                    + esc((data.detail && JSON.stringify(data.detail)) || JSON.stringify(data)) + '</div>';
+            }
+        } catch {
+            resultEl.innerHTML = '<div class="alert alert-danger py-1 mb-0">Request failed &mdash; check the console.</div>';
+        }
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Record';
+    });
+
+    // Initial load
+    loadJobs();
+}());
+</script>
+{% endblock %}

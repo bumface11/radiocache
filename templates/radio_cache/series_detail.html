@@ -17,6 +17,11 @@
 <div class="mb-3 d-flex gap-2 flex-wrap">
     <a href="{{ previous_url }}" class="btn btn-sm btn-outline-secondary">Back</a>
     <a href="/series" class="btn btn-sm btn-outline-primary">All Series</a>
+    {% if episodes %}
+    <button id="record-all-btn" class="btn btn-sm btn-outline-danger" type="button"
+            data-pids='[{% for ep in episodes %}"{{ ep.pid }}"{% if not loop.last %},{% endif %}{% endfor %}]'
+            title="Queue all episodes in this series for recording">Record series</button>
+    {% endif %}
     <form method="get" action="/series/{{ series_pid }}" class="ms-auto d-flex align-items-center gap-2">
         <input type="hidden" name="prev" value="{{ previous_url }}">
         <label for="sort-select" class="small text-muted">Sort:</label>
@@ -99,4 +104,31 @@
 {% else %}
 <div class="alert alert-info">No episodes found for this series.</div>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const _recordAllBtn = document.getElementById('record-all-btn');
+    if (_recordAllBtn) {
+        _recordAllBtn.addEventListener('click', async function () {
+            const pids = JSON.parse(this.dataset.pids || '[]');
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Queuing\u2026';
+            let queued = 0;
+            for (const pid of pids) {
+                try {
+                    const r = await fetch('/api/recordings', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({source_type: 'programme', source_id: pid, output_format: 'm4a'})
+                    });
+                    if (r.ok) queued++;
+                } catch { /* skip */ }
+            }
+            this.innerHTML = '&#10003; ' + queued + ' episodes queued';
+            this.classList.replace('btn-outline-danger', 'btn-success');
+            setTimeout(() => window.location.href = '/recordings', 1500);
+        });
+    }
+</script>
 {% endblock %}

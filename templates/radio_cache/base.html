@@ -39,6 +39,9 @@
                         <a class="nav-link" href="/series">Series</a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="/recordings">Recordings</a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="/api/stats">API</a>
                     </li>
                 </ul>
@@ -82,6 +85,45 @@
                 el.textContent = 'Copied!';
                 setTimeout(() => { el.textContent = orig; }, 1500);
             });
+        });
+
+        // Shared handler for all .record-btn buttons (programme catch-up).
+        document.addEventListener('click', async e => {
+            const btn = e.target.closest('.record-btn');
+            if (!btn || btn.dataset.recording) return;
+            const pid = btn.dataset.pid;
+            if (!pid) return;
+            btn.dataset.recording = '1';
+            const origHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            try {
+                const resp = await fetch('/api/recordings', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({source_type: 'programme', source_id: pid, output_format: 'm4a'})
+                });
+                if (resp.ok) {
+                    btn.innerHTML = '&#10003; Queued';
+                    btn.classList.replace('btn-outline-danger', 'btn-success');
+                    btn.disabled = false;
+                    btn.title = 'View Recordings';
+                    btn.addEventListener('click', () => window.location.href = '/recordings', {once: true});
+                } else {
+                    btn.innerHTML = '&#9888; Failed';
+                    btn.classList.replace('btn-outline-danger', 'btn-warning');
+                    btn.disabled = false;
+                    setTimeout(() => {
+                        btn.innerHTML = origHtml;
+                        btn.classList.replace('btn-warning', 'btn-outline-danger');
+                        delete btn.dataset.recording;
+                    }, 3000);
+                }
+            } catch {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+                delete btn.dataset.recording;
+            }
         });
     </script>
     {% block scripts %}{% endblock %}

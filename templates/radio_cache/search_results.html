@@ -88,6 +88,10 @@
                                 <br>
                                 <a href="{{ ep.url }}" class="btn btn-sm btn-outline-primary mt-1"
                                    target="_blank" rel="noopener">BBC Sounds</a>
+                                <br>
+                                <button class="btn btn-sm btn-outline-danger record-btn mt-1"
+                                        data-pid="{{ ep.pid }}"
+                                        title="Save audio file locally">Record</button>
                             </div>
                         </div>
                     </div>
@@ -144,11 +148,16 @@
                     get_iplayer --pid={{ prog.pid }} --type=radio
                 </div>
             </div>
-            <div class="card-footer small text-muted">
-                <a href="{{ prog.url }}" target="_blank" rel="noopener">BBC Sounds</a>
-                {% if prog.first_broadcast %}
-                    | {{ prog.first_broadcast | format_short_date }}
-                {% endif %}
+            <div class="card-footer small text-muted d-flex justify-content-between align-items-center">
+                <span>
+                    <a href="{{ prog.url }}" target="_blank" rel="noopener">BBC Sounds</a>
+                    {% if prog.first_broadcast %}
+                        | {{ prog.first_broadcast | format_short_date }}
+                    {% endif %}
+                </span>
+                <button class="btn btn-sm btn-outline-danger record-btn py-0"
+                        data-pid="{{ prog.pid }}"
+                        title="Save audio file locally">Record</button>
             </div>
         </div>
     </div>
