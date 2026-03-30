@@ -43,6 +43,16 @@ _CATEGORY_SLUGS: Final[list[str]] = [
     "thriller",
     "horror",
     "classic-drama",
+    "audiobooks",
+    "discussionandtalk",
+    "docudramas",
+    "documentaries",
+    "entertainment",
+    "factual",
+    "gamesandquizzes",
+    "learning",
+    "magazinesandreviews",
+    "readings"
 ]
 
 

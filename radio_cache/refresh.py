@@ -9,11 +9,12 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import time
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
 
-from radio_cache.bbc_feed_parser import fetch_drama_programmes
+from radio_cache.bbc_feed_parser import fetch_drama_programmes, fetch_programme_detail
 from radio_cache.cache_db import CacheDB
 from radio_cache.models import Programme
 
@@ -32,6 +33,8 @@ def refresh_cache(
     purge_expired: bool = True,
     export_get_iplayer: bool = True,
     get_iplayer_path: str = "radio.cache",
+    enrich_missing_categories: bool = False,
+    enrich_limit: int = 200,
 ) -> int:
     """Refresh the programme cache from BBC feeds.
 
@@ -48,8 +51,10 @@ def refresh_cache(
     """
     logger.info("Starting cache refresh -> %s", db_path)
 
+    start = time.perf_counter()
     programmes = fetch_drama_programmes()
-    logger.info("Fetched %d programmes from BBC feeds", len(programmes))
+    fetch_time = time.perf_counter() - start
+    logger.info("Fetched %d programmes from BBC feeds (%.2fs)", len(programmes), fetch_time)
 
     with CacheDB(db_path) as db:
         upserted = db.upsert_programmes(programmes)
@@ -77,7 +82,21 @@ def refresh_cache(
         if export_get_iplayer:
             _export_get_iplayer_cache(db, get_iplayer_path)
 
-        return stats.total_programmes
+        total = stats.total_programmes
+
+        if enrich_missing_categories:
+            logger.info("Enriching up to %d programmes missing categories...", enrich_limit)
+            t0 = time.perf_counter()
+            updated, attempts = _enrich_missing_categories(db, enrich_limit)
+            t1 = time.perf_counter()
+            logger.info(
+                "Enrichment: updated %d programmes (attempted %d) in %.2fs",
+                updated,
+                attempts,
+                t1 - t0,
+            )
+
+        return total
 
 
 def _export_json(db: CacheDB, json_path: str) -> None:
@@ -217,6 +236,36 @@ def import_from_github(
     return _import_json_data(data, db_path, url)
 
 
+def _enrich_missing_categories(db: CacheDB, limit: int = 200) -> tuple[int, int]:
+    """Fetch programme detail for rows missing categories and upsert them.
+
+    Args:
+        db: Open CacheDB instance.
+        limit: Maximum number of detail requests to make.
+
+    Returns:
+        Tuple of (updated_count, attempted_count).
+    """
+    # Select PIDs with empty categories
+    rows = db.query("SELECT pid FROM programmes WHERE categories = '' LIMIT ?", (limit,))
+    pids = [r[0] for r in rows]
+    updated = 0
+    attempts = 0
+    for pid in pids:
+        attempts += 1
+        try:
+            prog = fetch_programme_detail(pid)
+        except Exception as exc:  # network or parse errors
+            logger.debug("Failed to fetch detail for %s: %s", pid, exc)
+            continue
+        if not prog:
+            continue
+        if prog.categories:
+            db.upsert_programme(prog)
+            updated += 1
+    return updated, attempts
+
+
 def main() -> None:
     """CLI entry point for cache refresh."""
     parser = argparse.ArgumentParser(
@@ -263,6 +312,17 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--enrich-missing-categories",
+        action="store_true",
+        help="Fetch programme detail for items missing categories (may make many HTTP requests)",
+    )
+    parser.add_argument(
+        "--enrich-limit",
+        type=int,
+        default=200,
+        help="Maximum number of detail requests when enriching missing categories (default: 200)",
+    )
+    parser.add_argument(
         "--verbose",
         "-v",
         action="store_true",
@@ -279,9 +339,31 @@ def main() -> None:
     if args.import_github:
         count = import_from_github(args.import_github, args.db)
         logger.info("Imported %d programmes from GitHub", count)
+        if args.enrich_missing_categories:
+            with CacheDB(args.db) as db:
+                t0 = time.perf_counter()
+                updated, attempts = _enrich_missing_categories(db, args.enrich_limit)
+                t1 = time.perf_counter()
+                logger.info(
+                    "Enrichment after import: updated %d programmes (attempted %d) in %.2fs",
+                    updated,
+                    attempts,
+                    t1 - t0,
+                )
     elif args.import_json:
         count = import_from_json(args.import_json, args.db)
         logger.info("Imported %d programmes", count)
+        if args.enrich_missing_categories:
+            with CacheDB(args.db) as db:
+                t0 = time.perf_counter()
+                updated, attempts = _enrich_missing_categories(db, args.enrich_limit)
+                t1 = time.perf_counter()
+                logger.info(
+                    "Enrichment after import: updated %d programmes (attempted %d) in %.2fs",
+                    updated,
+                    attempts,
+                    t1 - t0,
+                )
     else:
         count = refresh_cache(
             db_path=args.db,
@@ -289,6 +371,8 @@ def main() -> None:
             json_path=args.json,
             export_get_iplayer=not args.no_get_iplayer_cache,
             get_iplayer_path=args.get_iplayer_cache,
+            enrich_missing_categories=args.enrich_missing_categories,
+            enrich_limit=args.enrich_limit,
         )
         logger.info("Cache contains %d programmes", count)
 

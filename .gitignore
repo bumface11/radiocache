@@ -7,3 +7,4 @@ __pycache__/
 radio_cache.db
 *.db-journal
 .recordings/
+recordings/

@@ -41,10 +41,19 @@
 
 {% if recent %}
 <h3 class="mt-5">Recently Added</h3>
+<div id="category-filters" class="mb-2 small">
+    {% if present_categories %}
+        {% for c in present_categories %}
+            <button type="button"
+                    class="btn btn-sm btn-outline-secondary me-1 mb-1 category-toggle {% if exclude_categories and c in exclude_categories %}{% else %}active{% endif %}"
+                    data-category="{{ c }}">{{ c }}</button>
+        {% endfor %}
+    {% endif %}
+</div>
 <div class="row g-3">
     {% for prog in recent %}
     <div class="col-md-6 col-lg-4">
-        <div class="card programme-card h-100">
+        <div class="card programme-card h-100" data-categories="{{ prog.categories }}">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start gap-2">
                     <h6 class="card-title mb-1">{{ prog.title }}</h6>
@@ -102,6 +111,56 @@
     {% endfor %}
 </div>
 {% endif %}
+
+<script>
+(function () {
+    const container = document.getElementById('category-filters');
+    if (!container) return;
+    const items = Array.from(document.querySelectorAll('.programme-card'));
+
+    // If server pre-rendered buttons exist, just wire them up; otherwise build from DOM
+    const existing = Array.from(container.querySelectorAll('.category-toggle'));
+    if (existing.length === 0) {
+        const cats = new Set();
+        items.forEach(it => {
+            const raw = it.dataset.categories || '';
+            raw.split(',').map(s => s.trim()).filter(Boolean).forEach(c => cats.add(c));
+        });
+        if (!cats.size) return;
+        cats.forEach(c => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-sm btn-outline-secondary me-1 mb-1 category-toggle active';
+            btn.dataset.category = c;
+            btn.textContent = c;
+            container.appendChild(btn);
+            existing.push(btn);
+        });
+    }
+
+    function update() {
+        const disabled = new Set(Array.from(container.querySelectorAll('.category-toggle:not(.active)')).map(b => b.dataset.category));
+        items.forEach(it => {
+            const raw = it.dataset.categories || '';
+            const itemCats = raw.split(',').map(s => s.trim()).filter(Boolean);
+            const hide = itemCats.some(c => disabled.has(c));
+            const col = it.closest('[class^="col-"]');
+            if (col) col.style.display = hide ? 'none' : '';
+        });
+        // Update URL query param to persist chosen excludes
+        const excluded = Array.from(container.querySelectorAll('.category-toggle:not(.active)')).map(b => encodeURIComponent(b.dataset.category)).join(',');
+        const url = new URL(window.location.href);
+        if (excluded) url.searchParams.set('exclude_categories', excluded);
+        else url.searchParams.delete('exclude_categories');
+        window.history.replaceState({}, '', url.toString());
+    }
+
+    existing.forEach(btn => btn.addEventListener('click', function () {
+        this.classList.toggle('active');
+        update();
+    }));
+})();
+</script>
 
 <div class="row mt-5 g-3">
     <div class="col-md-12">

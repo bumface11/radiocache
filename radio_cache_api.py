@@ -245,13 +245,37 @@ async def index(request: Request) -> HTMLResponse:
     Returns:
         Rendered HTML page.
     """
+    # Support optional exclusion of categories via query param for server-side filtering
+    exclude_categories = request.query_params.get("exclude_categories", "")
+    exclude_set = set([c.strip() for c in exclude_categories.split(",") if c.strip()])
+
     with _get_db() as db:
         stats = db.stats()
         recent = db.recent_programmes(limit=20)
+
+    if exclude_set:
+        recent = [p for p in recent if not set((p.categories or "").split(",")) & exclude_set]
+
+    # Compute present categories in the current result set for the UI
+    present_cats: list[str] = []
+    seen = set()
+    for p in recent:
+        for c in (p.categories or "").split(","):
+            c = c.strip()
+            if c and c not in seen:
+                seen.add(c)
+                present_cats.append(c)
+
     return templates.TemplateResponse(
         request,
         "index.html",
-        {"request": request, "stats": stats, "recent": recent},
+        {
+            "request": request,
+            "stats": stats,
+            "recent": recent,
+            "present_categories": present_cats,
+            "exclude_categories": list(exclude_set),
+        },
     )
 
 
@@ -274,6 +298,10 @@ async def search_page(
     per_page = 50
     offset = (page - 1) * per_page
 
+    # Allow client to exclude categories via ?exclude_categories=cat1,cat2
+    exclude_categories = request.query_params.get("exclude_categories", "")
+    exclude_set = set([c.strip() for c in exclude_categories.split(",") if c.strip()])
+
     with _get_db() as db:
         if q:
             programmes = search_programmes(db, q, limit=per_page, offset=offset)
@@ -281,7 +309,21 @@ async def search_page(
             programmes = db.recent_programmes(limit=per_page)
         stats = db.stats()
 
+    if exclude_set:
+        programmes = [p for p in programmes if not set((p.categories or "").split(",")) & exclude_set]
+
     series_groups = group_by_series(programmes)
+
+    # Compute present categories for the current result set
+    present_cats: list[str] = []
+    seen = set()
+    for p in programmes:
+        for c in (p.categories or "").split(","):
+            c = c.strip()
+            if c and c not in seen:
+                seen.add(c)
+                present_cats.append(c)
+
     return templates.TemplateResponse(
         request,
         "search_results.html",
@@ -293,6 +335,8 @@ async def search_page(
             "stats": stats,
             "page": page,
             "per_page": per_page,
+            "present_categories": present_cats,
+            "exclude_categories": list(exclude_set),
         },
     )
 
