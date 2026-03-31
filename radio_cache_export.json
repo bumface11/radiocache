@@ -1,7 +1,7 @@
 {
   "meta": {
-    "last_refreshed": "2026-03-30T06:01:07.995160+00:00",
-    "total_programmes": 2970
+    "last_refreshed": "2026-03-31T05:46:36.167753+00:00",
+    "total_programmes": 2969
   },
   "programmes": [
     {
@@ -1211,24 +1211,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/m000mlj9"
     },
     {
-      "pid": "m000mdp9",
-      "title": "Beyond Our Ken: Series 4",
-      "synopsis": "Kenneth Horne revamps some old radio shows and Hornerama looks at gramophone records.",
-      "duration_secs": 1800,
-      "available_until": "2026-03-31T05:00:00Z",
-      "first_broadcast": "1960-10-27T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b009twnn",
-      "series_title": "Beyond Our Ken",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p08wfkn6.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/m000mdp9"
-    },
-    {
       "pid": "p0mw2spk",
       "title": "Big Kick Energy: 40TH BIRTHDAYS AND FUNERAL COATS",
       "synopsis": "This week we celebrate Suzi's birthday and Maisie laments her fashion choices once again.",
@@ -1571,24 +1553,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0mmk03x"
     },
     {
-      "pid": "p0m1qqjq",
-      "title": "Big Kick Energy: PACEY AND LOOSEY?",
-      "synopsis": "Suzi and guest host Laura Checkley discuss the WSL. Maisie meets Millie Bright.",
-      "duration_secs": 3489,
-      "available_until": "2028-09-08T22:59:00Z",
-      "first_broadcast": "2025-09-09T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "p0ljr71y",
-      "series_title": "Big Kick Energy",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Sounds",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0ljr7bq.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/p0m1qqjq"
-    },
-    {
       "pid": "p0mjnjd1",
       "title": "Big Kick Energy: PACEY'S INTERNATIONAL BREAK",
       "synopsis": "We discuss Suzi's new best mate and look ahead to the Lionesses end of year fixtures.",
@@ -1751,24 +1715,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0m345sr"
     },
     {
-      "pid": "m002s2wj",
-      "title": "Bluebeard by Patricia Mays",
-      "synopsis": "A French folk tale retold. Young Melanie grows suspicious about her husband’s past....",
-      "duration_secs": 2400,
-      "available_until": "2026-03-31T00:40:00Z",
-      "first_broadcast": "1985-03-10T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "",
-      "series_title": "",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n0zdyt.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/m002s2wj"
-    },
-    {
       "pid": "m001v2wz",
       "title": "Bodies of Water: 1: Whale Song",
       "synopsis": "Five short stories taking their inspiration from water, by the author of Send Nudes.",
@@ -1893,6 +1839,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mq41vj.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/p0mq3z8q"
+    },
+    {
+      "pid": "b05415pv",
+      "title": "Boswell's Lives: Series 1",
+      "synopsis": "Boswell meets Maria Callas and her poodle and finds himself in an opera of his own making.",
+      "duration_secs": 1800,
+      "available_until": "2026-04-30T02:30:00Z",
+      "first_broadcast": "2015-03-04T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b05vjn59",
+      "series_title": "Boswell's Lives",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p096t12b.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b05415pv"
     },
     {
       "pid": "b053bq4l",
@@ -4667,24 +4631,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/p06w5wyn"
     },
     {
-      "pid": "p06w5vkn",
-      "title": "Classic Stories: Stories for Christmas",
-      "synopsis": "A woman bumps into an ex-lover and wonders if she has made a mistake.",
-      "duration_secs": 1140,
-      "available_until": "",
-      "first_broadcast": "2018-12-21T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "p06w4v4x",
-      "series_title": "Classic Stories",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Sounds",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p06w94f1.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/p06w5vkn"
-    },
-    {
       "pid": "p07d4dt2",
       "title": "Classic Stories: Stories for Summer",
       "synopsis": "Chekhov's story of a newlywed couple whose harmony is broken by an arrival off the train.",
@@ -6989,6 +6935,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0mwt3tp"
     },
     {
+      "pid": "b007529q",
+      "title": "Control Group Six: Series 1",
+      "synopsis": "Can Dr Heaven locate Agent Frank, lost somewhere in an experimental company town?",
+      "duration_secs": 1800,
+      "available_until": "2026-04-30T01:30:00Z",
+      "first_broadcast": "1995-08-09T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b08lz17s",
+      "series_title": "Control Group Six",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p04stns0.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b007529q"
+    },
+    {
       "pid": "m000rvkz",
       "title": "Conversations from a Long Marriage: Series 2",
       "synopsis": "When Joanna tells Roger that they’re ‘in a rut’, he plans a spontaneous day out.",
@@ -7115,12 +7079,12 @@
       "url": "https://www.bbc.co.uk/sounds/play/b09jrkr2"
     },
     {
-      "pid": "b00v1nhb",
-      "title": "Craig Brown's Lost Diaries: January and February",
-      "synopsis": "Barack Obama and Barbara Cartland turn their thoughts to new starts.",
-      "duration_secs": 1800,
-      "available_until": "2026-03-30T22:30:00Z",
-      "first_broadcast": "2010-10-04T00:00:00Z",
+      "pid": "b00vhf5y",
+      "title": "Craig Brown's Lost Diaries: July and August",
+      "synopsis": "School's out for Barack Obama, Frank McCourt and Emma Thompson.",
+      "duration_secs": 1500,
+      "available_until": "2026-04-20T22:30:00Z",
+      "first_broadcast": "2010-10-25T00:00:00Z",
       "programme_type": "playable_item",
       "series_pid": "b00v2vz6",
       "series_title": "Craig Brown's Lost Diaries",
@@ -7130,7 +7094,7 @@
       "channel": "Radio 4 Extra",
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n0xc3d.jpg",
       "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b00v1nhb"
+      "url": "https://www.bbc.co.uk/sounds/play/b00vhf5y"
     },
     {
       "pid": "b01g6l4z",
@@ -7617,6 +7581,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0dwyxb0.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m0007bjj"
+    },
+    {
+      "pid": "b007jnxm",
+      "title": "Dad's Army: Series 2",
+      "synopsis": "Mainwaring is horrified when some prisoners of war escape!",
+      "duration_secs": 1800,
+      "available_until": "2026-04-30T02:00:00Z",
+      "first_broadcast": "1975-05-13T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b009v6h3",
+      "series_title": "Dad's Army",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m614nn.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b007jnxm"
     },
     {
       "pid": "b007jntl",
@@ -13757,24 +13739,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/m002r3nx"
     },
     {
-      "pid": "p0m1rh6b",
-      "title": "Elis James and John Robins: #470 - Old Man Bum, A Dream A Dream of Beef and Lust: 12 Bodies That Changed My Life",
-      "synopsis": "The boys have been on their travels! Plus your standard Elis and John bum chat.",
-      "duration_secs": 4588,
-      "available_until": "",
-      "first_broadcast": "2025-09-09T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "m0005fdz",
-      "series_title": "Elis James and John Robins",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 5 Live",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0h9286n.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/p0m1rh6b"
-    },
-    {
       "pid": "p0m286x1",
       "title": "Elis James and John Robins: #471 - John’s Critical Path, Elis’s 0.0% Curry and Dave’s Not So Silent Alarm",
       "synopsis": "A remote record gets derailed spectacularly by a faulty alarm system.",
@@ -15413,24 +15377,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0mts183"
     },
     {
-      "pid": "p0m1rwkm",
-      "title": "Evil Genius with Russell Kane: Evil Animals - Snakes",
-      "synopsis": "Are they slithering wronguns, or super sleek legends?",
-      "duration_secs": 1852,
-      "available_until": "",
-      "first_broadcast": "2025-09-10T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "p0605sx6",
-      "series_title": "Evil Genius with Russell Kane",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Sounds",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m4nkgs.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/p0m1rwkm"
-    },
-    {
       "pid": "p0m4hbnb",
       "title": "Evil Genius with Russell Kane: Evil Animals - Vampire Bats",
       "synopsis": "Vampire Bats: spooky little weirdos or misunderstood goth pigeons?",
@@ -16277,24 +16223,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/m002t84m"
     },
     {
-      "pid": "m002s2v5",
-      "title": "Fighting Talk: Apollo, Guvna B, Jo Caulfield, Thom Gibbs",
-      "synopsis": "Apollo, Guvna B, Jo Caulfield and Thom Gibbs join Rick Edwards",
-      "duration_secs": 3793,
-      "available_until": "2026-03-30T19:29:00Z",
-      "first_broadcast": "2026-02-28T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b0070hvs",
-      "series_title": "Fighting Talk",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 5 Live",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n0p79r.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/m002s2v5"
-    },
-    {
       "pid": "m002scj9",
       "title": "Fighting Talk: Caroline Barker, Jim White, Paul McNamee, Vittorio Angelone",
       "synopsis": "Caroline Barker, Jim White, Paul McNamee & Vittorio Angelone join guest host Gordon Smart",
@@ -16835,24 +16763,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/b09dysxg"
     },
     {
-      "pid": "b09cz4d4",
-      "title": "Fred at The Stand: Series 1",
-      "synopsis": "From Edinburgh - Fred MacAulay with more top comedy talent.",
-      "duration_secs": 1680,
-      "available_until": "2026-03-30T23:00:00Z",
-      "first_broadcast": "2017-11-07T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b09blcvx",
-      "series_title": "Fred at The Stand",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p074mryd.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b09cz4d4"
-    },
-    {
       "pid": "b07npz1f",
       "title": "Fresh from the Fringe: Fresh from the Fringe: 2016 - Part 1",
       "synopsis": "With Nish Kumar. Featuring Tom Ballard, Sophie Willan, Lazy Susan and Paul Foot.",
@@ -17127,7 +17037,7 @@
       "title": "Friday Night Comedy from BBC Radio 4: The Naked Week: Ep4. Who ya gonna call...? (Clue: It's Donald Trump)",
       "synopsis": "Who ya gonna call...? (Clue: it's Donald Trump)",
       "duration_secs": 1672,
-      "available_until": "",
+      "available_until": "2031-03-26T19:00:00Z",
       "first_broadcast": "2026-03-27T00:00:00Z",
       "programme_type": "playable_item",
       "series_pid": "p02pc9pj",
@@ -19823,6 +19733,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0lvfnkq"
     },
     {
+      "pid": "b0075y5x",
+      "title": "High Hopes by Ronnie Corbett: 1. Early Years",
+      "synopsis": "One of the UK's best-loved entertainers reads from his autobiography.",
+      "duration_secs": 900,
+      "available_until": "2026-04-30T03:00:00Z",
+      "first_broadcast": "2000-09-25T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b03ld9yx",
+      "series_title": "High Hopes by Ronnie Corbett",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p01n3sgz.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b0075y5x"
+    },
+    {
       "pid": "m002szpt",
       "title": "Hoax!: From 7/11/1986",
       "synopsis": "Can Leslie Thomas, Maureen Lipman and Frank Thornton hoax Tim Brooke-Taylor?",
@@ -21641,6 +21569,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0n2zg26"
     },
     {
+      "pid": "p0n9lkv4",
+      "title": "Joe and James Fact Up: Joe and James Discuss Women’s Parts",
+      "synopsis": "This Week Joe Thomas and James Buckley discuss their favourite smells!",
+      "duration_secs": 3607,
+      "available_until": "2027-03-30T22:59:00Z",
+      "first_broadcast": "2026-03-31T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p0n2z3vc",
+      "series_title": "Joe and James Fact Up",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Sounds",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n2z42g.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/p0n9lkv4"
+    },
+    {
       "pid": "p0n36b49",
       "title": "Joe and James Fact Up: P*rn Has Lost The Plot",
       "synopsis": "Joe & James on porn losing plot, have a crime/politics detour & Oates' last words",
@@ -21765,24 +21711,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n2z42g.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/p0n8bfkl"
-    },
-    {
-      "pid": "p0m1wwsg",
-      "title": "John Bishop's 'sliding doors' comedy club moment",
-      "synopsis": "The Liverpool-born comedian went back to The Frog and Bucket comedy club.",
-      "duration_secs": 274,
-      "available_until": "",
-      "first_broadcast": "",
-      "programme_type": "playable_item",
-      "series_pid": "",
-      "series_title": "",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio Merseyside",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m1wyxz.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/p0m1wwsg"
     },
     {
       "pid": "b0150grq",
@@ -25745,6 +25673,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0mtylk4"
     },
     {
+      "pid": "b00txhld",
+      "title": "Listen Against: Series 3",
+      "synopsis": "Alice Arnold and Jon Holmes rewind and mangle real programmes.",
+      "duration_secs": 1800,
+      "available_until": "2026-04-29T22:00:00Z",
+      "first_broadcast": "2010-09-28T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b00fgt18",
+      "series_title": "Listen Against",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mksqqg.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b00txhld"
+    },
+    {
       "pid": "b00tt5mb",
       "title": "Listen Against: Series 3",
       "synopsis": "Michael Burke gets trapped in the Moral Maze, and a makeover for Any Answers!",
@@ -28101,6 +28047,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p090hj6y.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/b055knqf"
+    },
+    {
+      "pid": "b009fwpk",
+      "title": "Mrs Mabb by Susanna Clarke",
+      "synopsis": "Venetia must win back the charismatic Captain Fox from the amazing Mrs Mabb.",
+      "duration_secs": 2700,
+      "available_until": "2026-04-30T04:45:00Z",
+      "first_broadcast": "2008-03-18T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "",
+      "series_title": "",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p05kcbqy.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b009fwpk"
     },
     {
       "pid": "m002jgpr",
@@ -31793,6 +31757,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0mymwxq"
     },
     {
+      "pid": "p0n8nj1k",
+      "title": "Out to Lunch: with Philippa Perry",
+      "synopsis": "On her first date with Grayson Perry, imposter syndrome, and struggling with fame.",
+      "duration_secs": 2396,
+      "available_until": "2029-03-30T22:59:00Z",
+      "first_broadcast": "2026-03-31T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p0ldzwfn",
+      "series_title": "Out to Lunch",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Sounds",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0ldzywx.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/p0n8nj1k"
+    },
+    {
       "pid": "p0mnxm82",
       "title": "Out to Lunch: with Richard Osman",
       "synopsis": "On staying in your comfort zone when it comes to food and why Love Island is great TV.",
@@ -33105,24 +33087,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0my3xnm.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/p0m4bqdt"
-    },
-    {
-      "pid": "p0m1r4cb",
-      "title": "Radio 1's All Day Breakfast with Greg James: A Rude Awakening!",
-      "synopsis": "The Surname Game is back! This time it's (radio-friendly) rude names!",
-      "duration_secs": 2023,
-      "available_until": "",
-      "first_broadcast": "2025-09-09T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "p02nrw8h",
-      "series_title": "Radio 1's All Day Breakfast with Greg James",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 1",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0my3xnm.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/p0m1r4cb"
     },
     {
       "pid": "p0mh66vg",
@@ -35159,24 +35123,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0mxy8nx"
     },
     {
-      "pid": "b007k1r1",
-      "title": "Radio Active: Series 4",
-      "synopsis": "Radio Active's Rep perform Dickens's literary classic - LIVE!",
-      "duration_secs": 1800,
-      "available_until": "2026-03-31T00:00:00Z",
-      "first_broadcast": "1984-08-27T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b00c7zvk",
-      "series_title": "Radio Active",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p08dj0b0.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b007k1r1"
-    },
-    {
       "pid": "m0027ldd",
       "title": "Raiders of the Lost Cask by Abir Mukherjee: Angel's Share",
       "synopsis": "Sunita's plan hangs in the balance and all depends on Primakov - is he in a buying mood?",
@@ -35393,6 +35339,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/m002j5wg"
     },
     {
+      "pid": "b08n2wcs",
+      "title": "Rob Newman: Rob Newman's Neuropolis",
+      "synopsis": "Rob Newman's unique odyssey of our brains mixing stand-up and sketches.",
+      "duration_secs": 1680,
+      "available_until": "2026-04-29T23:00:00Z",
+      "first_broadcast": "2017-04-25T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b08nkn4k",
+      "series_title": "Rob Newman",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n50lmd.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b08n2wcs"
+    },
+    {
       "pid": "b08mb1g6",
       "title": "Rob Newman: Rob Newman's Neuropolis",
       "synopsis": "Comedian Rob Newman presents a unique odyssey of our brains mixing stand-up and sketches.",
@@ -35589,42 +35553,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p09mknfr.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/b00h9t28"
-    },
-    {
-      "pid": "m002s2wb",
-      "title": "Rogue Male by Geoffrey Household",
-      "synopsis": "An Englishman heads to Europe to try and assassinate a brutal dictator.",
-      "duration_secs": 5400,
-      "available_until": "2026-03-31T02:30:00Z",
-      "first_broadcast": "1989-12-26T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "",
-      "series_title": "",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n2x48z.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/m002s2wb"
-    },
-    {
-      "pid": "m002j6zk",
-      "title": "Room 101 with Paul Merton: Series 3",
-      "synopsis": "Paul Merton asks Jack Dee what he would put into Room 101.",
-      "duration_secs": 1680,
-      "available_until": "2030-09-08T18:00:00Z",
-      "first_broadcast": "2025-09-09T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "m001x0mr",
-      "series_title": "Room 101 with Paul Merton",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0lv6m1s.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/m002j6zk"
     },
     {
       "pid": "m002nhz3",
@@ -35985,6 +35913,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n749n6.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m002tbj1"
+    },
+    {
+      "pid": "m002tqmb",
+      "title": "Seascraper by Benjamin Wood: Episode 10",
+      "synopsis": "Edgar’s mother Mildred has intervened in her son’s plans to film at Longferry.",
+      "duration_secs": 840,
+      "available_until": "2026-04-29T06:00:00Z",
+      "first_broadcast": "2026-04-10T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "m002tbj2",
+      "series_title": "Seascraper by Benjamin Wood",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n749n6.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/m002tqmb"
     },
     {
       "pid": "m002tblq",
@@ -42215,24 +42161,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/b017gl1f"
     },
     {
-      "pid": "b007652v",
-      "title": "Tales From the Backbench by Peter Tinniswood: Series 2",
-      "synopsis": "Sir Plympton admits to creating his persona on untruths and fantasy.",
-      "duration_secs": 900,
-      "available_until": "2026-03-31T04:00:00Z",
-      "first_broadcast": "2001-11-21T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b01b2qct",
-      "series_title": "Tales From the Backbench by Peter Tinniswood",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p07j6x80.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b007652v"
-    },
-    {
       "pid": "b007k243",
       "title": "Tales From the Mausoleum Club: Heart of Skegness",
       "synopsis": "A story of a journey into the darkest part of barbarism entrances the Hon Clarence Green.",
@@ -44123,6 +44051,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/m002qh2n"
     },
     {
+      "pid": "m002tbht",
+      "title": "The Archers: 30/03/2026",
+      "synopsis": "Pip’s doing some gardening.",
+      "duration_secs": 775,
+      "available_until": "2031-03-29T18:15:00Z",
+      "first_broadcast": "2026-03-30T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b006qpgr",
+      "series_title": "The Archers",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n3nsm2.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/m002tbht"
+    },
+    {
       "pid": "m002nv5t",
       "title": "The Archers: 30/12/2025",
       "synopsis": "Hell is unleashed at the Horrobins",
@@ -44553,24 +44499,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mf91lv.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/b00gs0fr"
-    },
-    {
-      "pid": "b08dd69z",
-      "title": "The Cat Jumps by Elizabeth Bowen",
-      "synopsis": "Harold and Jocelyn buy Rose Hill. The last occupier murdered his wife...",
-      "duration_secs": 1200,
-      "available_until": "2026-03-31T01:00:00Z",
-      "first_broadcast": "1988-12-28T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "",
-      "series_title": "",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p06x646q.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b08dd69z"
     },
     {
       "pid": "b007jtvm",
@@ -46587,6 +46515,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mk9sly.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m002nwq5"
+    },
+    {
+      "pid": "b095qv24",
+      "title": "The Diaries of Adrian Mole: The Secret Diary of Adrian Mole, Aged 13 3/4",
+      "synopsis": "Sue Townsend's chronicle of a teenager growing up in the Midlands in the 1980s.",
+      "duration_secs": 900,
+      "available_until": "2026-04-30T02:45:00Z",
+      "first_broadcast": "2017-09-25T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "m0001t9m",
+      "series_title": "The Diaries of Adrian Mole",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n7j3k9.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b095qv24"
     },
     {
       "pid": "b081tdph",
@@ -48641,6 +48587,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/b0076hy9"
     },
     {
+      "pid": "b0076j10",
+      "title": "The Six Mothers-in-Law of Henry VIII: Episode 3",
+      "synopsis": "The 'unreliable' historical account of Jane Seymour's mother, Lady Margaret.",
+      "duration_secs": 1800,
+      "available_until": "2026-04-30T04:00:00Z",
+      "first_broadcast": "2003-12-01T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b06hcbvs",
+      "series_title": "The Six Mothers-in-Law of Henry VIII",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0341cvh.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b0076j10"
+    },
+    {
       "pid": "m002kgn9",
       "title": "The Skewer: Series 14",
       "synopsis": "Jon Holmes remixes the news into satirical shapes and sounds.",
@@ -50513,6 +50477,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/m002nrvx"
     },
     {
+      "pid": "m002tbhr",
+      "title": "Unspeakable: Series 3",
+      "synopsis": "Accidents that nobody sees, the worst place to be on a train, and people who forget films.",
+      "duration_secs": 1680,
+      "available_until": "2031-03-29T18:00:00Z",
+      "first_broadcast": "2026-03-30T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "m0024fk6",
+      "series_title": "Unspeakable",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m2f732.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/m002tbhr"
+    },
+    {
       "pid": "m002t1f3",
       "title": "Unspeakable: Series 3",
       "synopsis": "Bad mediums, unpopular winners, and when you've gotta go but you can't be bothered.",
@@ -50997,6 +50979,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mggnqt.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m002mbnj"
+    },
+    {
+      "pid": "p0n9jxgm",
+      "title": "Wanging On with Graham Norton and Maria McErlane: \"Doggie Thursday\" and Graham the Birthday Boy...!",
+      "synopsis": "It's Graham's birthday this week! Plus, get ready to be introduced to 'Doggie Thursday'",
+      "duration_secs": 2169,
+      "available_until": "2029-03-29T22:59:00Z",
+      "first_broadcast": "2026-03-30T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p0mw6k03",
+      "series_title": "Wanging On with Graham Norton and Maria McErlane",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Sounds",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mw6lp1.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/p0n9jxgm"
     },
     {
       "pid": "p0n23xlp",
@@ -52185,24 +52185,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0lbnmbh.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/p0m303vp"
-    },
-    {
-      "pid": "p0m1jymb",
-      "title": "You About?: Bowling, Tom's Tour & Oxbridge Tests",
-      "synopsis": "Roman Kemp & Tom Grennan talk bowling, tours and try their hand at Oxbridge questions.",
-      "duration_secs": 2049,
-      "available_until": "",
-      "first_broadcast": "2025-09-09T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "p0lbnm09",
-      "series_title": "You About?",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Sounds",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0lbnmbh.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/p0m1jymb"
     },
     {
       "pid": "p0mmqtd9",
