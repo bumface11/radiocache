@@ -1,7 +1,7 @@
 {
   "meta": {
-    "last_refreshed": "2026-04-05T05:46:34.748186+00:00",
-    "total_programmes": 2969
+    "last_refreshed": "2026-04-06T06:00:49.151600+00:00",
+    "total_programmes": 2970
   },
   "programmes": [
     {
@@ -219,24 +219,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0hwy62p.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/p0hwy2j7"
-    },
-    {
-      "pid": "b019rqh1",
-      "title": "A Short Gentleman: Episode 4",
-      "synopsis": "Robert's nemesis approaches, along with Edward, basset hound of doom.",
-      "duration_secs": 1800,
-      "available_until": "2026-04-06T05:00:00Z",
-      "first_broadcast": "2012-01-25T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b0194n5n",
-      "series_title": "A Short Gentleman",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p01l828j.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b019rqh1"
     },
     {
       "pid": "m002sqx5",
@@ -615,24 +597,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mzl28w.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m002sf0q"
-    },
-    {
-      "pid": "b00js6rf",
-      "title": "Anybody Can Do Anything by Betty MacDonald: 10. A Reluctant Writer",
-      "synopsis": "Mary tells a publisher about Betty's wonderful new book.",
-      "duration_secs": 900,
-      "available_until": "2026-04-06T03:45:00Z",
-      "first_broadcast": "2009-04-24T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "m002rqbv",
-      "series_title": "Anybody Can Do Anything by Betty MacDonald",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mzl28w.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b00js6rf"
     },
     {
       "pid": "b007k2xv",
@@ -4433,78 +4397,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/p06w5smb"
     },
     {
-      "pid": "p06w4yqn",
-      "title": "Classic Stories: Stories for Christmas",
-      "synopsis": "Holmes and Watson assist a man who suspects a vampire is wreaking havoc in his household.",
-      "duration_secs": 2340,
-      "available_until": "",
-      "first_broadcast": "2018-12-21T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "p06w4v4x",
-      "series_title": "Classic Stories",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Sounds",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p06w90qw.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/p06w4yqn"
-    },
-    {
-      "pid": "p06w5rkv",
-      "title": "Classic Stories: Stories for Christmas",
-      "synopsis": "Darkly intense story in which a man is haunted by his misdeeds.",
-      "duration_secs": 900,
-      "available_until": "",
-      "first_broadcast": "2018-12-21T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "p06w4v4x",
-      "series_title": "Classic Stories",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Sounds",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p06w901s.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/p06w5rkv"
-    },
-    {
-      "pid": "p06w5rbm",
-      "title": "Classic Stories: Stories for Christmas",
-      "synopsis": "Christmas story in which a poor, young married couple sacrifice everything to buy gifts.",
-      "duration_secs": 900,
-      "available_until": "",
-      "first_broadcast": "2018-12-21T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "p06w4v4x",
-      "series_title": "Classic Stories",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Sounds",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p06w90w5.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/p06w5rbm"
-    },
-    {
-      "pid": "p06w5qwf",
-      "title": "Classic Stories: Stories for Christmas",
-      "synopsis": "Christmas story in which warring neighbours make peace.",
-      "duration_secs": 1560,
-      "available_until": "",
-      "first_broadcast": "2018-12-21T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "p06w4v4x",
-      "series_title": "Classic Stories",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Sounds",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0gyrpj3.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/p06w5qwf"
-    },
-    {
       "pid": "p07d4dt2",
       "title": "Classic Stories: Stories for Summer",
       "synopsis": "Chekhov's story of a newlywed couple whose harmony is broken by an arrival off the train.",
@@ -6539,6 +6431,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0mjfcps"
     },
     {
+      "pid": "p0nb8cw6",
+      "title": "Comedy of the Week: Live from the UK: Live Comedy Day",
+      "synopsis": "Seann Walsh, Christopher Macarthur-Boyd, Emer Maguire and Carwyn Blayney join Angela.",
+      "duration_secs": 2562,
+      "available_until": "2027-04-06T04:00:00Z",
+      "first_broadcast": "2026-04-06T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p02pc9x6",
+      "series_title": "Comedy of the Week",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m0kdww.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/p0nb8cw6"
+    },
+    {
       "pid": "p0m98hqm",
       "title": "Comedy of the Week: Mark Steel's In Town",
       "synopsis": "Find out how hanging horseshoes upside down helps the people of Oakham vanquish the devil.",
@@ -6915,24 +6825,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m1xg39.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m000qm0q"
-    },
-    {
-      "pid": "b09jrkr2",
-      "title": "Cooking in a Bedsitter: Series 2",
-      "synopsis": "Lightly seasoned bedsitter romcom inspired by Katharine Whitehorn's 1960s cookery classic.",
-      "duration_secs": 1680,
-      "available_until": "2026-04-06T03:30:00Z",
-      "first_broadcast": "2017-12-25T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b09jhp5t",
-      "series_title": "Cooking in a Bedsitter",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p04hc3ry.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b09jrkr2"
     },
     {
       "pid": "b00vhf5y",
@@ -13505,6 +13397,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/m000qjh5"
     },
     {
+      "pid": "b09fy5xg",
+      "title": "Ed Reardon's Week: Series 12",
+      "synopsis": "Ed discovers a whole new world of self-satisfaction surveys.",
+      "duration_secs": 1800,
+      "available_until": "2026-05-05T22:30:00Z",
+      "first_broadcast": "2017-11-21T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b006r5ck",
+      "series_title": "Ed Reardon's Week",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n754tc.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b09fy5xg"
+    },
+    {
       "pid": "b09cz3mk",
       "title": "Ed Reardon's Week: Series 12",
       "synopsis": "Ed must prove who he is, in order to claim a possible inheritance.",
@@ -19571,6 +19481,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0lvfnkq"
     },
     {
+      "pid": "m000qcf9",
+      "title": "High Hopes by Ronnie Corbett (Omnibus)",
+      "synopsis": "One of Britain's comedy greats, Ronnie Corbett reads from his autobiography.",
+      "duration_secs": 4200,
+      "available_until": "2026-05-06T04:00:00Z",
+      "first_broadcast": "2020-12-13T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "",
+      "series_title": "",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p01n3sgz.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/m000qcf9"
+    },
+    {
       "pid": "b0075y5x",
       "title": "High Hopes by Ronnie Corbett: 1. Early Years",
       "synopsis": "One of the UK's best-loved entertainers reads from his autobiography.",
@@ -19843,7 +19771,7 @@
     {
       "pid": "p0k56gv0",
       "title": "How Essex inspired 'Death in Paradise'",
-      "synopsis": "Death in Paradise creator Robert Thorogood grew up in an Essex village near Colchester.",
+      "synopsis": "Robert Thorogood grew up near Colchester and had the idea for the TV crime series.",
       "duration_secs": 248,
       "available_until": "",
       "first_broadcast": "",
@@ -20093,6 +20021,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/m002lzwl"
     },
     {
+      "pid": "b00j0h9n",
+      "title": "I've Never Seen Star Wars: Series 2",
+      "synopsis": "Marcus Brigstocke gets Sandi Toksvig to try some new experiences.",
+      "duration_secs": 1800,
+      "available_until": "2026-05-05T23:00:00Z",
+      "first_broadcast": "2009-03-11T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b00hcr67",
+      "series_title": "I've Never Seen Star Wars",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n0xcgf.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b00j0h9n"
+    },
+    {
       "pid": "b00htwhd",
       "title": "I've Never Seen Star Wars: Series 2",
       "synopsis": "Marcus Brigstocke invites Madness frontman Suggs to try some new experiences.",
@@ -20271,6 +20217,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n6h31t.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m002szpx"
+    },
+    {
+      "pid": "b007qtrm",
+      "title": "Instant Sunshine: From 12th April 1985",
+      "synopsis": "David Barlow, Peter Christie, Miles Kington and Alan Maryon-Davis entertain.",
+      "duration_secs": 1800,
+      "available_until": "2026-05-06T04:30:00Z",
+      "first_broadcast": "1985-04-12T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b009x28c",
+      "series_title": "Instant Sunshine",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p01lcnkz.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b007qtrm"
     },
     {
       "pid": "p0k4333l",
@@ -20973,6 +20937,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mf4fh4.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/b008h4xg"
+    },
+    {
+      "pid": "b011f57l",
+      "title": "Jim the Great: Series 2",
+      "synopsis": "The King must entertain the peasants. What about a lecture on ecology?",
+      "duration_secs": 1800,
+      "available_until": "2026-05-06T05:00:00Z",
+      "first_broadcast": "1979-09-02T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b0116h25",
+      "series_title": "Jim the Great",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p01m5lqv.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b011f57l"
     },
     {
       "pid": "p0nbbj00",
@@ -22415,24 +22397,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/b0124trd"
     },
     {
-      "pid": "b00tvlbc",
-      "title": "Ladies of Letters: Ladies of Letters Say No",
-      "synopsis": "A doomed plan for revenge on Alan brings Vera and Irene closer to Her Majesty.",
-      "duration_secs": 900,
-      "available_until": "2026-04-06T04:00:00Z",
-      "first_broadcast": "2007-08-31T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b01s5dj1",
-      "series_title": "Ladies of Letters",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0811dx0.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b00tvlbc"
-    },
-    {
       "pid": "b00tyx83",
       "title": "Ladies of Letters: Ladies of Letters Say No (Omnibus)",
       "synopsis": "Vera has a new 'friend', but unsurprisingly, Irene doesn't approve.",
@@ -23223,6 +23187,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m1q50w.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m00238rn"
+    },
+    {
+      "pid": "m00238rm",
+      "title": "Limelight: Central Intelligence: Series 1",
+      "synopsis": "A failed coup, escape to Rome, going rogue…",
+      "duration_secs": 1771,
+      "available_until": "2029-09-13T04:45:00Z",
+      "first_broadcast": "2024-09-13T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p09hbsqb",
+      "series_title": "Limelight",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m1q50w.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/m00238rm"
     },
     {
       "pid": "m00238rl",
@@ -26987,6 +26969,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0n3shw9"
     },
     {
+      "pid": "p0nbbpp6",
+      "title": "Miss Me?: Listen Bitch! Call Me By What Name?",
+      "synopsis": "Miquita and Jordan answer your questions about vaginas.",
+      "duration_secs": 1933,
+      "available_until": "",
+      "first_broadcast": "2026-04-06T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p0hhgmp6",
+      "series_title": "Miss Me?",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Sounds",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mtrkc5.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/p0nbbpp6"
+    },
+    {
       "pid": "p0n151yx",
       "title": "Miss Me?: Listen Bitch! Choose You",
       "synopsis": "Miquita and Jordan answer your questions about love.",
@@ -28085,6 +28085,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0n961cw"
     },
     {
+      "pid": "p0nb3mh3",
+      "title": "Murder They Wrote with Laura Whitmore and Iain Stirling: 113. The Demon of the Belfry",
+      "synopsis": "Iain looks at a double murder case that revolves around a San Francisco church.",
+      "duration_secs": 2097,
+      "available_until": "",
+      "first_broadcast": "",
+      "programme_type": "playable_item",
+      "series_pid": "p0gq38lc",
+      "series_title": "Murder They Wrote with Laura Whitmore and Iain Stirling",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 5 Live",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n2snsl.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/p0nb3mh3"
+    },
+    {
       "pid": "p0m3tys2",
       "title": "Murder They Wrote with Laura Whitmore and Iain Stirling: 87. The Kentucky Book Heist",
       "synopsis": "A group of university students try to pull off a multi-million-dollar heist.",
@@ -28875,24 +28893,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0my4s9k.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m002sg4z"
-    },
-    {
-      "pid": "m002s4nw",
-      "title": "My Mammy and Me: Series 1",
-      "synopsis": "Isobel’s weekend is ruined when her Mammy asks her for a little favour...",
-      "duration_secs": 1800,
-      "available_until": "2026-04-06T02:30:00Z",
-      "first_broadcast": "1995-03-14T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "m002qv9v",
-      "series_title": "My Mammy and Me",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0my4s9k.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/m002s4nw"
     },
     {
       "pid": "m000j22s",
@@ -30819,24 +30819,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m1x2mc.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m001xm0y"
-    },
-    {
-      "pid": "m001xdfc",
-      "title": "One Person Found This Helpful: Series 1",
-      "synopsis": "Fishfinger versus cupcake - the ultimate challenge. Panel game about online reviews.",
-      "duration_secs": 1680,
-      "available_until": "2026-04-06T04:30:00Z",
-      "first_broadcast": "2024-03-18T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "m001wjgz",
-      "series_title": "One Person Found This Helpful",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m1x2mc.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/m001xdfc"
     },
     {
       "pid": "m002nv5r",
@@ -40217,6 +40199,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/m001v1mt"
     },
     {
+      "pid": "m002tpbc",
+      "title": "Spotlight: Celebrating Stoppard: Albert's Bridge",
+      "synopsis": "Tom Stoppard's prize-winning play about a philosophy graduate and a very large bridge.",
+      "duration_secs": 3420,
+      "available_until": "2026-05-05T15:00:00Z",
+      "first_broadcast": "2007-06-29T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p0lgs8ft",
+      "series_title": "Spotlight",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n8qgn0.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/m002tpbc"
+    },
+    {
       "pid": "b038xr3n",
       "title": "Spotlight: Celebrating Stoppard: Darkside",
       "synopsis": "A play for radio by Sir Tom Stoppard incorporating The Dark Side of the Moon by Pink Floyd",
@@ -40233,6 +40233,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n8qg0j.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/b038xr3n"
+    },
+    {
+      "pid": "m002trzj",
+      "title": "Spotlight: Celebrating Stoppard: Rock ‘n’ Roll",
+      "synopsis": "Tom Stoppard's 2006 play about loyalty, compromise, love and music.",
+      "duration_secs": 8700,
+      "available_until": "2026-05-05T20:40:00Z",
+      "first_broadcast": "2007-07-08T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p0lgs8ft",
+      "series_title": "Spotlight",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n8qgwh.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/m002trzj"
     },
     {
       "pid": "m0003sz6",
@@ -42380,8 +42398,8 @@
       "pid": "m002tp9z",
       "title": "The Archers Omnibus: 05/04/2026",
       "synopsis": "Brian tries to straighten things out with Miranda, and Pip has a nasty shock.",
-      "duration_secs": 4383,
-      "available_until": "2031-04-03T22:59:00Z",
+      "duration_secs": 4320,
+      "available_until": "2031-04-04T11:15:00Z",
       "first_broadcast": "2026-04-05T00:00:00Z",
       "programme_type": "playable_item",
       "series_pid": "b006qnkc",
@@ -42879,6 +42897,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n3nsm2.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m002s3gb"
+    },
+    {
+      "pid": "m002tpbv",
+      "title": "The Archers: 05/04/2026",
+      "synopsis": "Something unexpected happens at the Easter Day service.",
+      "duration_secs": 786,
+      "available_until": "2031-04-04T18:15:00Z",
+      "first_broadcast": "2026-04-05T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b006qpgr",
+      "series_title": "The Archers",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n3nsm2.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/m002tpbv"
     },
     {
       "pid": "m002pdvd",
@@ -44535,6 +44571,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p01l3l4p.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/b007jtw7"
+    },
+    {
+      "pid": "b007jtwc",
+      "title": "The Coma by Alex Garland: 5. Stimulus",
+      "synopsis": "Fear of never waking up turns to fear of waking up as Carl starts to stir.",
+      "duration_secs": 1800,
+      "available_until": "2026-05-05T23:30:00Z",
+      "first_broadcast": "2004-12-10T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b009szt1",
+      "series_title": "The Coma by Alex Garland",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p01l3l4p.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b007jtwc"
     },
     {
       "pid": "p0m1kj3v",
@@ -47021,24 +47075,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/m0018q02"
     },
     {
-      "pid": "p0n4t029",
-      "title": "The Infinite Monkey Cage: Introducing... Life Without",
-      "synopsis": "Alan Davies hosts a thought experiment: will removing one thing from our world destroy it?",
-      "duration_secs": 840,
-      "available_until": "2026-04-05T08:32:00Z",
-      "first_broadcast": "2026-03-06T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b00snr0w",
-      "series_title": "The Infinite Monkey Cage",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n4svjb.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/p0n4t029"
-    },
-    {
       "pid": "m002kjvk",
       "title": "The Infinite Monkey Cage: Series 34",
       "synopsis": "Brian Cox and Robin Ince venture north to unearth (or un-snow) the secrets of the Arctic.",
@@ -47399,24 +47435,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/m0028v0q"
     },
     {
-      "pid": "m002s4lp",
-      "title": "The Lambton Worm by Kevin Crossley-Holland",
-      "synopsis": "Child Lambton decides to go fishing instead of to church...",
-      "duration_secs": 900,
-      "available_until": "2026-04-05T06:00:00Z",
-      "first_broadcast": "1989-05-31T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "",
-      "series_title": "",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n2ybd3.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/m002s4lp"
-    },
-    {
       "pid": "m00237hx",
       "title": "The Last Loves of Ronnie Maker by Alice Jolly: Episode 1",
       "synopsis": "A newly-commissioned serial from Alice Jolly about love, loyalty and the meaning of care.",
@@ -47651,24 +47669,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/b00mg0wp"
     },
     {
-      "pid": "b007k4h4",
-      "title": "The Mark Steel Lecture: Series 1",
-      "synopsis": "The radical comedian profiles the 18th-century author and radical idealist.",
-      "duration_secs": 1800,
-      "available_until": "2026-04-06T00:00:00Z",
-      "first_broadcast": "1999-09-30T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b00g4bvc",
-      "series_title": "The Mark Steel Lecture",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p01lyc7x.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b007k4h4"
-    },
-    {
       "pid": "b00f9y6d",
       "title": "The Marx Brothers' Flywheel, Shyster and Flywheel: Series 3",
       "synopsis": "The shady lawyer stays in a haunted mansion. The Marx Brothers radio shows recreated.",
@@ -47703,24 +47703,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p08cbqd6.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/b007jr62"
-    },
-    {
-      "pid": "b007jr3g",
-      "title": "The Masterson Inheritance: Series 3",
-      "synopsis": "The family find bohemian inspiration...",
-      "duration_secs": 1800,
-      "available_until": "2026-04-05T23:30:00Z",
-      "first_broadcast": "1995-08-05T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b00cgn50",
-      "series_title": "The Masterson Inheritance",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p08cbqd6.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b007jr3g"
     },
     {
       "pid": "m002nrvb",
@@ -48425,6 +48407,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0htxhc4"
     },
     {
+      "pid": "b096nyvg",
+      "title": "The Secret Diary of Adrian Mole, Aged 13 3/4: Episode 1",
+      "synopsis": "It's 1981 and the year starts inauspiciously for Adrian Mole.",
+      "duration_secs": 4200,
+      "available_until": "2026-05-06T02:40:00Z",
+      "first_broadcast": "2017-10-01T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b09781zg",
+      "series_title": "The Secret Diary of Adrian Mole, Aged 13 3/4",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n7j3k9.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b096nyvg"
+    },
+    {
       "pid": "p08zhkz6",
       "title": "The Sink: A Sleep Aid: Session Five: Real Laser Gun Action",
       "synopsis": "According to our records this is your last chance.",
@@ -48821,6 +48821,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/m000lp4l"
     },
     {
+      "pid": "m000ltk8",
+      "title": "The Slide: 6. Time Limit",
+      "synopsis": "As the mud encroaches, Redlow is declared a Disaster Area and an evacuation is underway.",
+      "duration_secs": 1800,
+      "available_until": "2026-05-06T00:00:00Z",
+      "first_broadcast": "1966-03-20T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "m000llkq",
+      "series_title": "The Slide",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p08mn907.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/m000ltk8"
+    },
+    {
       "pid": "m001w75h",
       "title": "The Song Thief by Colin Carberry: Episode 1",
       "synopsis": "An old song sparks a new future for Harry.",
@@ -48999,24 +49017,6 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m1qg1t.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m002pq1j"
-    },
-    {
-      "pid": "m002pf5g",
-      "title": "The Unbelievable Truth: Series 32",
-      "synopsis": "Comedians try to smuggle truths past opponents in David Mitchell's comedy panel game.",
-      "duration_secs": 1680,
-      "available_until": "2026-04-05T19:00:00Z",
-      "first_broadcast": "2026-01-05T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b007mf4f",
-      "series_title": "The Unbelievable Truth",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m1qg1t.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/m002pf5g"
     },
     {
       "pid": "p0jkkngg",
@@ -50477,24 +50477,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/b00jm3kz"
     },
     {
-      "pid": "b00jhmlp",
-      "title": "Unnatural Acts: Series 1",
-      "synopsis": "A séance sparks some surprises! Starring Jeremy Hardy.",
-      "duration_secs": 1500,
-      "available_until": "2026-04-05T23:00:00Z",
-      "first_broadcast": "1987-04-04T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "b00k9h8b",
-      "series_title": "Unnatural Acts",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p01lyms6.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b00jhmlp"
-    },
-    {
       "pid": "m002nrvx",
       "title": "Unspeakable: Christmas Special 2025",
       "synopsis": "Good news! A new word is born unto us, in an Unspeakable seasonal spectacular.",
@@ -51161,6 +51143,24 @@
       "url": "https://www.bbc.co.uk/sounds/play/p0n3r0tk"
     },
     {
+      "pid": "p0nbbfdp",
+      "title": "Wanging On with Graham Norton and Maria McErlane: My husband wants gay sex",
+      "synopsis": "Graham & Maria respond to a woman whose husband wants to experiment with another man.",
+      "duration_secs": 1923,
+      "available_until": "2029-04-05T22:59:00Z",
+      "first_broadcast": "2026-04-06T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "p0mw6k03",
+      "series_title": "Wanging On with Graham Norton and Maria McErlane",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Sounds",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mw6lp1.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/p0nbbfdp"
+    },
+    {
       "pid": "p0mxydl8",
       "title": "Wanging On with Graham Norton and Maria McErlane: Neglected dogs and unloved ducks: Graham and Maria advise",
       "synopsis": "Maria DELIGHTS with a truly embarrassing story. Plus: irresponsible dog-sitting...",
@@ -51285,6 +51285,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n4vrhz.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m002sqzr"
+    },
+    {
+      "pid": "b00tjnmq",
+      "title": "Weak at the Top: Series 2",
+      "synopsis": "John Weak uses a little seduction to tackle a crisis.",
+      "duration_secs": 1800,
+      "available_until": "2026-05-05T22:00:00Z",
+      "first_broadcast": "2006-07-12T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b006wfyx",
+      "series_title": "Weak at the Top",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 4 Extra",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mr9bl5.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/b00tjnmq"
     },
     {
       "pid": "b00tgch7",
@@ -51611,12 +51629,12 @@
       "url": "https://www.bbc.co.uk/sounds/play/b011vf01"
     },
     {
-      "pid": "b011tz3y",
-      "title": "Whodunnits: Agatha Raisin - Series 3",
-      "synopsis": "Miles from home, the sleuth and her partner probe another murder.",
+      "pid": "b00th9yk",
+      "title": "Whodunnits: Julie Enfield Investigates: Terminus",
+      "synopsis": "Detective Superintendent Julie Enfield probes a grisly murder on a railway.",
       "duration_secs": 1800,
-      "available_until": "2026-04-06T01:30:00Z",
-      "first_broadcast": "2006-11-15T00:00:00Z",
+      "available_until": "2026-05-07T00:30:00Z",
+      "first_broadcast": "1994-08-11T00:00:00Z",
       "programme_type": "playable_item",
       "series_pid": "p0fsqm4x",
       "series_title": "Whodunnits",
@@ -51624,9 +51642,9 @@
       "brand_title": "",
       "episode_number": 0,
       "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0n0xd6v.jpg",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0g1bqj1.jpg",
       "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b011tz3y"
+      "url": "https://www.bbc.co.uk/sounds/play/b00th9yk"
     },
     {
       "pid": "b007jvbg",
@@ -51845,24 +51863,6 @@
       "url": "https://www.bbc.co.uk/sounds/play/b007k47f"
     },
     {
-      "pid": "b007jwgz",
-      "title": "Whodunnits: Wimsey - Busman's Honeymoon",
-      "synopsis": "With Noakes dead, the superintendent has his suspicions, but Wimsey is not so sure.",
-      "duration_secs": 1800,
-      "available_until": "2026-04-06T02:00:00Z",
-      "first_broadcast": "1983-01-10T00:00:00Z",
-      "programme_type": "playable_item",
-      "series_pid": "p0fsqm4x",
-      "series_title": "Whodunnits",
-      "brand_pid": "",
-      "brand_title": "",
-      "episode_number": 0,
-      "channel": "Radio 4 Extra",
-      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0mg673h.jpg",
-      "categories": "",
-      "url": "https://www.bbc.co.uk/sounds/play/b007jwgz"
-    },
-    {
       "pid": "p0hr2clp",
       "title": "Will Mellor reunited with Scarborough sub-postmaster",
       "synopsis": "Lee Castleton talks about the role the actor has played in his life.",
@@ -52005,6 +52005,24 @@
       "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m2frw4.jpg",
       "categories": "",
       "url": "https://www.bbc.co.uk/sounds/play/m002srm2"
+    },
+    {
+      "pid": "m001pmzr",
+      "title": "Words and Music: Aspects of the Divine",
+      "synopsis": "Readings from Shakespeare to Wordsworth and Larkin, and music from Beethoven to Bruckner.",
+      "duration_secs": 4440,
+      "available_until": "2026-05-05T20:00:00Z",
+      "first_broadcast": "2023-08-20T00:00:00Z",
+      "programme_type": "playable_item",
+      "series_pid": "b006x35f",
+      "series_title": "Words and Music",
+      "brand_pid": "",
+      "brand_title": "",
+      "episode_number": 0,
+      "channel": "Radio 3",
+      "thumbnail_url": "https://ichef.bbci.co.uk/images/ic/624x624/p0m2frw4.jpg",
+      "categories": "",
+      "url": "https://www.bbc.co.uk/sounds/play/m001pmzr"
     },
     {
       "pid": "m002sfcq",
