@@ -270,3 +270,23 @@ class TestExistingEndpointsUnchanged:
         resp = client.get("/api/programme/notexist")
         assert resp.status_code == 200
         assert resp.json()["error"] == "not_found"
+
+
+class TestCategoriesEndpoint:
+    """Tests for GET /api/categories."""
+
+    def test_categories_returns_200(self, client: TestClient) -> None:
+        resp = client.get("/api/categories")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "count" in body
+        assert "categories" in body
+        assert isinstance(body["categories"], list)
+
+    def test_api_search_category_filter(self, client: TestClient) -> None:
+        """Search endpoint accepts a category query param."""
+        resp = client.get("/api/search?category=Drama")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert "results" in body
+        assert body["category"] == "Drama"

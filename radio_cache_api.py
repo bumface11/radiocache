@@ -447,6 +447,7 @@ async def recordings_page(request: Request) -> HTMLResponse:
 @app.get("/api/search")
 async def api_search(
     q: str = Query(default="", description="Search query"),
+    category: str = Query(default="", description="Filter by category tag"),
     limit: int = Query(default=50, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ) -> dict:
@@ -454,6 +455,7 @@ async def api_search(
 
     Args:
         q: Free-text search query.
+        category: Optional category tag to filter results.
         limit: Max results.
         offset: Pagination offset.
 
@@ -463,14 +465,34 @@ async def api_search(
     with _get_db() as db:
         if q:
             programmes = search_programmes(db, q, limit=limit, offset=offset)
+            if category:
+                programmes = [
+                    p for p in programmes
+                    if category.lower() in [c.strip().lower() for c in p.categories.split(",")]
+                ]
+        elif category:
+            programmes = db.programmes_by_category(category, limit=limit, offset=offset)
         else:
             programmes = db.recent_programmes(limit=limit)
     return {
         "query": q,
+        "category": category,
         "count": len(programmes),
         "results": [_prog_dict(p) for p in programmes],
     }
 
+
+@app.get("/api/categories")
+async def api_categories() -> dict:
+    """JSON endpoint listing all distinct category tags.
+
+    Returns:
+        Dict with ``categories`` list, each entry having ``category``
+        and ``programme_count`` keys.
+    """
+    with _get_db() as db:
+        categories = db.list_categories()
+    return {"count": len(categories), "categories": categories}
 
 @app.get("/api/series")
 async def api_series() -> dict:
