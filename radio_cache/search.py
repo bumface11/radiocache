@@ -46,23 +46,21 @@ def search_programmes(
         return results
 
     pattern = f"%{stripped}%"
-    cat_clause = (
-        " AND ',' || LOWER(categories) || ',' LIKE '%,' || LOWER(?) || ',%'"
-        if category
-        else ""
-    )
-    params: tuple = (
-        (pattern, pattern, pattern, pattern, pattern, category, limit, offset)
-        if category
-        else (pattern, pattern, pattern, pattern, pattern, limit, offset)
-    )
+    cat_clause = ""
+    params: list[object] = [pattern, pattern, pattern, pattern, pattern]
+    if category:
+        cat_clause = (
+            " AND ',' || LOWER(categories) || ',' LIKE '%,' || LOWER(?) || ',%'"
+        )
+        params.append(category)
+    params.extend([limit, offset])
     rows = db.query(
         "SELECT * FROM programmes "
         "WHERE (title LIKE ? OR synopsis LIKE ? OR series_title LIKE ? "
         "OR brand_title LIKE ? OR categories LIKE ?)"
         f"{cat_clause} "
         "ORDER BY first_broadcast DESC LIMIT ? OFFSET ?",
-        params,
+        tuple(params),
     )
     from radio_cache.cache_db import _row_to_programme
 

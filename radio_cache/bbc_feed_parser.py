@@ -323,7 +323,15 @@ def fetch_drama_programmes(
     pid_to_cats: dict[str, set[str]] = {}
 
     for slug in slugs:
-        slug_display = _SLUG_DISPLAY_NAMES.get(slug) or slug.replace("-", " ").title()
+        slug_display = _SLUG_DISPLAY_NAMES.get(slug)
+        if slug_display is None:
+            slug_display = slug.replace("-", " ").title()
+            logger.warning(
+                "No display name mapped for slug '%s'; using title-case fallback '%s'. "
+                "Add it to _SLUG_DISPLAY_NAMES for consistent labelling.",
+                slug,
+                slug_display,
+            )
         logger.info("Fetching category: %s (%s)", slug, slug_display)
         for page in range(max_pages):
             offset = page * _PAGE_LIMIT
