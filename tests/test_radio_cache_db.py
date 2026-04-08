@@ -125,6 +125,19 @@ class TestCacheDB:
         results = populated_db.search("")
         assert results == []
 
+    def test_search_with_category_filter(self, populated_db: CacheDB) -> None:
+        """search() with category filters results to matching tag only."""
+        # "Dracula" appears in Horror; "The Archers" does not
+        results = populated_db.search("gothic", category="Horror")
+        pids = [r.pid for r in results]
+        assert "p003" in pids
+
+    def test_search_with_category_excludes_non_matching(self, populated_db: CacheDB) -> None:
+        """search() with category excludes programmes not in that category."""
+        # Archers is in Drama only; searching with Horror filter should not return it
+        results = populated_db.search("rural", category="Horror")
+        assert all(r.pid != "p001" for r in results)
+
     def test_list_series(self, populated_db: CacheDB) -> None:
         """List series returns distinct series with counts."""
         series = populated_db.list_series()
@@ -262,6 +275,51 @@ class TestCacheDB:
         assert len(progs) == 4
         titles = [p.title for p in progs]
         assert titles == sorted(titles)
+
+    def test_list_categories(self, populated_db: CacheDB) -> None:
+        """list_categories returns distinct tags with counts."""
+        cats = populated_db.list_categories()
+        tag_map = {c["category"]: c["programme_count"] for c in cats}
+        assert tag_map["Drama"] == 4
+        assert tag_map["Horror"] == 1
+        assert tag_map["Thriller"] == 1
+
+    def test_list_categories_sorted(self, populated_db: CacheDB) -> None:
+        """list_categories returns tags in alphabetical order."""
+        cats = populated_db.list_categories()
+        names = [c["category"] for c in cats]
+        assert names == sorted(names)
+
+    def test_list_categories_empty_db(self, db: CacheDB) -> None:
+        """list_categories returns empty list when cache is empty."""
+        assert db.list_categories() == []
+
+    def test_programmes_by_category(self, populated_db: CacheDB) -> None:
+        """programmes_by_category returns only matching programmes."""
+        progs = populated_db.programmes_by_category("Horror")
+        pids = [p.pid for p in progs]
+        assert pids == ["p003"]
+
+    def test_programmes_by_category_multi(self, populated_db: CacheDB) -> None:
+        """programmes_by_category matches all programmes carrying the tag."""
+        progs = populated_db.programmes_by_category("Drama")
+        assert len(progs) == 4
+
+    def test_programmes_by_category_no_partial_match(self, populated_db: CacheDB) -> None:
+        """'Crime' must not match 'Crime Drama' when only 'Crime' is sought."""
+        from radio_cache.models import Programme
+        populated_db.upsert_programme(
+            Programme(pid="p005", title="A Crime Drama", categories="Crime Drama")
+        )
+        # Searching for "Crime" should NOT match "Crime Drama"
+        progs = populated_db.programmes_by_category("Crime")
+        assert all(p.pid != "p005" for p in progs)
+
+    def test_programmes_by_category_case_insensitive(self, populated_db: CacheDB) -> None:
+        """programmes_by_category match is case-insensitive."""
+        progs_lower = populated_db.programmes_by_category("horror")
+        progs_upper = populated_db.programmes_by_category("Horror")
+        assert [p.pid for p in progs_lower] == [p.pid for p in progs_upper]
 
 
 class TestSanitiseFtsQuery:

@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 from radio_cache.bbc_feed_parser import (
     _PAGE_LIMIT,
     _parse_programme_item,
+    fetch_all_category_slugs,
     fetch_drama_programmes,
 )
 
@@ -62,6 +63,47 @@ class TestParseProgrammeItem:
         assert prog.channel == "Radio 4"
         assert "624x624" in prog.thumbnail_url
         assert "Drama" in prog.categories
+        assert "Thriller" in prog.categories
+
+    def test_categories_broader_hierarchy(self) -> None:
+        """Traverses broader.category hierarchy like get_iplayer."""
+        item = {
+            "urn": "urn:bbc:radio:episode:b09hier",
+            "categories": [
+                {
+                    "id": "thriller",
+                    "title": "Thriller",
+                    "broader": {
+                        "category": {
+                            "id": "drama",
+                            "title": "Drama",
+                            "broader": {
+                                "category": {
+                                    "id": "audio",
+                                    "title": "Audio",
+                                }
+                            },
+                        }
+                    },
+                }
+            ],
+        }
+        prog = _parse_programme_item(item)
+        assert prog is not None
+        cats = prog.categories.split(",")
+        assert "Thriller" in cats
+        assert "Drama" in cats
+        assert "Audio" in cats
+        # Broadest should appear before narrowest (get_iplayer ordering)
+        assert cats.index("Audio") < cats.index("Drama")
+        assert cats.index("Drama") < cats.index("Thriller")
+
+    def test_categories_empty_when_no_field(self) -> None:
+        """Returns empty categories string when categories field absent."""
+        item = {"urn": "urn:bbc:radio:episode:b09nocat", "title": "No cats"}
+        prog = _parse_programme_item(item)
+        assert prog is not None
+        assert prog.categories == ""
 
     def test_urn_extracts_episode_pid(self) -> None:
         """Extracts episode PID from the URN, ignoring pid and id fields."""
@@ -196,3 +238,88 @@ class TestFetchDramaProgrammes:
         )
         assert len(result) == 1
         assert result[0].pid == "b09dup"
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_slug_used_as_category_fallback(self, mock_fetch: MagicMock) -> None:
+        """Slug display name is recorded as category when API returns no categories."""
+        item = {"urn": "urn:bbc:radio:episode:b09nocat", "title": "No Category Item"}
+        mock_fetch.return_value = {"data": [item], "total": 1}
+        result = fetch_drama_programmes(
+            category_slugs=["thriller"], max_pages=1, delay=0
+        )
+        assert len(result) == 1
+        assert "Thriller" in result[0].categories
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_categories_merged_across_slugs(self, mock_fetch: MagicMock) -> None:
+        """When a programme appears in two slug searches its categories are merged."""
+        item = {"urn": "urn:bbc:radio:episode:b09multi", "title": "Multi Genre"}
+        mock_fetch.return_value = {"data": [item], "total": 1}
+        result = fetch_drama_programmes(
+            category_slugs=["drama", "thriller"], max_pages=1, delay=0
+        )
+        assert len(result) == 1
+        cats = set(c.strip() for c in result[0].categories.split(","))
+        assert "Drama" in cats
+        assert "Thriller" in cats
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_api_categories_merged_with_slug(self, mock_fetch: MagicMock) -> None:
+        """Categories from the API response are preserved alongside slug category."""
+        item = {
+            "urn": "urn:bbc:radio:episode:b09apicat",
+            "title": "API Category Item",
+            "categories": [{"id": "crime", "title": "Crime"}],
+        }
+        mock_fetch.return_value = {"data": [item], "total": 1}
+        result = fetch_drama_programmes(
+            category_slugs=["thriller"], max_pages=1, delay=0
+        )
+        assert len(result) == 1
+        cats = set(c.strip() for c in result[0].categories.split(","))
+        assert "Crime" in cats
+        assert "Thriller" in cats
+
+
+class TestFetchAllCategorySlugs:
+    """Tests for fetch_all_category_slugs."""
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_returns_slugs_from_api(self, mock_fetch: MagicMock) -> None:
+        """Extracts slug ids from the BBC categories API response."""
+        mock_fetch.return_value = {
+            "data": [
+                {"id": "drama", "title": "Drama"},
+                {"id": "thriller", "title": "Thriller"},
+                {"id": "comedy", "title": "Comedy"},
+            ]
+        }
+        slugs = fetch_all_category_slugs()
+        assert "drama" in slugs
+        assert "thriller" in slugs
+        assert "comedy" in slugs
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_falls_back_to_builtin_on_api_failure(self, mock_fetch: MagicMock) -> None:
+        """Falls back to built-in slug list when API returns None."""
+        mock_fetch.return_value = None
+        from radio_cache.bbc_feed_parser import _CATEGORY_SLUGS
+        slugs = fetch_all_category_slugs()
+        assert slugs == list(_CATEGORY_SLUGS)
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_falls_back_to_builtin_on_empty_response(self, mock_fetch: MagicMock) -> None:
+        """Falls back to built-in slug list when API returns empty data."""
+        mock_fetch.return_value = {"data": []}
+        from radio_cache.bbc_feed_parser import _CATEGORY_SLUGS
+        slugs = fetch_all_category_slugs()
+        assert slugs == list(_CATEGORY_SLUGS)
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_queries_correct_endpoint(self, mock_fetch: MagicMock) -> None:
+        """Queries the BBC categories API with medium=audio."""
+        mock_fetch.return_value = None
+        fetch_all_category_slugs()
+        url = mock_fetch.call_args[0][0]
+        assert "rms.api.bbc.co.uk/v2/categories" in url
+        assert "medium=audio" in url

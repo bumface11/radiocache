@@ -261,6 +261,7 @@ class CacheDB:
         query: str,
         limit: int = 50,
         offset: int = 0,
+        category: str = "",
     ) -> list[Programme]:
         """Full-text search across titles, synopses, and categories.
 
@@ -268,6 +269,8 @@ class CacheDB:
             query: Search terms (FTS5 query syntax).
             limit: Maximum results to return.
             offset: Result offset for pagination.
+            category: Optional category tag to filter results at the
+                database level.  The match is case-insensitive.
 
         Returns:
             Matching programmes ordered by relevance.
@@ -276,16 +279,35 @@ class CacheDB:
         if not safe_query:
             return []
 
-        sql = """
-            SELECT p.* FROM programmes p
-            JOIN programmes_fts fts ON p.rowid = fts.rowid
-            WHERE programmes_fts MATCH :query
-            ORDER BY rank
-            LIMIT :limit OFFSET :offset
-        """
-        rows = self._conn.execute(
-            sql, {"query": safe_query, "limit": limit, "offset": offset}
-        ).fetchall()
+        if category:
+            sql = """
+                SELECT p.* FROM programmes p
+                JOIN programmes_fts fts ON p.rowid = fts.rowid
+                WHERE programmes_fts MATCH :query
+                AND ',' || LOWER(p.categories) || ',' LIKE '%,' || LOWER(:category) || ',%'
+                ORDER BY rank
+                LIMIT :limit OFFSET :offset
+            """
+            rows = self._conn.execute(
+                sql,
+                {
+                    "query": safe_query,
+                    "category": category,
+                    "limit": limit,
+                    "offset": offset,
+                },
+            ).fetchall()
+        else:
+            sql = """
+                SELECT p.* FROM programmes p
+                JOIN programmes_fts fts ON p.rowid = fts.rowid
+                WHERE programmes_fts MATCH :query
+                ORDER BY rank
+                LIMIT :limit OFFSET :offset
+            """
+            rows = self._conn.execute(
+                sql, {"query": safe_query, "limit": limit, "offset": offset}
+            ).fetchall()
         return [_row_to_programme(r) for r in rows]
 
     def list_series(self) -> list[dict[str, str | int]]:
@@ -389,6 +411,63 @@ class CacheDB:
             }
             for r in rows
         ]
+
+    def list_categories(self) -> list[dict[str, str | int]]:
+        """List all distinct category tags with programme counts.
+
+        Categories are stored as comma-separated strings in the ``categories``
+        column.  This method splits those strings and aggregates across all
+        rows to return each unique tag together with how many programmes carry
+        it.
+
+        Returns:
+            List of dicts with ``category`` (display name) and
+            ``programme_count`` keys, ordered alphabetically by category.
+        """
+        rows = self._conn.execute(
+            "SELECT categories FROM programmes WHERE categories != ''"
+        ).fetchall()
+
+        counts: dict[str, int] = {}
+        for row in rows:
+            for tag in row["categories"].split(","):
+                tag = tag.strip()
+                if tag:
+                    counts[tag] = counts.get(tag, 0) + 1
+
+        return [
+            {"category": tag, "programme_count": count}
+            for tag, count in sorted(counts.items())
+        ]
+
+    def programmes_by_category(
+        self,
+        category: str,
+        limit: int = 200,
+        offset: int = 0,
+    ) -> list[Programme]:
+        """Fetch programmes whose ``categories`` field contains *category*.
+
+        The match is case-insensitive and checks for whole comma-separated
+        tokens to avoid partial matches (e.g. ``"Crime"`` should not match
+        ``"Crime Drama"`` unless ``"Crime Drama"`` is explicitly requested).
+
+        Args:
+            category: Category tag to filter by.
+            limit: Maximum results.
+            offset: Pagination offset.
+
+        Returns:
+            Matching programmes ordered by title.
+        """
+        sql = """
+            SELECT * FROM programmes
+            WHERE ',' || LOWER(categories) || ',' LIKE '%,' || LOWER(?) || ',%'
+            ORDER BY title
+            LIMIT ? OFFSET ?
+        """
+        rows = self._conn.execute(sql, (category, limit, offset)).fetchall()
+        return [_row_to_programme(r) for r in rows]
 
     def recent_programmes(self, limit: int = 50) -> list[Programme]:
         """Fetch the most recently broadcast programmes.

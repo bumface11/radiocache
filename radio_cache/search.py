@@ -19,6 +19,7 @@ def search_programmes(
     query: str,
     limit: int = 50,
     offset: int = 0,
+    category: str = "",
 ) -> list[Programme]:
     """Search programmes by free-text query.
 
@@ -30,6 +31,8 @@ def search_programmes(
         query: User search string.
         limit: Maximum results.
         offset: Pagination offset.
+        category: Optional category tag to filter results at the database
+            level.  The match is case-insensitive.
 
     Returns:
         Matching programmes.
@@ -38,17 +41,26 @@ def search_programmes(
     if not stripped:
         return []
 
-    results = db.search(stripped, limit=limit, offset=offset)
+    results = db.search(stripped, limit=limit, offset=offset, category=category)
     if results:
         return results
 
     pattern = f"%{stripped}%"
+    cat_clause = ""
+    params: list[object] = [pattern, pattern, pattern, pattern, pattern]
+    if category:
+        cat_clause = (
+            " AND ',' || LOWER(categories) || ',' LIKE '%,' || LOWER(?) || ',%'"
+        )
+        params.append(category)
+    params.extend([limit, offset])
     rows = db.query(
         "SELECT * FROM programmes "
-        "WHERE title LIKE ? OR synopsis LIKE ? OR series_title LIKE ? "
-        "OR brand_title LIKE ? OR categories LIKE ? "
+        "WHERE (title LIKE ? OR synopsis LIKE ? OR series_title LIKE ? "
+        "OR brand_title LIKE ? OR categories LIKE ?)"
+        f"{cat_clause} "
         "ORDER BY first_broadcast DESC LIMIT ? OFFSET ?",
-        (pattern, pattern, pattern, pattern, pattern, limit, offset),
+        tuple(params),
     )
     from radio_cache.cache_db import _row_to_programme
 
