@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Final, Literal
 
 from fastapi import FastAPI, Query, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -915,6 +915,40 @@ async def get_recording(job_id: str) -> dict:
     if job is None:
         raise HTTPException(status_code=404, detail={"error": "not_found", "job_id": job_id})
     return job_to_dict(job)
+
+
+@app.get("/api/recordings/{job_id}/download")
+async def download_recording(job_id: str) -> FileResponse:
+    """Download the completed audio file for a recording job.
+
+    Args:
+        job_id: UUID job identifier.
+
+    Returns:
+        The recorded audio file as an attachment.
+
+    Raises:
+        HTTPException 404: Job not found or file missing on disk.
+        HTTPException 409: Recording is not yet complete.
+    """
+    from fastapi import HTTPException
+
+    manager = get_job_manager()
+    job = manager.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail={"error": "not_found", "job_id": job_id})
+    if job.status != "completed":
+        raise HTTPException(
+            status_code=409,
+            detail={"error": "not_ready", "job_id": job_id, "status": job.status},
+        )
+    if not job.output_path:
+        raise HTTPException(status_code=404, detail={"error": "no_output_path", "job_id": job_id})
+    path = Path(job.output_path)
+    if not path.is_file():
+        raise HTTPException(status_code=404, detail={"error": "file_not_found", "job_id": job_id})
+    media_type = "audio/mp4" if path.suffix == ".m4a" else "audio/mpeg"
+    return FileResponse(path, filename=path.name, media_type=media_type)
 
 
 @app.delete("/api/recordings/{job_id}")
