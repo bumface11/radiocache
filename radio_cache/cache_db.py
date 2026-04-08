@@ -261,6 +261,7 @@ class CacheDB:
         query: str,
         limit: int = 50,
         offset: int = 0,
+        category: str = "",
     ) -> list[Programme]:
         """Full-text search across titles, synopses, and categories.
 
@@ -268,6 +269,8 @@ class CacheDB:
             query: Search terms (FTS5 query syntax).
             limit: Maximum results to return.
             offset: Result offset for pagination.
+            category: Optional category tag to filter results at the
+                database level.  The match is case-insensitive.
 
         Returns:
             Matching programmes ordered by relevance.
@@ -276,16 +279,35 @@ class CacheDB:
         if not safe_query:
             return []
 
-        sql = """
-            SELECT p.* FROM programmes p
-            JOIN programmes_fts fts ON p.rowid = fts.rowid
-            WHERE programmes_fts MATCH :query
-            ORDER BY rank
-            LIMIT :limit OFFSET :offset
-        """
-        rows = self._conn.execute(
-            sql, {"query": safe_query, "limit": limit, "offset": offset}
-        ).fetchall()
+        if category:
+            sql = """
+                SELECT p.* FROM programmes p
+                JOIN programmes_fts fts ON p.rowid = fts.rowid
+                WHERE programmes_fts MATCH :query
+                AND ',' || LOWER(p.categories) || ',' LIKE '%,' || LOWER(:category) || ',%'
+                ORDER BY rank
+                LIMIT :limit OFFSET :offset
+            """
+            rows = self._conn.execute(
+                sql,
+                {
+                    "query": safe_query,
+                    "category": category,
+                    "limit": limit,
+                    "offset": offset,
+                },
+            ).fetchall()
+        else:
+            sql = """
+                SELECT p.* FROM programmes p
+                JOIN programmes_fts fts ON p.rowid = fts.rowid
+                WHERE programmes_fts MATCH :query
+                ORDER BY rank
+                LIMIT :limit OFFSET :offset
+            """
+            rows = self._conn.execute(
+                sql, {"query": safe_query, "limit": limit, "offset": offset}
+            ).fetchall()
         return [_row_to_programme(r) for r in rows]
 
     def list_series(self) -> list[dict[str, str | int]]:
@@ -440,7 +462,7 @@ class CacheDB:
         """
         sql = """
             SELECT * FROM programmes
-            WHERE ',' || categories || ',' LIKE '%,' || ? || ',%'
+            WHERE ',' || LOWER(categories) || ',' LIKE '%,' || LOWER(?) || ',%'
             ORDER BY title
             LIMIT ? OFFSET ?
         """

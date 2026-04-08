@@ -392,6 +392,9 @@ def fetch_drama_programmes(
 
     # Build the final programme list, replacing each programme's categories
     # with the fully merged set gathered across all slug searches.
+    # Categories from multiple slugs are peer-level tags (e.g. "Drama",
+    # "Thriller") with no parent-child hierarchy, so alphabetical order
+    # gives a consistent, reproducible output across runs.
     programmes: list[Programme] = []
     for pid, prog in pid_to_prog.items():
         merged = ",".join(sorted(pid_to_cats[pid]))

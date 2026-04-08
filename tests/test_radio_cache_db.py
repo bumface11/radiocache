@@ -125,6 +125,19 @@ class TestCacheDB:
         results = populated_db.search("")
         assert results == []
 
+    def test_search_with_category_filter(self, populated_db: CacheDB) -> None:
+        """search() with category filters results to matching tag only."""
+        # "Dracula" appears in Horror; "The Archers" does not
+        results = populated_db.search("gothic", category="Horror")
+        pids = [r.pid for r in results]
+        assert "p003" in pids
+
+    def test_search_with_category_excludes_non_matching(self, populated_db: CacheDB) -> None:
+        """search() with category excludes programmes not in that category."""
+        # Archers is in Drama only; searching with Horror filter should not return it
+        results = populated_db.search("rural", category="Horror")
+        assert all(r.pid != "p001" for r in results)
+
     def test_list_series(self, populated_db: CacheDB) -> None:
         """List series returns distinct series with counts."""
         series = populated_db.list_series()
