@@ -1,0 +1,29 @@
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Test files (not needed at runtime)
+tests/
+
+# Dev tooling
+.venv/
+*.egg-info/
+.ruff_cache/
+.mypy_cache/
+
+# Git
+.git/
+.gitignore
+
+# Local recordings (ephemeral, regenerated at runtime)
+recordings/
+
+# The export JSON is large - only include if you need it bundled
+# radio_cache_export.json
+
+# Editor/OS noise
+.vscode/
+*.swp
+Thumbs.db
