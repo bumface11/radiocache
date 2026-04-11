@@ -18,6 +18,61 @@
 			"isBackground": true,
 			"problemMatcher": [],
 			"group": "build"
+		},
+		{
+			"label": "Deploy to Cloud Run",
+			"type": "shell",
+			"command": "gcloud",
+			"args": [
+				"builds",
+				"submit",
+				"--project",
+				"radiodrama",
+				"--region",
+				"europe-west2",
+				"--tag",
+				"europe-west2-docker.pkg.dev/radiodrama/radiocache/app:latest"
+			],
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"clear": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Run Deploy (Cloud Run)",
+			"type": "shell",
+			"command": "gcloud",
+			"args": [
+				"run",
+				"deploy",
+				"app",
+				"--project",
+				"radiodrama",
+				"--region",
+				"europe-west2",
+				"--image",
+				"europe-west2-docker.pkg.dev/radiodrama/radiocache/app:latest"
+			],
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"clear": false
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "Build and Deploy to Cloud Run",
+			"dependsOrder": "sequence",
+			"dependsOn": [
+				"Deploy to Cloud Run",
+				"Run Deploy (Cloud Run)"
+			],
+			"group": "build",
+			"problemMatcher": []
 		}
 	]
 }

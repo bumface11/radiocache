@@ -3,10 +3,10 @@
 {% block title %}BBC Radio Drama Cache - Search{% endblock %}
 
 {% block content %}
-<div class="search-hero text-center">
+<div class="search-hero">
     <h1 class="display-5">BBC Radio Drama Cache</h1>
     <p class="lead text-muted">
-        Search and browse BBC Radio dramas. Download with get_iplayer.
+        Search and browse BBC Radio dramas — record, download, subscribe.
     </p>
     <form action="/search" method="get" class="row g-2 justify-content-center mt-3">
         <div class="col-md-6">
@@ -15,27 +15,43 @@
                    autofocus>
         </div>
         <div class="col-auto">
-            <button type="submit" class="btn btn-primary btn-lg">Search</button>
+            <button type="submit" class="btn btn-lg" style="background:var(--rc-accent);color:#fff">Search</button>
         </div>
     </form>
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h2 class="card-title">{{ stats.total_programmes }}</h2>
-                <p class="card-text text-muted">Programmes</p>
+<div class="row mt-4 g-3">
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body py-3">
+                <div class="stat-number">{{ stats.total_programmes }}</div>
+                <div class="stat-label">Programmes</div>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card text-center">
-            <div class="card-body">
-                <h2 class="card-title">{{ stats.total_series }}</h2>
-                <p class="card-text text-muted">Series</p>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body py-3">
+                <div class="stat-number">{{ stats.total_series }}</div>
+                <div class="stat-label">Series</div>
             </div>
         </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="/series" class="card stat-card h-100 text-decoration-none">
+            <div class="card-body py-3">
+                <div class="stat-number" style="font-size:1.6rem">Browse</div>
+                <div class="stat-label">All Series</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a href="/recordings" class="card stat-card h-100 text-decoration-none">
+            <div class="card-body py-3">
+                <div class="stat-number" style="font-size:1.6rem">Record</div>
+                <div class="stat-label">Recordings</div>
+            </div>
+        </a>
     </div>
 </div>
 
@@ -103,26 +119,15 @@
 </div>
 {% endif %}
 
-<div class="row mt-5 g-3">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-body">
-                <h5 class="card-title">Browse by Series</h5>
-                <p class="card-text">View dramas grouped by their parent series.</p>
-                <a href="/series" class="btn btn-outline-primary">View Series</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<div class="card mt-4">
+<div class="card mt-4" style="border-color:rgba(255,255,255,.08);background:var(--rc-surface)">
     <div class="card-body">
         <h5 class="card-title">Download with get_iplayer</h5>
-        <p>Find a programme above, then use the command shown to download it locally:</p>
-        <pre class="bg-dark text-light p-3 rounded"><code>get_iplayer --pid=&lt;PID&gt; --type=radio</code></pre>
+        <p class="mb-2">Find a programme above, then use the command shown to download it locally:</p>
+        <pre class="p-3 rounded mb-2" style="background:rgba(0,0,0,.3)"><code>get_iplayer --pid=&lt;PID&gt; --type=radio</code></pre>
         <p class="text-muted small mb-0">
             Requires <a href="https://github.com/get-iplayer/get_iplayer" target="_blank"
-            rel="noopener">get_iplayer</a> installed on your machine.
+            rel="noopener">get_iplayer</a> installed on your machine, or use the
+            <a href="/recordings">recording feature</a> to capture audio directly.
         </p>
     </div>
 </div>

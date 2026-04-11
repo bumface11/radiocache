@@ -3,23 +3,25 @@
 {% block title %}Brands - BBC Radio Drama Cache{% endblock %}
 
 {% block content %}
-<h2>All Brands</h2>
-<p class="text-muted">{{ brands|length }} brands in the cache</p>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+        <h2 class="mb-0">All Brands</h2>
+        <p class="text-muted mb-0">{{ brands|length }} brands in the cache</p>
+    </div>
+</div>
 
 <div class="row g-3">
     {% for b in brands %}
     <div class="col-md-6 col-lg-4">
-        <div class="card programme-card h-100">
-            <div class="card-body">
-                <h6 class="card-title">
-                    <a href="/brands/{{ b.brand_pid }}" class="text-decoration-none">
-                        {{ b.brand_title or b.brand_pid }}
-                    </a>
-                </h6>
-                <span class="badge bg-info">{{ b.series_count }} series</span>
-                <span class="badge bg-secondary">{{ b.total_episodes }} episodes</span>
+        <a href="/brands/{{ b.brand_pid }}" class="card programme-card h-100 text-decoration-none">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <h6 class="card-title mb-0">{{ b.brand_title or b.brand_pid }}</h6>
+                <div>
+                    <span class="badge bg-info">{{ b.series_count }} series</span>
+                    <span class="badge bg-secondary">{{ b.total_episodes }} ep</span>
+                </div>
             </div>
-        </div>
+        </a>
     </div>
     {% endfor %}
 </div>

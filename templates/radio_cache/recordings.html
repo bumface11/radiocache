@@ -72,6 +72,13 @@
     </div>
 </div>
 
+<!-- Podcast feed -->
+<div class="alert alert-light border d-flex align-items-center gap-2 py-2 mb-3" id="podcast-feed-bar">
+    <strong class="text-nowrap">Podcast feed:</strong>
+    <code class="flex-grow-1 text-truncate" id="podcast-url"></code>
+    <button class="btn btn-sm btn-outline-primary flex-shrink-0" id="copy-feed-btn" type="button">Copy URL</button>
+</div>
+
 <!-- Job list -->
 <div id="jobs-summary" class="text-muted small mb-2">Loading&hellip;</div>
 <div id="jobs-container"></div>
@@ -154,6 +161,10 @@
               + ' href="/api/recordings/' + encodeURIComponent(j.job_id) + '/download"'
               + ' download>Download</a>' : '';
 
+        const podcastBtn = j.status === 'completed' && j.output_path
+            ? '<a class="btn btn-sm btn-outline-warning flex-shrink-0"'
+              + ' href="/api/podcast.xml" target="_blank">Podcast</a>' : '';
+
         return '<div class="card mb-2" id="job-' + esc(j.job_id) + '">'
             + '<div class="card-body py-2">'
             + '<div class="d-flex justify-content-between align-items-start gap-2">'
@@ -166,7 +177,7 @@
             + progressHtml + errorHtml + pathHtml
             + '<div class="text-muted" style="font-size:0.75rem">' + timing + '</div>'
             + '</div>'
-            + '<div class="d-flex gap-2">' + downloadBtn + cancelBtn + '</div>'
+            + '<div class="d-flex gap-2">' + downloadBtn + podcastBtn + cancelBtn + '</div>'
             + '</div></div></div>';
     }
 
@@ -261,6 +272,17 @@
         }
         submitBtn.disabled = false;
         submitBtn.textContent = 'Record';
+    });
+
+    // Podcast feed URL
+    const feedUrl = location.origin + '/api/podcast.xml';
+    document.getElementById('podcast-url').textContent = feedUrl;
+    document.getElementById('copy-feed-btn').addEventListener('click', () => {
+        navigator.clipboard.writeText(feedUrl).then(() => {
+            const btn = document.getElementById('copy-feed-btn');
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = 'Copy URL'; }, 1500);
+        });
     });
 
     // Initial load

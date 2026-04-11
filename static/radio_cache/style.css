@@ -1,3 +1,194 @@
-/* Additional styles for the radio cache web UI */
+/* ── Radio Cache custom theme ────────────────────────────────── */
+:root {
+    --rc-accent: #e63946;          /* BBC-ish red */
+    --rc-accent-soft: rgba(230, 57, 70, .12);
+    --rc-accent-hover: #c1121f;
+    --rc-glow: rgba(230, 57, 70, .25);
+    --rc-surface: rgba(255,255,255,.04);
+}
+
+/* ── Typography ─────────────────────────────────────────────── */
+body {
+    min-height: 100vh;
+    font-feature-settings: "cv11", "ss01";  /* nicer default glyphs */
+    letter-spacing: .01em;
+}
+h1,h2,h3,h4,h5,h6 { font-weight: 600; }
+
+/* ── Navbar ─────────────────────────────────────────────────── */
+.navbar {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.navbar-brand {
+    font-weight: 700;
+    letter-spacing: -.02em;
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+}
+.navbar-brand .brand-dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    background: var(--rc-accent);
+    border-radius: 50%;
+    animation: pulse-dot 2s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+    0%,100% { box-shadow: 0 0 0 0 var(--rc-glow); }
+    50%     { box-shadow: 0 0 0 6px transparent; }
+}
+
+/* ── Hero (index page) ──────────────────────────────────────── */
+.search-hero {
+    padding: 3.5rem 0 2.5rem;
+    text-align: center;
+}
+.search-hero h1 {
+    font-size: 2.4rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #fff 40%, var(--rc-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.search-hero .lead { opacity: .7; }
+
+/* ── Stat cards ─────────────────────────────────────────────── */
+.stat-card {
+    border: 1px solid rgba(255,255,255,.08);
+    background: var(--rc-surface);
+    text-align: center;
+    transition: border-color .2s;
+}
+.stat-card:hover { border-color: var(--rc-accent); }
+.stat-card .stat-number {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--rc-accent);
+    line-height: 1.1;
+}
+.stat-card .stat-label {
+    text-transform: uppercase;
+    font-size: .7rem;
+    letter-spacing: .08em;
+    opacity: .55;
+    margin-top: .25rem;
+}
+
+/* ── Programme cards ────────────────────────────────────────── */
+.programme-card {
+    border: 1px solid rgba(255,255,255,.08);
+    background: var(--rc-surface);
+    transition: transform .15s ease, border-color .2s, box-shadow .2s;
+}
+.programme-card:hover {
+    transform: translateY(-3px);
+    border-color: rgba(230,57,70,.35);
+    box-shadow: 0 6px 24px rgba(0,0,0,.25);
+}
 .programme-card .card-body { padding: 1rem; }
-.get-iplayer-cmd { word-break: break-all; }
+.programme-card .card-footer {
+    background: transparent;
+    border-top: 1px solid rgba(255,255,255,.06);
+}
+
+/* ── get_iplayer command chip ───────────────────────────────── */
+.get-iplayer-cmd {
+    word-break: break-all;
+    font-family: 'Courier New', monospace;
+    font-size: .78rem;
+    background: rgba(255,255,255,.05);
+    padding: .25rem .55rem;
+    border-radius: .3rem;
+    cursor: pointer;
+    border: 1px solid rgba(255,255,255,.08);
+    transition: background .15s, border-color .15s;
+    margin-top: .4rem;
+    display: inline-block;
+}
+.get-iplayer-cmd:hover {
+    background: rgba(255,255,255,.1);
+    border-color: rgba(255,255,255,.18);
+}
+
+/* ── Badges ─────────────────────────────────────────────────── */
+.badge-duration { font-size: .72rem; }
+.series-badge   { font-size: .68rem; }
+.badge.text-bg-success { background-color: #2a9d8f !important; }
+.badge.text-bg-warning { background-color: #e9c46a !important; color: #000 !important; }
+
+/* ── Record button pulse ────────────────────────────────────── */
+.record-btn {
+    position: relative;
+}
+.record-btn::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    opacity: 0;
+    background: var(--rc-glow);
+    transition: opacity .2s;
+}
+.record-btn:hover::before { opacity: 1; }
+
+/* ── Tables (series list) ───────────────────────────────────── */
+.table-hover > tbody > tr {
+    transition: background .12s;
+}
+.table-hover > tbody > tr:hover {
+    background: var(--rc-accent-soft) !important;
+}
+
+/* ── Series filter input ────────────────────────────────────── */
+.series-filter {
+    max-width: 320px;
+    background: var(--rc-surface);
+    border: 1px solid rgba(255,255,255,.1);
+}
+.series-filter:focus {
+    border-color: var(--rc-accent);
+    box-shadow: 0 0 0 .2rem var(--rc-glow);
+}
+
+/* ── Recordings page ────────────────────────────────────────── */
+#podcast-feed-bar {
+    background: var(--rc-surface) !important;
+    border-color: rgba(255,255,255,.1) !important;
+}
+#podcast-feed-bar code {
+    color: var(--rc-accent);
+    font-size: .82rem;
+}
+
+/* ── Accordion (search results) ─────────────────────────────── */
+.accordion-button:not(.collapsed) {
+    background: var(--rc-accent-soft);
+    color: inherit;
+}
+.accordion-button:focus {
+    box-shadow: 0 0 0 .2rem var(--rc-glow);
+}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+footer {
+    margin-top: 3rem;
+    padding: 1.5rem 0;
+    border-top: 1px solid rgba(255,255,255,.06);
+    opacity: .7;
+    transition: opacity .2s;
+}
+footer:hover { opacity: 1; }
+
+/* ── Misc ───────────────────────────────────────────────────── */
+.breadcrumb { font-size: .85rem; }
+.progress { background: rgba(255,255,255,.08); }
+.progress-bar { background: var(--rc-accent); }
+
+/* scrollbar (Webkit) */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.25); }

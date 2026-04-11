@@ -991,3 +991,71 @@ async def cancel_recording(job_id: str) -> dict:
         raise HTTPException(status_code=404, detail={"error": "not_found", "job_id": job_id})
     logger.info("Cancelled recording job %s", job_id)
     return {"job_id": updated.job_id, "status": updated.status}
+
+
+# ── Podcast feed ─────────────────────────────────────────────────────────
+
+
+@app.get("/api/podcast.xml")
+async def podcast_feed(request: Request) -> PlainTextResponse:
+    """Return an RSS 2.0 podcast feed of all completed recordings."""
+    from xml.etree.ElementTree import Element, SubElement, tostring
+
+    base = str(request.base_url).rstrip("/")
+    manager = get_job_manager()
+
+    rss = Element("rss", version="2.0", attrib={
+        "xmlns:itunes": "http://www.itunes.com/dtds/podcast-1.0.dtd",
+    })
+    channel = SubElement(rss, "channel")
+    SubElement(channel, "title").text = "Radio Cache Recordings"
+    SubElement(channel, "link").text = base + "/recordings"
+    SubElement(channel, "description").text = "Recordings captured by Radio Cache"
+
+    completed = [
+        j for j in manager.list_jobs()
+        if j.status == "completed" and j.output_path and Path(j.output_path).is_file()
+    ]
+    completed.sort(key=lambda j: j.completed_at or "", reverse=True)
+
+    for job in completed:
+        title = job.source_id
+        station = ""
+        if job.source_type == "programme":
+            with _get_db() as db:
+                prog = db.get_programme(job.source_id)
+            if prog:
+                title = prog.title
+                station = prog.channel or ""
+
+        item = SubElement(channel, "item")
+        SubElement(item, "title").text = title
+        if station:
+            SubElement(item, "description").text = station
+
+        enc_url = f"{base}/api/recordings/{job.job_id}/download"
+        mime = "audio/mp4" if job.output_format == "m4a" else "audio/mpeg"
+        file_size = str(Path(job.output_path).stat().st_size)
+        SubElement(item, "enclosure", url=enc_url, type=mime, length=file_size)
+
+        SubElement(item, "guid", isPermaLink="false").text = job.job_id
+        if job.completed_at:
+            SubElement(item, "pubDate").text = _rfc2822(job.completed_at)
+        if job.duration_seconds:
+            secs = int(job.duration_seconds)
+            SubElement(item, "{http://www.itunes.com/dtds/podcast-1.0.dtd}duration").text = (
+                f"{secs // 3600}:{(secs % 3600) // 60:02d}:{secs % 60:02d}"
+            )
+
+    xml_bytes = b'<?xml version="1.0" encoding="utf-8"?>\n' + tostring(rss, encoding="unicode").encode("utf-8")
+    return PlainTextResponse(content=xml_bytes, media_type="application/rss+xml")
+
+
+def _rfc2822(iso_ts: str) -> str:
+    """Convert an ISO-8601 timestamp string to RFC-2822 format for RSS."""
+    from email.utils import format_datetime as _fmt_dt
+
+    dt = datetime.fromisoformat(iso_ts)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return _fmt_dt(dt)

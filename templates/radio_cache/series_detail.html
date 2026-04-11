@@ -78,15 +78,17 @@
                     {% if ep.channel %}| {{ ep.channel }}{% endif %}
                 </small>
             </div>
-            <div class="text-end ms-3">
+            <div class="text-end ms-3 d-flex flex-column align-items-end gap-1">
                 {% if ep.duration_secs %}
                     <span class="badge bg-secondary badge-duration">
                         {{ ep.duration_secs | format_duration }}
                     </span>
                 {% endif %}
-                <br>
-                <a href="{{ ep.url }}" class="btn btn-sm btn-outline-primary mt-1"
+                <a href="{{ ep.url }}" class="btn btn-sm btn-outline-primary"
                    target="_blank" rel="noopener">BBC Sounds</a>
+                <button class="btn btn-sm btn-outline-danger record-btn"
+                        data-pid="{{ ep.pid }}"
+                        title="Save audio file locally">Record</button>
             </div>
         </div>
     </div>

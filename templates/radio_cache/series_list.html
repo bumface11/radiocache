@@ -3,15 +3,20 @@
 {% block title %}Series - BBC Radio Drama Cache{% endblock %}
 
 {% block content %}
-<h2>All Series</h2>
-<p class="text-muted">{{ series|length }} series in the cache</p>
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+    <div>
+        <h2 class="mb-0">All Series</h2>
+        <p class="text-muted mb-0" id="series-count">{{ series|length }} series in the cache</p>
+    </div>
+    <input type="search" class="form-control form-control-sm series-filter"
+           id="series-filter" placeholder="Filter series...">
+</div>
 
 <div class="table-responsive">
-    <table class="table table-hover">
+    <table class="table table-hover" id="series-table">
         <thead>
             <tr>
                 <th>Series</th>
-                <th>Slug</th>
                 <th class="text-end">Episodes</th>
             </tr>
         </thead>
@@ -21,9 +26,6 @@
                 <td>
                     <a href="/series/{{ s.series_pid }}">{{ s.series_title or s.series_pid }}</a>
                 </td>
-                <td>
-                    <a href="/series/{{ s.series_pid }}" class="font-monospace">{{ s.series_pid }}</a>
-                </td>
                 <td class="text-end">
                     <span class="badge bg-primary">{{ s.episode_count }}</span>
                 </td>
@@ -32,4 +34,28 @@
         </tbody>
     </table>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const input = document.getElementById('series-filter');
+    const rows  = document.querySelectorAll('#series-table tbody tr');
+    const count = document.getElementById('series-count');
+    const total = rows.length;
+
+    input.addEventListener('input', function () {
+        const q = this.value.toLowerCase();
+        let visible = 0;
+        rows.forEach(row => {
+            const match = row.textContent.toLowerCase().includes(q);
+            row.style.display = match ? '' : 'none';
+            if (match) visible++;
+        });
+        count.textContent = visible === total
+            ? total + ' series in the cache'
+            : visible + ' of ' + total + ' series';
+    });
+}());
+</script>
 {% endblock %}
