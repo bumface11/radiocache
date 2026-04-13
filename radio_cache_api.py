@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Final, Literal
 
 from fastapi import FastAPI, Query, Request
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -43,6 +43,7 @@ _JSON_PATH: Final[str] = os.environ.get(
 )
 _GITHUB_URL: Final[str] = os.environ.get("RADIO_CACHE_GITHUB_URL", "")
 _BASE_DIR: Final[Path] = Path(__file__).resolve().parent
+_PODCAST_MAX_AGE_DAYS: Final[int] = int(os.environ.get("PODCAST_MAX_AGE_DAYS", "1"))
 
 
 @asynccontextmanager
@@ -918,8 +919,12 @@ async def get_recording(job_id: str) -> dict:
 
 
 @app.get("/api/recordings/{job_id}/download")
-async def download_recording(job_id: str) -> FileResponse:
+async def download_recording(job_id: str) -> StreamingResponse:
     """Download the completed audio file for a recording job.
+
+    Streams the file in 64 KB chunks via StreamingResponse to avoid
+    buffering large recordings in memory and to work reliably across
+    Cloud Run instances (which may not share in-memory job state).
 
     Args:
         job_id: UUID job identifier.
@@ -947,8 +952,29 @@ async def download_recording(job_id: str) -> FileResponse:
     path = Path(job.output_path)
     if not path.is_file():
         raise HTTPException(status_code=404, detail={"error": "file_not_found", "job_id": job_id})
-    media_type = "audio/mp4" if path.suffix == ".m4a" else "audio/mpeg"
-    return FileResponse(path, filename=path.name, media_type=media_type)
+    ext = path.suffix or ".m4a"
+    media_type = "audio/mp4" if ext == ".m4a" else "audio/mpeg"
+    # Use the PID as the download filename to avoid Content-Disposition
+    # header issues with long titles or special characters.
+    safe_name = f"{job.source_id}{ext}"
+    # Do NOT include Content-Length — Cloud Run's managed ingress buffers
+    # responses with a known Content-Length and enforces a 32 MiB cap,
+    # converting large payloads to 500 errors.  Without Content-Length,
+    # HTTP uses chunked transfer encoding which Cloud Run streams
+    # through without buffering.
+
+    def _iter():
+        with path.open("rb") as fh:
+            while chunk := fh.read(65536):
+                yield chunk
+
+    return StreamingResponse(
+        _iter(),
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_name}"',
+        },
+    )
 
 
 @app.delete("/api/recordings/{job_id}")
@@ -1012,9 +1038,14 @@ async def podcast_feed(request: Request) -> PlainTextResponse:
     SubElement(channel, "link").text = base + "/recordings"
     SubElement(channel, "description").text = "Recordings captured by Radio Cache"
 
+    cutoff = datetime.now(timezone.utc) - timedelta(days=_PODCAST_MAX_AGE_DAYS)
     completed = [
         j for j in manager.list_jobs()
-        if j.status == "completed" and j.output_path and Path(j.output_path).is_file()
+        if j.status == "completed"
+        and j.output_path
+        and Path(j.output_path).is_file()
+        and j.completed_at
+        and datetime.fromisoformat(j.completed_at) >= cutoff
     ]
     completed.sort(key=lambda j: j.completed_at or "", reverse=True)
 

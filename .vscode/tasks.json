@@ -48,13 +48,15 @@
 			"args": [
 				"run",
 				"deploy",
-				"app",
+				"radiocache",
 				"--project",
 				"radiodrama",
 				"--region",
 				"europe-west2",
 				"--image",
-				"europe-west2-docker.pkg.dev/radiodrama/radiocache/app:latest"
+				"europe-west2-docker.pkg.dev/radiodrama/radiocache/app:latest",
+				"--max-instances",
+				"1"
 			],
 			"group": "build",
 			"presentation": {
@@ -72,6 +74,18 @@
 				"Run Deploy (Cloud Run)"
 			],
 			"group": "build",
+			"problemMatcher": []
+		},
+		{
+			"label": "Update Dependencies (14-day cooldown)",
+			"type": "shell",
+			"command": "uv lock --upgrade --exclude-newer ((Get-Date).AddDays(-14).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ'))",
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"clear": true
+			},
 			"problemMatcher": []
 		}
 	]
