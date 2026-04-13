@@ -4,7 +4,8 @@ Covers:
 - safe_filename sanitisation.
 - build_output_path filename construction.
 - _build_ffmpeg_command flag composition for m4a and mp3.
-- Metadata flags appear when values are provided.
+- Rich metadata flags (get-iplayer style) appear when values are provided.
+- Cover art embedding when artwork_path is set.
 - Duration flag present/absent as expected.
 """
 
@@ -154,11 +155,30 @@ class TestBuildFfmpegCommand:
             station="BBC Radio 4",
             programme="Afternoon Drama",
             date="2026-03-28",
+            genre="Drama",
+            synopsis="A gripping tale.",
+            track=3,
+            episode_id="b09xyz12",
+            url="https://www.bbc.co.uk/sounds/play/b09xyz12",
         )
         assert "title=My Drama" in cmd
         assert "artist=BBC Radio 4" in cmd
+        assert "album_artist=BBC Radio 4" in cmd
         assert "album=Afternoon Drama" in cmd
+        assert "show=Afternoon Drama" in cmd
         assert "date=2026-03-28" in cmd
+        assert "genre=Drama" in cmd
+        assert "description=A gripping tale." in cmd
+        assert "track=3" in cmd
+        assert "episode_id=b09xyz12" in cmd
+        assert "network=BBC Radio 4" in cmd
+        assert "copyright=BBC" in cmd
+        assert "encoder=RadioCache" in cmd
+        # comment = synopsis + url joined by newline
+        comment_args = [a for a in cmd if a.startswith("comment=")]
+        assert len(comment_args) == 1
+        assert "A gripping tale." in comment_args[0]
+        assert "bbc.co.uk/sounds" in comment_args[0]
 
     def test_empty_metadata_not_included(self) -> None:
         cmd = _build_ffmpeg_command(
@@ -172,8 +192,15 @@ class TestBuildFfmpegCommand:
             programme="",
             date="",
         )
-        # No -metadata flags should be present
-        assert "-metadata" not in cmd
+        # Dynamic tags should be absent
+        metadata_values = [a for a in cmd if "=" in a and cmd[cmd.index(a) - 1] == "-metadata"]
+        # Only copyright and encoder are always present
+        assert "copyright=BBC" in cmd
+        assert "encoder=RadioCache" in cmd
+        # No title / artist / genre etc.
+        assert not any(a.startswith("title=") for a in cmd)
+        assert not any(a.startswith("artist=") for a in cmd)
+        assert not any(a.startswith("genre=") for a in cmd)
 
     def test_reconnect_flags_present(self) -> None:
         cmd = _build_ffmpeg_command(
@@ -204,6 +231,67 @@ class TestBuildFfmpegCommand:
             date="",
         )
         assert cmd[-1] == str(path)
+
+    def test_artwork_embedded_m4a(self, tmp_path: Path) -> None:
+        art = tmp_path / "cover.jpg"
+        art.write_bytes(b"\xff\xd8fake-jpeg")
+        cmd = _build_ffmpeg_command(
+            ffmpeg_exe="ffmpeg",
+            manifest_url="https://hls.example/stream.m3u8",
+            output_path=Path("/out/file.m4a"),
+            duration=None,
+            output_format="m4a",
+            title="Show",
+            station="",
+            programme="",
+            date="",
+            artwork_path=str(art),
+        )
+        # Artwork as second input
+        inputs = [cmd[i + 1] for i, v in enumerate(cmd) if v == "-i"]
+        assert len(inputs) == 2
+        assert inputs[1] == str(art)
+        # Mapped and set as attached pic
+        assert "-disposition:v:0" in cmd
+        assert "attached_pic" in cmd
+        assert "-c:v" in cmd
+        assert cmd[cmd.index("-c:v") + 1] == "mjpeg"
+
+    def test_artwork_embedded_mp3(self, tmp_path: Path) -> None:
+        art = tmp_path / "cover.jpg"
+        art.write_bytes(b"\xff\xd8fake-jpeg")
+        cmd = _build_ffmpeg_command(
+            ffmpeg_exe="ffmpeg",
+            manifest_url="https://hls.example/stream.m3u8",
+            output_path=Path("/out/file.mp3"),
+            duration=None,
+            output_format="mp3",
+            title="",
+            station="",
+            programme="",
+            date="",
+            artwork_path=str(art),
+        )
+        assert "-id3v2_version" in cmd
+        assert "3" in cmd
+        assert "-disposition:v:0" in cmd
+
+    def test_no_artwork_no_video_mapping(self) -> None:
+        cmd = _build_ffmpeg_command(
+            ffmpeg_exe="ffmpeg",
+            manifest_url="https://hls.example/stream.m3u8",
+            output_path=Path("/out/file.m4a"),
+            duration=None,
+            output_format="m4a",
+            title="",
+            station="",
+            programme="",
+            date="",
+        )
+        # Only one -i (the manifest), no disposition
+        inputs = [cmd[i + 1] for i, v in enumerate(cmd) if v == "-i"]
+        assert len(inputs) == 1
+        assert "-disposition:v:0" not in cmd
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────

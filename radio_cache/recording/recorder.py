@@ -7,6 +7,7 @@ Handles:
 * Exponential-backoff retry on transient subprocess failures.
 * A module-level process registry so that running jobs can be
   terminated on demand (e.g. from the DELETE /api/recordings endpoint).
+* Embedding rich metadata tags (get-iplayer style) including cover art.
 """
 
 from __future__ import annotations
@@ -15,8 +16,10 @@ import logging
 import re
 import shutil
 import subprocess
+import tempfile
 import threading
 import time
+import urllib.request
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -126,6 +129,13 @@ def record_stream(
     programme: str = "",
     date: str = "",
     progress_cb: Callable[[int], None] | None = None,
+    *,
+    genre: str = "",
+    synopsis: str = "",
+    track: int = 0,
+    episode_id: str = "",
+    url: str = "",
+    thumbnail_url: str = "",
 ) -> None:
     """Capture an HLS stream to a local audio file using ffmpeg.
 
@@ -134,8 +144,11 @@ def record_stream(
     Catch-up (``job.duration_seconds is None``) records until the
     stream ends (EOF-driven).
 
-    Metadata is embedded via ffmpeg ``-metadata`` flags; no separate
-    post-processing step is needed.
+    Metadata is embedded via ffmpeg ``-metadata`` flags in a style
+    similar to get-iplayer: title, artist, album_artist, album, genre,
+    date, track, comment/description, show, episode_id, network,
+    copyright, and encoder.  If *thumbnail_url* is provided the image
+    is downloaded and embedded as cover art.
 
     Retries up to :data:`~config.HTTP_RETRY_COUNT` times with
     exponential back-off on ffmpeg failures.
@@ -145,11 +158,17 @@ def record_stream(
         manifest_url: HLS ``.m3u8`` URL to record from.
         output_path: Destination file path.
         title: Programme title for embedded metadata.
-        station: Station name written to the ``artist`` tag.
-        programme: Series/brand name written to the ``album`` tag.
+        station: Station name written to ``artist``/``album_artist``.
+        programme: Series/brand name written to ``album``/``show``.
         date: Broadcast date written to the ``date`` tag.
         progress_cb: Optional callable invoked with elapsed seconds
             as ffmpeg progresses.  Useful for polling job progress.
+        genre: Category/genre tag (e.g. "Drama").
+        synopsis: Programme description for ``comment``/``description``.
+        track: Episode number for the ``track`` tag.
+        episode_id: BBC PID written to the ``episode_id`` tag.
+        url: BBC Sounds URL written to ``comment`` alongside synopsis.
+        thumbnail_url: URL of cover art to download and embed.
 
     Raises:
         ValueError: Requested duration exceeds the configured cap.
@@ -166,53 +185,69 @@ def record_stream(
                 f"{MAX_LIVE_RECORDING_SECONDS}s allowed for live recordings."
             )
 
-    cmd = _build_ffmpeg_command(
-        ffmpeg_exe=ffmpeg_exe,
-        manifest_url=manifest_url,
-        output_path=output_path,
-        duration=duration,
-        output_format=job.output_format,
-        title=title,
-        station=station,
-        programme=programme,
-        date=date,
-    )
+    # Download cover art to a temporary file (best-effort).
+    artwork_path = _download_thumbnail(thumbnail_url) if thumbnail_url else None
 
-    logger.info(
-        "Recording job %s: starting ffmpeg -> %s", job.job_id, output_path
-    )
+    try:
+        cmd = _build_ffmpeg_command(
+            ffmpeg_exe=ffmpeg_exe,
+            manifest_url=manifest_url,
+            output_path=output_path,
+            duration=duration,
+            output_format=job.output_format,
+            title=title,
+            station=station,
+            programme=programme,
+            date=date,
+            genre=genre,
+            synopsis=synopsis,
+            track=track,
+            episode_id=episode_id,
+            url=url,
+            artwork_path=artwork_path,
+        )
 
-    last_exc: Exception | None = None
-    for attempt in range(1, HTTP_RETRY_COUNT + 1):
-        try:
-            _run_ffmpeg(cmd, job.job_id, progress_cb)
-            logger.info(
-                "Recording job %s: completed -> %s", job.job_id, output_path
-            )
-            return
-        except subprocess.CalledProcessError as exc:
-            last_exc = exc
-            if attempt < HTTP_RETRY_COUNT:
-                wait = 2**attempt
-                logger.warning(
-                    "Recording job %s: ffmpeg attempt %d/%d failed, "
-                    "retrying in %ds",
-                    job.job_id,
-                    attempt,
-                    HTTP_RETRY_COUNT,
-                    wait,
+        logger.info(
+            "Recording job %s: starting ffmpeg -> %s", job.job_id, output_path
+        )
+
+        last_exc: Exception | None = None
+        for attempt in range(1, HTTP_RETRY_COUNT + 1):
+            try:
+                _run_ffmpeg(cmd, job.job_id, progress_cb)
+                logger.info(
+                    "Recording job %s: completed -> %s", job.job_id, output_path
                 )
-                time.sleep(wait)
-            else:
-                logger.error(
-                    "Recording job %s: ffmpeg failed after %d attempts",
-                    job.job_id,
-                    HTTP_RETRY_COUNT,
-                )
+                return
+            except subprocess.CalledProcessError as exc:
+                last_exc = exc
+                if attempt < HTTP_RETRY_COUNT:
+                    wait = 2**attempt
+                    logger.warning(
+                        "Recording job %s: ffmpeg attempt %d/%d failed, "
+                        "retrying in %ds",
+                        job.job_id,
+                        attempt,
+                        HTTP_RETRY_COUNT,
+                        wait,
+                    )
+                    time.sleep(wait)
+                else:
+                    logger.error(
+                        "Recording job %s: ffmpeg failed after %d attempts",
+                        job.job_id,
+                        HTTP_RETRY_COUNT,
+                    )
 
-    raise RuntimeError(
-        f"ffmpeg failed after {HTTP_RETRY_COUNT} attempts"
-    ) from last_exc
+        raise RuntimeError(
+            f"ffmpeg failed after {HTTP_RETRY_COUNT} attempts"
+        ) from last_exc
+    finally:
+        if artwork_path:
+            try:
+                Path(artwork_path).unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 # ── Private helpers ──────────────────────────────────────────────────────
@@ -239,6 +274,27 @@ def _check_ffmpeg(ffmpeg_path: str) -> str:
     return resolved
 
 
+def _download_thumbnail(url: str) -> str | None:
+    """Download a thumbnail image to a temporary file.
+
+    Returns the path to the temp file, or ``None`` on failure.
+    The caller is responsible for deleting the file.
+    """
+    try:
+        req = urllib.request.Request(url)
+        with urllib.request.urlopen(req, timeout=10) as resp:  # noqa: S310
+            data = resp.read()
+        suffix = ".jpg" if b"\xff\xd8" in data[:4] else ".png"
+        tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+        tmp.write(data)
+        tmp.close()
+        logger.info("Downloaded thumbnail (%d bytes) -> %s", len(data), tmp.name)
+        return tmp.name
+    except Exception:
+        logger.warning("Failed to download thumbnail from %s", url)
+        return None
+
+
 def _build_ffmpeg_command(
     ffmpeg_exe: str,
     manifest_url: str,
@@ -249,6 +305,13 @@ def _build_ffmpeg_command(
     station: str,
     programme: str,
     date: str,
+    *,
+    genre: str = "",
+    synopsis: str = "",
+    track: int = 0,
+    episode_id: str = "",
+    url: str = "",
+    artwork_path: str | None = None,
 ) -> list[str]:
     """Assemble the ffmpeg command list.
 
@@ -257,6 +320,12 @@ def _build_ffmpeg_command(
     captures.  ``-timeout`` is given in microseconds as required by the
     ffmpeg HTTP protocol handler.
 
+    Embeds rich metadata in a style similar to get-iplayer:
+    title, artist, album_artist, album, genre, date, track,
+    comment, description, show, episode_id, network, copyright,
+    and encoder.  If *artwork_path* is set, the image is embedded
+    as cover art.
+
     Args:
         ffmpeg_exe: Absolute path to ffmpeg.
         manifest_url: Source HLS URL.
@@ -264,9 +333,15 @@ def _build_ffmpeg_command(
         duration: Capture duration in seconds, or ``None`` for full stream.
         output_format: ``"m4a"`` or ``"mp3"``.
         title: ``title`` metadata tag value.
-        station: ``artist`` metadata tag value.
-        programme: ``album`` metadata tag value.
+        station: ``artist`` / ``album_artist`` / ``network`` tag value.
+        programme: ``album`` / ``show`` metadata tag value.
         date: ``date`` metadata tag value.
+        genre: Category/genre tag value.
+        synopsis: Written to ``description`` and ``comment`` tags.
+        track: Episode number for the ``track`` tag.
+        episode_id: BBC PID for the ``episode_id`` tag.
+        url: BBC Sounds URL, appended to the comment tag.
+        artwork_path: Local path to cover art image, or ``None``.
 
     Returns:
         List of command-line arguments ready for :class:`subprocess.Popen`.
@@ -280,25 +355,62 @@ def _build_ffmpeg_command(
         "-i", manifest_url,
     ]
 
+    # Optional cover-art input.
+    has_artwork = artwork_path is not None
+    if has_artwork:
+        cmd += ["-i", artwork_path]
+
     if duration is not None:
         cmd += ["-t", str(duration)]
 
     if output_format == "mp3":
-        cmd += ["-vn", "-c:a", "libmp3lame", "-q:a", "2"]
+        cmd += ["-map", "0:a"]
+        if has_artwork:
+            cmd += ["-map", "1:v"]
+        cmd += ["-c:a", "libmp3lame", "-q:a", "2"]
+        if has_artwork:
+            cmd += ["-c:v", "copy", "-id3v2_version", "3"]
     else:
         # Copy AAC audio stream directly into an MPEG-4 container.
         # -movflags +faststart writes the moov atom early so partial
         # files are playable.
-        cmd += ["-vn", "-c:a", "copy", "-movflags", "+faststart"]
+        cmd += ["-map", "0:a"]
+        if has_artwork:
+            cmd += ["-map", "1:v"]
+        cmd += ["-c:a", "copy", "-movflags", "+faststart"]
+        if has_artwork:
+            cmd += ["-c:v", "mjpeg"]
 
+    if has_artwork:
+        cmd += ["-disposition:v:0", "attached_pic"]
+
+    # ── Metadata tags (get-iplayer style) ────────────────────────────────
     if title:
         cmd += ["-metadata", f"title={title}"]
     if station:
         cmd += ["-metadata", f"artist={station}"]
+        cmd += ["-metadata", f"album_artist={station}"]
     if programme:
         cmd += ["-metadata", f"album={programme}"]
+        cmd += ["-metadata", f"show={programme}"]
     if date:
         cmd += ["-metadata", f"date={date}"]
+    if genre:
+        cmd += ["-metadata", f"genre={genre}"]
+    if synopsis:
+        cmd += ["-metadata", f"description={synopsis}"]
+    # Build a comment combining synopsis and URL (like get-iplayer).
+    comment_parts = [p for p in (synopsis, url) if p]
+    if comment_parts:
+        cmd += ["-metadata", f"comment={chr(10).join(comment_parts)}"]
+    if track > 0:
+        cmd += ["-metadata", f"track={track}"]
+    if episode_id:
+        cmd += ["-metadata", f"episode_id={episode_id}"]
+    if station:
+        cmd += ["-metadata", f"network={station}"]
+    cmd += ["-metadata", "copyright=BBC"]
+    cmd += ["-metadata", "encoder=RadioCache"]
 
     cmd += ["-y", str(output_path)]
     return cmd

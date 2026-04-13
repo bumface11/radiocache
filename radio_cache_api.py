@@ -923,6 +923,12 @@ def _run_recording_job(job_id: str) -> None:
     station = ""
     programme = ""
     date = ""
+    genre = ""
+    synopsis = ""
+    track = 0
+    episode_id = ""
+    programme_url = ""
+    thumbnail_url = ""
     if job.source_type == "programme":
         with _get_db() as db:
             prog = db.get_programme(job.source_id)
@@ -931,6 +937,12 @@ def _run_recording_job(job_id: str) -> None:
             station = prog.channel
             programme = prog.series_title or prog.brand_title
             date = (prog.first_broadcast or "")[:10]
+            genre = prog.categories
+            synopsis = prog.synopsis
+            track = prog.episode_number
+            episode_id = prog.pid
+            programme_url = prog.url
+            thumbnail_url = prog.thumbnail_url
             if job.duration_seconds is None and prog.duration_secs > 0:
                 job.duration_seconds = _buffered_programme_duration(prog.duration_secs)
                 manager.update_status(
@@ -956,6 +968,12 @@ def _run_recording_job(job_id: str) -> None:
             programme=programme,
             date=date,
             progress_cb=_on_progress,
+            genre=genre,
+            synopsis=synopsis,
+            track=track,
+            episode_id=episode_id,
+            url=programme_url,
+            thumbnail_url=thumbnail_url,
         )
     except FileNotFoundError as exc:
         logger.error("Job %s: ffmpeg not found: %s", job_id, exc)
