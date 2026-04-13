@@ -246,7 +246,7 @@ def fetch_all_category_slugs() -> list[str]:
         List of category slug strings suitable for use as the ``category``
         parameter of the RMS playable API.
     """
-    url = f"{_BBC_CATEGORIES_API}?medium=audio&kind=genre"
+    url = f"{_BBC_CATEGORIES_API}?medium=audio"
     data = _fetch_json(url)
     if not isinstance(data, dict):
         logger.warning(
@@ -277,6 +277,81 @@ def fetch_all_category_slugs() -> list[str]:
 
     logger.info("Discovered %d category slugs from BBC API", len(slugs))
     return slugs
+
+
+def fetch_category_count(slug: str) -> dict[str, str | int]:
+    """Fetch the programme count for a single category slug.
+
+    Makes one lightweight request (page size 1) to read the ``total``
+    field from the BBC RMS playable API without downloading full
+    programme data.
+
+    Args:
+        slug: BBC category URL slug.
+
+    Returns:
+        Dict with ``slug``, ``display_name``, and ``programme_count``.
+    """
+    display = _SLUG_DISPLAY_NAMES.get(slug)
+    if display is None:
+        display = slug.replace("-", " ").title()
+    url = (
+        f"{_BBC_PLAYABLE_API}?category={slug}"
+        f"&sort=date&tleoDistinct=true&offset=0&limit=1"
+    )
+    data = _fetch_json(url)
+    total = 0
+    if isinstance(data, dict):
+        total = data.get("total", 0)
+    return {"slug": slug, "display_name": display, "programme_count": total}
+
+
+def fetch_category_counts(
+    category_slugs: list[str] | None = None,
+    delay: float = _REQUEST_DELAY_SECS,
+) -> list[dict[str, str | int]]:
+    """Fetch the total number of available programmes per category slug.
+
+    Makes one lightweight request per slug (page size 1) to read the
+    ``total`` field from the BBC RMS playable API without downloading
+    full programme data.
+
+    Args:
+        category_slugs: Category URL slugs to query; defaults to
+            :func:`fetch_all_category_slugs`.
+        delay: Seconds to sleep between HTTP requests.
+
+    Returns:
+        List of dicts with ``slug``, ``display_name``, and
+        ``programme_count`` keys, sorted by display name.
+    """
+    slugs = category_slugs or fetch_all_category_slugs()
+    results: list[dict[str, str | int]] = []
+
+    for slug in slugs:
+        display = _SLUG_DISPLAY_NAMES.get(slug)
+        if display is None:
+            display = slug.replace("-", " ").title()
+
+        url = (
+            f"{_BBC_PLAYABLE_API}?category={slug}"
+            f"&sort=date&tleoDistinct=true&offset=0&limit=1"
+        )
+        data = _fetch_json(url)
+        total = 0
+        if isinstance(data, dict):
+            total = data.get("total", 0)
+
+        results.append({
+            "slug": slug,
+            "display_name": display,
+            "programme_count": total,
+        })
+        logger.info("Category %s (%s): %d programmes", slug, display, total)
+        time.sleep(delay)
+
+    results.sort(key=lambda r: str(r["display_name"]).lower())
+    return results
 
 
 def fetch_drama_programmes(

@@ -31,7 +31,8 @@ jobs:
           uv run python -m radio_cache.refresh \
             --db radio_cache.db \
             --json radio_cache_export.json \
-            --verbose
+            --verbose \
+            --categories audiobooks comedy discussionandtalk docudramas documentaries drama films gamesandquizzes podcasts readings
 
       - name: Upload cache artefacts
         uses: actions/upload-artifact@v4

@@ -13,7 +13,11 @@ import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
 
-from radio_cache.bbc_feed_parser import fetch_drama_programmes
+from radio_cache.bbc_feed_parser import (
+    fetch_all_category_slugs,
+    fetch_category_counts,
+    fetch_drama_programmes,
+)
 from radio_cache.cache_db import CacheDB
 from radio_cache.models import Programme
 
@@ -32,6 +36,8 @@ def refresh_cache(
     purge_expired: bool = True,
     export_get_iplayer: bool = True,
     get_iplayer_path: str = "radio.cache",
+    category_slugs: list[str] | None = None,
+    all_categories: bool = False,
 ) -> int:
     """Refresh the programme cache from BBC feeds.
 
@@ -42,13 +48,24 @@ def refresh_cache(
         purge_expired: Whether to remove expired programmes.
         export_get_iplayer: Whether to export a get_iplayer-compatible cache file.
         get_iplayer_path: Output path for the get_iplayer cache file.
+        category_slugs: Specific category slugs to fetch.  When ``None``
+            and *all_categories* is ``False``, the built-in drama slugs
+            are used (default behaviour).
+        all_categories: When ``True``, fetch every category slug
+            discovered by the BBC categories API, overriding
+            *category_slugs*.
 
     Returns:
         Number of programmes in the updated cache.
     """
     logger.info("Starting cache refresh -> %s", db_path)
 
-    programmes = fetch_drama_programmes()
+    slugs: list[str] | None = category_slugs
+    if all_categories:
+        slugs = fetch_all_category_slugs()
+        logger.info("Using all %d category slugs from BBC API", len(slugs))
+
+    programmes = fetch_drama_programmes(category_slugs=slugs)
     logger.info("Fetched %d programmes from BBC feeds", len(programmes))
 
     with CacheDB(db_path) as db:
@@ -248,6 +265,22 @@ def main() -> None:
         help="Skip get_iplayer cache export",
     )
     parser.add_argument(
+        "--categories",
+        nargs="+",
+        metavar="SLUG",
+        help="Category slugs to fetch (e.g. drama thriller comedy)",
+    )
+    parser.add_argument(
+        "--all-categories",
+        action="store_true",
+        help="Fetch all available category slugs from the BBC API",
+    )
+    parser.add_argument(
+        "--list-categories",
+        action="store_true",
+        help="List available BBC category slugs with programme counts and exit",
+    )
+    parser.add_argument(
         "--import-json",
         metavar="FILE",
         help="Import from JSON file instead of fetching from BBC",
@@ -276,6 +309,19 @@ def main() -> None:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
+    if args.list_categories:
+        counts = fetch_category_counts(
+            category_slugs=args.categories if args.categories else None,
+        )
+        print(f"{'Slug':<25} {'Display Name':<25} {'Programmes':>10}")
+        print("-" * 62)
+        for entry in counts:
+            print(
+                f"{entry['slug']:<25} {entry['display_name']:<25} "
+                f"{entry['programme_count']:>10}"
+            )
+        return
+
     if args.import_github:
         count = import_from_github(args.import_github, args.db)
         logger.info("Imported %d programmes from GitHub", count)
@@ -289,6 +335,8 @@ def main() -> None:
             json_path=args.json,
             export_get_iplayer=not args.no_get_iplayer_cache,
             get_iplayer_path=args.get_iplayer_cache,
+            category_slugs=args.categories,
+            all_categories=args.all_categories,
         )
         logger.info("Cache contains %d programmes", count)
 

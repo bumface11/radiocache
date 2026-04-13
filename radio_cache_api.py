@@ -29,7 +29,7 @@ from fastapi.templating import Jinja2Templates
 
 from radio_cache.cache_db import CacheDB
 from radio_cache.models import Programme, format_duration
-from radio_cache.refresh import import_from_github, import_from_json
+from radio_cache.refresh import import_from_github, import_from_json, refresh_cache
 from radio_cache.search import (
     group_by_series,
     search_programmes,
@@ -553,6 +553,162 @@ async def api_stats() -> dict:
         "total_brands": stats.total_brands,
         "last_refreshed": stats.last_refreshed,
     }
+
+
+# ── Refresh endpoints ────────────────────────────────────────────────────
+
+from radio_cache.bbc_feed_parser import (  # noqa: E402
+    _CATEGORY_SLUGS,
+    _REQUEST_DELAY_SECS,
+    fetch_all_category_slugs,
+    fetch_category_count,
+    fetch_category_counts,
+)
+
+
+@app.get("/refresh/categories", response_class=HTMLResponse)
+async def refresh_categories_page(request: Request) -> HTMLResponse:
+    """Render the live category browser page."""
+    with _get_db() as db:
+        stats = db.stats()
+    return templates.TemplateResponse(
+        request,
+        "categories.html",
+        {"request": request, "stats": stats},
+    )
+
+
+@app.get("/api/refresh/categories")
+async def api_refresh_categories(
+    all: bool = Query(  # noqa: A002
+        default=False,
+        description="When true, query every BBC audio genre slug; "
+        "otherwise use the built-in drama/comedy subset.",
+    ),
+) -> StreamingResponse:
+    """Stream available BBC category slugs with programme counts as SSE.
+
+    Each server-sent event delivers one category result as a JSON object::
+
+        {"slug": "drama", "display_name": "Drama", "programme_count": 320,
+         "index": 1, "total": 10}
+
+    A final event signals completion::
+
+        {"done": true, "count": 10}
+
+    Args:
+        all: Fetch every BBC audio genre slug when ``true``; otherwise
+            use the built-in drama/comedy set.
+
+    Returns:
+        ``text/event-stream`` streaming response.
+    """
+    import asyncio
+    import json as _json
+
+    slugs: list[str] = fetch_all_category_slugs() if all else list(_CATEGORY_SLUGS)
+    total = len(slugs)
+
+    async def _generate():
+        results = []
+        for i, slug in enumerate(slugs):
+            entry: dict = await asyncio.to_thread(fetch_category_count, slug)
+            entry = {**entry, "index": i + 1, "total": total}
+            results.append(entry)
+            yield f"data: {_json.dumps(entry)}\n\n"
+            if i < total - 1:
+                await asyncio.sleep(_REQUEST_DELAY_SECS)
+        yield f"data: {_json.dumps({'done': True, 'count': len(results)})}\n\n"
+
+    return StreamingResponse(
+        _generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+_refresh_lock = threading.Lock()
+_refresh_thread: threading.Thread | None = None
+
+
+@app.post("/api/refresh", status_code=202)
+async def api_refresh(
+    categories: list[str] | None = Query(
+        default=None,
+        description="Category slugs to fetch (e.g. drama, comedy). "
+        "Omit to use the built-in defaults.",
+    ),
+    all_categories: bool = Query(
+        default=False,
+        alias="all",
+        description="Fetch every BBC audio genre slug.",
+    ),
+) -> dict:
+    """Trigger a cache refresh from BBC feeds.
+
+    The refresh runs in a background thread.  Only one refresh can run
+    at a time; a second request while a refresh is in progress returns
+    HTTP 409.
+
+    Args:
+        categories: Specific category slugs to fetch.
+        all_categories: Fetch all BBC audio genre slugs.
+
+    Returns:
+        Dict confirming the refresh has started.
+    """
+    global _refresh_thread
+    with _refresh_lock:
+        if _refresh_thread is not None and _refresh_thread.is_alive():
+            from fastapi import HTTPException
+
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "refresh_in_progress"},
+            )
+
+        def _do_refresh() -> None:
+            global _refresh_thread
+            try:
+                refresh_cache(
+                    db_path=_DB_PATH,
+                    export_json=True,
+                    json_path=_JSON_PATH,
+                    category_slugs=categories,
+                    all_categories=all_categories,
+                )
+            except Exception:
+                logger.exception("Background cache refresh failed")
+            finally:
+                with _refresh_lock:
+                    _refresh_thread = None
+
+        _refresh_thread = threading.Thread(
+            target=_do_refresh,
+            name="cache-refresh",
+            daemon=True,
+        )
+        _refresh_thread.start()
+
+    slugs_desc = "all" if all_categories else (categories or ["defaults"])
+    logger.info("Cache refresh started for categories: %s", slugs_desc)
+    return {"status": "started", "categories": slugs_desc}
+
+
+@app.get("/api/refresh/status")
+async def api_refresh_status() -> dict:
+    """Check whether a background cache refresh is currently running.
+
+    Returns:
+        Dict with ``running`` boolean.
+    """
+    with _refresh_lock:
+        running = _refresh_thread is not None and _refresh_thread.is_alive()
+    return {"running": running}
 
 
 @app.get("/export/radio.cache", response_class=PlainTextResponse)

@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Category Browser – Radio Cache{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Home</a></li>
+        <li class="breadcrumb-item active">Category Browser</li>
+    </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h2 class="mb-0">BBC Categories</h2>
+    <div class="form-check form-switch mb-0">
+        <input class="form-check-input" type="checkbox" id="toggle-all" role="switch">
+        <label class="form-check-label" for="toggle-all">All BBC audio genres</label>
+    </div>
+</div>
+
+<div class="d-flex align-items-center gap-2 text-muted small mb-2" id="status-bar">
+    <div class="spinner-border spinner-border-sm text-primary" role="status" id="throbber">
+        <span class="visually-hidden">Loading…</span>
+    </div>
+    <span id="status-text">Starting…</span>
+    <span class="ms-auto font-monospace" id="elapsed-display" style="min-width:4rem;text-align:right"></span>
+</div>
+
+<div class="progress mb-4" style="height:5px;" role="progressbar"
+     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" id="progress-wrap">
+    <div class="progress-bar progress-bar-striped progress-bar-animated"
+         id="progress-bar" style="width:0%"></div>
+</div>
+
+<table class="table table-sm table-hover align-middle" id="cat-table">
+    <thead class="table-light">
+        <tr>
+            <th>Category</th>
+            <th class="text-muted fw-normal"><code>slug</code></th>
+            <th class="text-end">Available&nbsp;programmes</th>
+        </tr>
+    </thead>
+    <tbody id="cat-tbody">
+        <tr id="placeholder-row">
+            <td colspan="3" class="text-center text-muted py-4">
+                Fetching data from BBC Sounds…
+            </td>
+        </tr>
+    </tbody>
+</table>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    const tbody     = document.getElementById('cat-tbody');
+    const throbber  = document.getElementById('throbber');
+    const statusTxt = document.getElementById('status-text');
+    const progBar   = document.getElementById('progress-bar');
+    const progWrap  = document.getElementById('progress-wrap');
+    const elapsedEl = document.getElementById('elapsed-display');
+    const toggle    = document.getElementById('toggle-all');
+    let es          = null;
+    let startTime   = null;
+    let elapsedTimer = null;
+
+    function esc(s) {
+        return String(s || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+    }
+
+    function fmtElapsed(ms) {
+        const s = Math.floor(ms / 1000);
+        const m = Math.floor(s / 60);
+        return m ? m + 'm ' + (s % 60) + 's' : s + 's';
+    }
+
+    function start() {
+        if (es) { es.close(); es = null; }
+        if (elapsedTimer) { clearInterval(elapsedTimer); elapsedTimer = null; }
+
+        // Reset UI
+        tbody.innerHTML = '<tr id="placeholder-row">'
+            + '<td colspan="3" class="text-center text-muted py-4">Fetching data from BBC Sounds…</td>'
+            + '</tr>';
+        throbber.style.display = '';
+        throbber.classList.remove('text-success');
+        throbber.classList.add('text-primary');
+        progBar.style.width = '0%';
+        progBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+        progWrap.setAttribute('aria-valuenow', 0);
+        statusTxt.textContent = 'Connecting…';
+        elapsedEl.textContent = '0s';
+        startTime = Date.now();
+
+        elapsedTimer = setInterval(function () {
+            elapsedEl.textContent = fmtElapsed(Date.now() - startTime);
+        }, 1000);
+
+        const url = '/api/refresh/categories' + (toggle.checked ? '?all=true' : '');
+        es = new EventSource(url);
+
+        es.onmessage = function (evt) {
+            const d = JSON.parse(evt.data);
+
+            if (d.done) {
+                clearInterval(elapsedTimer);
+                elapsedEl.textContent = fmtElapsed(Date.now() - startTime);
+                throbber.classList.remove('spinner-border', 'text-primary');
+                throbber.classList.add('text-success');
+                throbber.innerHTML = '&#10003;';
+                throbber.style.fontSize = '.9rem';
+                progBar.style.width = '100%';
+                progBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+                progWrap.setAttribute('aria-valuenow', 100);
+                statusTxt.textContent = d.count + ' categories loaded.';
+                es.close();
+                return;
+            }
+
+            // Remove placeholder on first real row
+            const ph = document.getElementById('placeholder-row');
+            if (ph) ph.remove();
+
+            const pct = Math.round((d.index / d.total) * 100);
+            progBar.style.width = pct + '%';
+            progWrap.setAttribute('aria-valuenow', pct);
+            statusTxt.textContent = 'Checking ' + esc(d.display_name)
+                + '\u2026 (' + d.index + '\u00a0/\u00a0' + d.total + ')';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = '<td class="fw-medium">' + esc(d.display_name) + '</td>'
+                + '<td class="text-muted"><code>' + esc(d.slug) + '</code></td>'
+                + '<td class="text-end">'
+                + (d.programme_count > 0
+                    ? '<a href="/search?q=&category=' + encodeURIComponent(d.slug) + '" class="text-decoration-none">'
+                      + d.programme_count.toLocaleString() + '</a>'
+                    : '<span class="text-muted">0</span>')
+                + '</td>';
+            tbody.appendChild(tr);
+        };
+
+        es.onerror = function () {
+            clearInterval(elapsedTimer);
+            throbber.classList.remove('text-primary');
+            throbber.classList.add('text-danger');
+            statusTxt.textContent = 'Error — could not load categories.';
+            es.close();
+        };
+    }
+
+    toggle.addEventListener('change', start);
+    start();
+})();
+</script>
+{% endblock %}
