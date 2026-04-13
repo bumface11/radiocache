@@ -1242,16 +1242,20 @@ async def podcast_feed(request: Request) -> PlainTextResponse:
     """Return an RSS 2.0 podcast feed of all completed recordings."""
     from xml.etree.ElementTree import Element, SubElement, tostring
 
+    ITUNES = "http://www.itunes.com/dtds/podcast-1.0.dtd"
+
     base = str(request.base_url).rstrip("/")
     manager = get_job_manager()
 
     rss = Element("rss", version="2.0", attrib={
-        "xmlns:itunes": "http://www.itunes.com/dtds/podcast-1.0.dtd",
+        "xmlns:itunes": ITUNES,
     })
     channel = SubElement(rss, "channel")
     SubElement(channel, "title").text = "Radio Cache Recordings"
     SubElement(channel, "link").text = base + "/recordings"
     SubElement(channel, "description").text = "Recordings captured by Radio Cache"
+    SubElement(channel, f"{{{ITUNES}}}author").text = "BBC"
+    SubElement(channel, f"{{{ITUNES}}}image", href=base + "/static/radio_cache/style.css")
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=_PODCAST_MAX_AGE_DAYS)
     completed = [
@@ -1267,17 +1271,51 @@ async def podcast_feed(request: Request) -> PlainTextResponse:
     for job in completed:
         title = job.source_id
         station = ""
+        synopsis = ""
+        thumbnail_url = ""
+        categories = ""
+        series_title = ""
+        episode_number = 0
+        programme_url = ""
         if job.source_type == "programme":
             with _get_db() as db:
                 prog = db.get_programme(job.source_id)
             if prog:
                 title = prog.title
                 station = prog.channel or ""
+                synopsis = prog.synopsis or ""
+                thumbnail_url = prog.thumbnail_url or ""
+                categories = prog.categories or ""
+                series_title = prog.series_title or ""
+                episode_number = prog.episode_number or 0
+                programme_url = prog.url or ""
+
+        # Build an episode subtitle like "Loose Ends - Episode 3"
+        episode_label = ""
+        if series_title and episode_number:
+            episode_label = f"{series_title} - Episode {episode_number}"
+        elif series_title:
+            episode_label = series_title
 
         item = SubElement(channel, "item")
         SubElement(item, "title").text = title
+        # <description> gets the synopsis (or station fallback)
+        SubElement(item, "description").text = synopsis or station
+        if synopsis:
+            SubElement(item, f"{{{ITUNES}}}summary").text = synopsis
+        if episode_label:
+            SubElement(item, f"{{{ITUNES}}}subtitle").text = episode_label
         if station:
-            SubElement(item, "description").text = station
+            SubElement(item, f"{{{ITUNES}}}author").text = station
+        if thumbnail_url:
+            SubElement(item, f"{{{ITUNES}}}image", href=thumbnail_url)
+        if categories:
+            SubElement(item, f"{{{ITUNES}}}keywords").text = categories
+        if episode_number:
+            SubElement(item, f"{{{ITUNES}}}episode").text = str(episode_number)
+        SubElement(item, f"{{{ITUNES}}}episodeType").text = "full"
+        if programme_url:
+            SubElement(item, "link").text = programme_url
 
         enc_url = f"{base}/api/recordings/{job.job_id}/download"
         mime = "audio/mp4" if job.output_format == "m4a" else "audio/mpeg"
@@ -1289,7 +1327,7 @@ async def podcast_feed(request: Request) -> PlainTextResponse:
             SubElement(item, "pubDate").text = _rfc2822(job.completed_at)
         if job.duration_seconds:
             secs = int(job.duration_seconds)
-            SubElement(item, "{http://www.itunes.com/dtds/podcast-1.0.dtd}duration").text = (
+            SubElement(item, f"{{{ITUNES}}}duration").text = (
                 f"{secs // 3600}:{(secs % 3600) // 60:02d}:{secs % 60:02d}"
             )
 
