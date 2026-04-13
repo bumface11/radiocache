@@ -6,6 +6,8 @@
 <h2>
     {% if query %}
         Search: "{{ query }}"
+    {% elif category %}
+        Category: {{ category }}
     {% else %}
         Recent Programmes
     {% endif %}

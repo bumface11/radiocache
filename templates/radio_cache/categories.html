@@ -135,7 +135,7 @@
                 + '<td class="text-muted"><code>' + esc(d.slug) + '</code></td>'
                 + '<td class="text-end">'
                 + (d.programme_count > 0
-                    ? '<a href="/search?q=&category=' + encodeURIComponent(d.slug) + '" class="text-decoration-none">'
+                    ? '<a href="/search?category=' + encodeURIComponent(d.display_name) + '" class="text-decoration-none">'
                       + d.programme_count.toLocaleString() + '</a>'
                     : '<span class="text-muted">0</span>')
                 + '</td>';

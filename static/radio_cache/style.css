@@ -172,6 +172,14 @@ h1,h2,h3,h4,h5,h6 { font-weight: 600; }
     box-shadow: 0 0 0 .2rem var(--rc-glow);
 }
 
+/* ── Series accordion — consistent blue border to match btn-outline-primary ── */
+#seriesAccordion .accordion-item {
+    border-color: var(--bs-primary);
+}
+#seriesAccordion .accordion-button::after {
+    filter: none;
+}
+
 /* ── Footer ─────────────────────────────────────────────────── */
 footer {
     margin-top: 3rem;

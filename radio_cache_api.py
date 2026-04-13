@@ -260,6 +260,7 @@ async def index(request: Request) -> HTMLResponse:
 async def search_page(
     request: Request,
     q: str = Query(default="", description="Search query"),
+    category: str = Query(default="", description="Filter by category display name or slug"),
     page: int = Query(default=1, ge=1, description="Page number"),
 ) -> HTMLResponse:
     """Render search results.
@@ -267,6 +268,7 @@ async def search_page(
     Args:
         request: Incoming HTTP request.
         q: Free-text search query.
+        category: Category display name or slug to filter by.
         page: Page number for pagination.
 
     Returns:
@@ -278,6 +280,8 @@ async def search_page(
     with _get_db() as db:
         if q:
             programmes = search_programmes(db, q, limit=per_page, offset=offset)
+        elif category:
+            programmes = db.programmes_by_category(category, limit=per_page, offset=offset)
         else:
             programmes = db.recent_programmes(limit=per_page)
         stats = db.stats()
@@ -289,6 +293,7 @@ async def search_page(
         {
             "request": request,
             "query": q,
+            "category": category,
             "programmes": programmes,
             "series_groups": series_groups,
             "stats": stats,
@@ -1052,6 +1057,42 @@ async def list_recordings(
     manager = get_job_manager()
     jobs = manager.list_jobs(status=status, limit=limit)
     return {"count": len(jobs), "jobs": [job_to_dict(j) for j in jobs]}
+
+
+@app.get("/api/recordings/stream")
+async def stream_recordings() -> StreamingResponse:
+    """Server-sent events stream of recording job state.
+
+    Sends the full job list immediately, then every 2 seconds while any
+    job is queued or running.  Closes with a ``{"done": true}`` event
+    once all active work reaches a terminal state.
+
+    Keeping this connection open is important on Cloud Run: the platform
+    only allocates CPU while an HTTP request is in flight, so a long-lived
+    SSE connection ensures the recording worker thread receives full CPU
+    for the entire duration of the capture.
+
+    Returns:
+        ``text/event-stream`` streaming response with job-state payloads.
+    """
+    import asyncio
+    import json as _json
+
+    async def _generate():
+        while True:
+            jobs = get_job_manager().list_jobs(limit=100)
+            payload = {"count": len(jobs), "jobs": [job_to_dict(j) for j in jobs]}
+            yield f"data: {_json.dumps(payload)}\n\n"
+            if not any(j.status in ("queued", "running") for j in jobs):
+                yield 'data: {"done": true}\n\n'
+                return
+            await asyncio.sleep(2)
+
+    return StreamingResponse(
+        _generate(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.get("/api/recordings/{job_id}")

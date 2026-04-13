@@ -181,33 +181,39 @@
             + '</div></div></div>';
     }
 
-    let pollTimer = null;
+    let es = null;
 
-    async function loadJobs() {
-        try {
-            const resp = await fetch('/api/recordings?limit=100');
-            if (!resp.ok) return;
-            const data = await resp.json();
-            const container = document.getElementById('jobs-container');
-            const summary   = document.getElementById('jobs-summary');
+    function renderJobs(data) {
+        const container = document.getElementById('jobs-container');
+        const summary   = document.getElementById('jobs-summary');
 
-            if (!data.jobs.length) {
-                summary.textContent = 'No recordings yet.';
-                container.innerHTML = '<div class="alert alert-info">'
-                    + 'Use the <strong>Record</strong> button on any episode, '
-                    + 'or record a live station using the form above.'
-                    + '</div>';
-            } else {
-                summary.textContent = data.count + ' job' + (data.count === 1 ? '' : 's');
-                container.innerHTML = data.jobs.map(renderJob).join('');
-            }
-
-            const active = data.jobs.filter(j => j.status === 'queued' || j.status === 'running').length;
-            clearTimeout(pollTimer);
-            pollTimer = active > 0 ? setTimeout(loadJobs, 3000) : null;
-        } catch (err) {
-            console.error('Failed to load recordings', err);
+        if (!data.jobs.length) {
+            summary.textContent = 'No recordings yet.';
+            container.innerHTML = '<div class="alert alert-info">'
+                + 'Use the <strong>Record</strong> button on any episode, '
+                + 'or record a live station using the form above.'
+                + '</div>';
+        } else {
+            summary.textContent = data.count + ' job' + (data.count === 1 ? '' : 's');
+            container.innerHTML = data.jobs.map(renderJob).join('');
         }
+    }
+
+    function openStream() {
+        if (es) { es.close(); es = null; }
+        es = new EventSource('/api/recordings/stream');
+
+        es.onmessage = function (evt) {
+            const d = JSON.parse(evt.data);
+            if (d.done) { es.close(); es = null; return; }
+            renderJobs(d);
+        };
+
+        es.onerror = function () {
+            // Reconnect once after a short delay in case of a transient error.
+            es.close(); es = null;
+            setTimeout(openStream, 4000);
+        };
     }
 
     // Cancel button (event delegation)
@@ -220,7 +226,7 @@
         try {
             const resp = await fetch('/api/recordings/' + encodeURIComponent(jobId), {method: 'DELETE'});
             if (resp.ok || resp.status === 409) {
-                await loadJobs();
+                openStream();
             } else {
                 btn.disabled = false;
                 btn.textContent = 'Cancel';
@@ -233,8 +239,7 @@
 
     // Manual refresh
     document.getElementById('refresh-btn').addEventListener('click', () => {
-        clearTimeout(pollTimer);
-        loadJobs();
+        openStream();
     });
 
     // Live station form
@@ -261,8 +266,7 @@
             if (resp.ok) {
                 resultEl.innerHTML = '<div class="alert alert-success py-1 mb-0">Queued &mdash; job <code>'
                     + esc(data.job_id) + '</code></div>';
-                clearTimeout(pollTimer);
-                loadJobs();
+                openStream();
             } else {
                 resultEl.innerHTML = '<div class="alert alert-danger py-1 mb-0">'
                     + esc((data.detail && JSON.stringify(data.detail)) || JSON.stringify(data)) + '</div>';
@@ -286,7 +290,7 @@
     });
 
     // Initial load
-    loadJobs();
+    openStream();
 }());
 </script>
 {% endblock %}
