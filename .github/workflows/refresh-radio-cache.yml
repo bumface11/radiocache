@@ -2,8 +2,8 @@ name: Refresh Radio Drama Cache
 
 on:
   schedule:
-    # Run daily at 04:00 UTC
-    - cron: "0 4 * * *"
+    # Run daily at 18:15 UTC
+    - cron: "15 18 * * *"
   workflow_dispatch:
 
 permissions:
