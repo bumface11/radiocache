@@ -1280,18 +1280,33 @@ async def podcast_feed(request: Request) -> PlainTextResponse:
         series_title = ""
         episode_number = 0
         programme_url = ""
+        pub_date_iso = job.completed_at
         if job.source_type == "programme":
             with _get_db() as db:
                 prog = db.get_programme(job.source_id)
-            if prog:
-                title = prog.title
-                station = prog.channel or ""
-                synopsis = prog.synopsis or ""
-                thumbnail_url = prog.thumbnail_url or ""
-                categories = prog.categories or ""
-                series_title = prog.series_title or ""
-                episode_number = prog.episode_number or 0
-                programme_url = prog.url or ""
+                if prog:
+                    title = prog.title
+                    station = prog.channel or ""
+                    synopsis = prog.synopsis or ""
+                    thumbnail_url = prog.thumbnail_url or ""
+                    categories = prog.categories or ""
+                    series_title = prog.series_title or ""
+                    episode_number = prog.episode_number or 0
+                    programme_url = prog.url or ""
+                    if prog.first_broadcast:
+                        pub_date_iso = prog.first_broadcast
+                    if not episode_number and prog.series_pid:
+                        siblings = db.get_series_episodes(prog.series_pid)
+                        dated = sorted(
+                            siblings,
+                            key=lambda p: (p.first_broadcast == "", p.first_broadcast, p.pid),
+                        )
+                        try:
+                            episode_number = next(
+                                i + 1 for i, p in enumerate(dated) if p.pid == prog.pid
+                            )
+                        except StopIteration:
+                            pass
 
         # Build an episode subtitle like "Loose Ends - Episode 3"
         episode_label = ""
@@ -1326,8 +1341,8 @@ async def podcast_feed(request: Request) -> PlainTextResponse:
         SubElement(item, "enclosure", url=enc_url, type=mime, length=file_size)
 
         SubElement(item, "guid", isPermaLink="false").text = job.job_id
-        if job.completed_at:
-            SubElement(item, "pubDate").text = _rfc2822(job.completed_at)
+        if pub_date_iso:
+            SubElement(item, "pubDate").text = _rfc2822(pub_date_iso)
         if job.duration_seconds:
             secs = int(job.duration_seconds)
             SubElement(item, f"{{{ITUNES}}}duration").text = (

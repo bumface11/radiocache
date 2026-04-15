@@ -1,0 +1,380 @@
+<mxfile host="draw.io" type="device">
+
+  <!-- ================================================================ -->
+  <!-- PAGE 1: POST /api/recordings — Create Recording Job               -->
+  <!-- ================================================================ -->
+  <diagram name="POST /api/recordings (Create)" id="seq-rec-create">
+    <mxGraphModel dx="1300" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;POST /api/recordings&lt;/b&gt;  —  Create Recording + Background Worker" style="text;html=1;fontSize=16;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="700" height="30" as="geometry"/>
+        </mxCell>
+        <!-- Participants -->
+        <mxCell id="p1" value="Client" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="40" y="50" width="100" height="950" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="FastAPI&lt;br&gt;create_&lt;br&gt;recording()" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="200" y="50" width="100" height="950" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="Job&lt;br&gt;Manager" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#B5D6F0;strokeColor=#5B8DB8;" vertex="1" parent="1">
+          <mxGeometry x="380" y="50" width="100" height="950" as="geometry"/>
+        </mxCell>
+        <mxCell id="p4" value="Stream&lt;br&gt;Resolver" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#B5D6F0;strokeColor=#5B8DB8;" vertex="1" parent="1">
+          <mxGeometry x="560" y="50" width="100" height="950" as="geometry"/>
+        </mxCell>
+        <mxCell id="p5" value="CacheDB" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="730" y="50" width="100" height="950" as="geometry"/>
+        </mxCell>
+        <mxCell id="p6" value="Recorder&lt;br&gt;(FFmpeg)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#B5D6F0;strokeColor=#5B8DB8;" vertex="1" parent="1">
+          <mxGeometry x="900" y="50" width="100" height="950" as="geometry"/>
+        </mxCell>
+        <mxCell id="p7" value="BBC APIs&lt;br&gt;(external)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#F8CECC;strokeColor=#B85450;" vertex="1" parent="1">
+          <mxGeometry x="1080" y="50" width="100" height="950" as="geometry"/>
+        </mxCell>
+
+        <!-- Synchronous: create job -->
+        <mxCell id="m1" value="1. POST /api/recordings {source_type, source_id, duration_seconds, output_format}" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="90" y="120" as="sourcePoint"/><mxPoint x="250" y="120" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2. job_manager.create_job(request)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="160" as="sourcePoint"/><mxPoint x="430" y="160" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="RecordingJob (status=queued)" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="430" y="190" as="sourcePoint"/><mxPoint x="250" y="190" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="3. _ensure_recording_worker() → start daemon thread if needed" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=9;dashed=1;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="230" as="sourcePoint"/><mxPoint x="250" y="230" as="targetPoint"/>
+            <Array as="points"><mxPoint x="310" y="230"/><mxPoint x="310" y="245"/><mxPoint x="250" y="245"/></Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="4. 201 Created {job_id, status: queued}" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="270" as="sourcePoint"/><mxPoint x="90" y="270" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Async: Background worker processes job -->
+        <mxCell id="async_frame" value="async" style="shape=umlFrame;whiteSpace=wrap;html=1;width=40;height=20;fillColor=none;strokeColor=#999999;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="170" y="300" width="1050" height="680" as="geometry"/>
+        </mxCell>
+        <mxCell id="async_label" value="[Background Worker Thread — _run_recording_job()]" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="220" y="300" width="300" height="20" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="m6" value="5. pop oldest queued job → status=running" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="350" as="sourcePoint"/><mxPoint x="430" y="350" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Alt: live vs programme -->
+        <mxCell id="alt1" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;width=30;height=18;fillColor=none;strokeColor=#AAAAAA;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="190" y="380" width="1010" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="alt1a" value="[source_type = &quot;live&quot;]" style="text;html=1;fontSize=9;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="230" y="380" width="140" height="18" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="m7" value="6a. resolve_live_stream(station_id)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="420" as="sourcePoint"/><mxPoint x="610" y="420" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m8" value="ResolvedStream (Akamai HLS URL)" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="610" y="450" as="sourcePoint"/><mxPoint x="250" y="450" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Divider for alt -->
+        <mxCell id="div1" value="" style="line;strokeWidth=1;dashed=1;strokeColor=#AAAAAA;" vertex="1" parent="1">
+          <mxGeometry x="190" y="475" width="1010" height="10" as="geometry"/>
+        </mxCell>
+        <mxCell id="alt1b" value="[source_type = &quot;programme&quot;]" style="text;html=1;fontSize=9;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="230" y="480" width="170" height="18" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="m9" value="6b. resolve_programme_stream(pid)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="510" as="sourcePoint"/><mxPoint x="610" y="510" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m10" value="7. iBL API → version PIDs → Media Selector" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="610" y="540" as="sourcePoint"/><mxPoint x="1130" y="540" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m11" value="HLS manifest URL (non-DRM)" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1130" y="565" as="sourcePoint"/><mxPoint x="250" y="565" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Metadata lookup for programme -->
+        <mxCell id="m12" value="8. db.get_programme(pid) → metadata for tags" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="610" as="sourcePoint"/><mxPoint x="780" y="610" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m13" value="Programme (title, series, channel, thumbnail...)" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="780" y="640" as="sourcePoint"/><mxPoint x="250" y="640" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Build output path + record -->
+        <mxCell id="m14" value="9. build_output_path(job, title) → recordings/timestamped.m4a" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="680" as="sourcePoint"/><mxPoint x="950" y="680" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m15" value="10. record_stream(job, manifest_url, path, duration, format, metadata)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="720" as="sourcePoint"/><mxPoint x="950" y="720" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n2" value="Builds ffmpeg command:&lt;br&gt;-reconnect, -c:a copy,&lt;br&gt;-metadata, cover art,&lt;br&gt;-movflags +faststart" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=15;fillColor=#E6E6E6;strokeColor=#999999;fontSize=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="720" width="150" height="60" as="geometry"/>
+        </mxCell>
+
+        <!-- Loop: ffmpeg progress -->
+        <mxCell id="loop1" value="loop" style="shape=umlFrame;whiteSpace=wrap;html=1;width=35;height=16;fillColor=none;strokeColor=#AAAAAA;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="200" y="790" width="870" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="loop1l" value="[ffmpeg subprocess running, parsing stderr]" style="text;html=1;fontSize=8;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="245" y="790" width="230" height="16" as="geometry"/>
+        </mxCell>
+        <mxCell id="m16" value="11. progress_callback(time=HH:MM:SS)" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="950" y="830" as="sourcePoint"/><mxPoint x="430" y="830" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m17" value="update_status(progress%)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="860" as="sourcePoint"/><mxPoint x="430" y="860" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- Completion -->
+        <mxCell id="m18" value="12. recording complete → status=completed, output_path set" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=9;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="250" y="930" as="sourcePoint"/><mxPoint x="430" y="930" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ================================================================ -->
+  <!-- PAGE 2: GET /api/recordings — List Recording Jobs                 -->
+  <!-- ================================================================ -->
+  <diagram name="GET /api/recordings (List)" id="seq-rec-list">
+    <mxGraphModel dx="800" dy="500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="400" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;GET /api/recordings&lt;/b&gt;  —  List Recording Jobs" style="text;html=1;fontSize=16;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="Client" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="50" width="120" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="FastAPI&lt;br&gt;list_recordings()" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="320" y="50" width="120" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="Job Manager" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#B5D6F0;strokeColor=#5B8DB8;" vertex="1" parent="1">
+          <mxGeometry x="560" y="50" width="120" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="m1" value="1. GET /api/recordings?status=running" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="120" as="sourcePoint"/><mxPoint x="380" y="120" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2. job_manager.list_jobs(status=&quot;running&quot;)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="380" y="160" as="sourcePoint"/><mxPoint x="620" y="160" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="list[RecordingJob]" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="200" as="sourcePoint"/><mxPoint x="380" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="3. JSON [{job_id, status, source_type, progress, ...}, ...]" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="380" y="250" as="sourcePoint"/><mxPoint x="140" y="250" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ================================================================ -->
+  <!-- PAGE 3: GET /api/recordings/stream — SSE Job Updates              -->
+  <!-- ================================================================ -->
+  <diagram name="GET /api/recordings/stream (SSE)" id="seq-rec-stream">
+    <mxGraphModel dx="900" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="550" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;GET /api/recordings/stream&lt;/b&gt;  —  SSE Recording State Updates" style="text;html=1;fontSize=16;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="600" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="Browser&lt;br&gt;(EventSource)" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="50" width="120" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="FastAPI&lt;br&gt;stream_&lt;br&gt;recordings()" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="320" y="50" width="120" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="Job Manager" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#B5D6F0;strokeColor=#5B8DB8;" vertex="1" parent="1">
+          <mxGeometry x="560" y="50" width="120" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="m1" value="1. GET /api/recordings/stream (Accept: text/event-stream)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="120" as="sourcePoint"/><mxPoint x="380" y="120" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Poll loop -->
+        <mxCell id="loop1" value="loop" style="shape=umlFrame;whiteSpace=wrap;html=1;width=40;height=20;fillColor=none;strokeColor=#AAAAAA;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="150" width="620" height="230" as="geometry"/>
+        </mxCell>
+        <mxCell id="loop1l" value="[poll interval until client disconnects]" style="text;html=1;fontSize=9;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="150" y="150" width="220" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="m2" value="2. job_manager.list_jobs()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="380" y="200" as="sourcePoint"/><mxPoint x="620" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="all jobs" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="230" as="sourcePoint"/><mxPoint x="380" y="230" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n1" value="Compare with previous&lt;br&gt;snapshot; emit only&lt;br&gt;changed jobs" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=15;fillColor=#E6E6E6;strokeColor=#999999;fontSize=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="700" y="235" width="140" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="m4" value="3. SSE: data: {job_id, status, progress, ...} (if changed)" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;strokeColor=#CC6600;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="380" y="310" as="sourcePoint"/><mxPoint x="140" y="310" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="m5" value="4. Connection closed → stream ends" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="420" as="sourcePoint"/><mxPoint x="380" y="420" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ================================================================ -->
+  <!-- PAGE 4: GET /api/recordings/{job_id} — Single Job                 -->
+  <!-- ================================================================ -->
+  <diagram name="GET /api/recordings/{job_id}" id="seq-rec-get">
+    <mxGraphModel dx="800" dy="450" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="380" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;GET /api/recordings/{job_id}&lt;/b&gt;  —  Single Job State" style="text;html=1;fontSize=16;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="Client" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="50" width="120" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="FastAPI&lt;br&gt;get_recording()" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="320" y="50" width="120" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="Job Manager" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#B5D6F0;strokeColor=#5B8DB8;" vertex="1" parent="1">
+          <mxGeometry x="560" y="50" width="120" height="260" as="geometry"/>
+        </mxCell>
+        <mxCell id="m1" value="1. GET /api/recordings/{job_id}" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="120" as="sourcePoint"/><mxPoint x="380" y="120" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2. job_manager.get_job(job_id)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="380" y="160" as="sourcePoint"/><mxPoint x="620" y="160" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="RecordingJob | None" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="200" as="sourcePoint"/><mxPoint x="380" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="3. JSON job state or 404" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="380" y="250" as="sourcePoint"/><mxPoint x="140" y="250" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ================================================================ -->
+  <!-- PAGE 5: GET /api/recordings/{job_id}/download                     -->
+  <!-- ================================================================ -->
+  <diagram name="GET /api/recordings/{job_id}/download" id="seq-rec-download">
+    <mxGraphModel dx="900" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;GET /api/recordings/{job_id}/download&lt;/b&gt;  —  Download Recording" style="text;html=1;fontSize=16;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="600" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="Client" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="50" width="120" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="FastAPI&lt;br&gt;download_&lt;br&gt;recording()" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="320" y="50" width="120" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="Job Manager" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#B5D6F0;strokeColor=#5B8DB8;" vertex="1" parent="1">
+          <mxGeometry x="560" y="50" width="120" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="p4" value="File System" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="780" y="50" width="120" height="380" as="geometry"/>
+        </mxCell>
+        <mxCell id="m1" value="1. GET /api/recordings/{job_id}/download" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="120" as="sourcePoint"/><mxPoint x="380" y="120" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2. job_manager.get_job(job_id)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="380" y="160" as="sourcePoint"/><mxPoint x="620" y="160" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="RecordingJob (status=completed, output_path=...)" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="200" as="sourcePoint"/><mxPoint x="380" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n1" value="Validate: job exists,&lt;br&gt;status=completed,&lt;br&gt;file exists on disk" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=15;fillColor=#E6E6E6;strokeColor=#999999;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="440" y="210" width="130" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="m4" value="3. read output_path" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="380" y="280" as="sourcePoint"/><mxPoint x="840" y="280" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="audio bytes" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="840" y="310" as="sourcePoint"/><mxPoint x="380" y="310" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6" value="4. FileResponse (Content-Disposition: attachment, audio/mp4)" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="380" y="370" as="sourcePoint"/><mxPoint x="140" y="370" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+</mxfile>

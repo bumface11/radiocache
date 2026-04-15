@@ -1,0 +1,633 @@
+<mxfile host="draw.io" type="device">
+
+  <!-- ================================================================ -->
+  <!-- PAGE 1: GET / (Index)                                             -->
+  <!-- ================================================================ -->
+  <diagram name="GET / (Index)" id="seq-index">
+    <mxGraphModel dx="1000" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="600" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <!-- Title -->
+        <mxCell id="t" value="&lt;b&gt;GET /&lt;/b&gt;  —  Index Page" style="text;html=1;fontSize=16;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="400" height="30" as="geometry"/>
+        </mxCell>
+        <!-- Participants -->
+        <mxCell id="p1" value="Browser" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="50" width="120" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="FastAPI&lt;br&gt;index()" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="120" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="CacheDB" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="520" y="50" width="120" height="420" as="geometry"/>
+        </mxCell>
+        <mxCell id="p4" value="Jinja2&lt;br&gt;Templates" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="740" y="50" width="120" height="420" as="geometry"/>
+        </mxCell>
+        <!-- Messages -->
+        <mxCell id="m1" value="1. GET /" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="120" as="sourcePoint"/>
+            <mxPoint x="360" y="120" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2. db.stats()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="160" as="sourcePoint"/>
+            <mxPoint x="580" y="160" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="CacheStats" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="190" as="sourcePoint"/>
+            <mxPoint x="360" y="190" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="3. db.recent_programmes(limit=20)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="220" as="sourcePoint"/>
+            <mxPoint x="580" y="220" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="list[Programme]" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="250" as="sourcePoint"/>
+            <mxPoint x="360" y="250" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6" value="4. db.list_categories()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="280" as="sourcePoint"/>
+            <mxPoint x="580" y="280" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m7" value="list[(name, count)]" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="310" as="sourcePoint"/>
+            <mxPoint x="360" y="310" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m8" value="5. render index.html" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="350" as="sourcePoint"/>
+            <mxPoint x="800" y="350" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m9" value="HTML" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="800" y="380" as="sourcePoint"/>
+            <mxPoint x="360" y="380" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m10" value="6. HTML response" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="420" as="sourcePoint"/>
+            <mxPoint x="140" y="420" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ================================================================ -->
+  <!-- PAGE 2: GET /search                                               -->
+  <!-- ================================================================ -->
+  <diagram name="GET /search" id="seq-search">
+    <mxGraphModel dx="1100" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;GET /search&lt;/b&gt;  —  Search Results Page" style="text;html=1;fontSize=16;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="Browser" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="60" y="50" width="120" height="530" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="FastAPI&lt;br&gt;search_page()" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="260" y="50" width="120" height="530" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="search.py" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#B5D6F0;strokeColor=#5B8DB8;" vertex="1" parent="1">
+          <mxGeometry x="460" y="50" width="120" height="530" as="geometry"/>
+        </mxCell>
+        <mxCell id="p4" value="CacheDB" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="660" y="50" width="120" height="530" as="geometry"/>
+        </mxCell>
+        <mxCell id="p5" value="Jinja2" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="860" y="50" width="120" height="530" as="geometry"/>
+        </mxCell>
+        <!-- Messages -->
+        <mxCell id="m1" value="1. GET /search?q=drama&amp;category=thriller" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="120" y="120" as="sourcePoint"/>
+            <mxPoint x="320" y="120" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2. search_programmes(db, q)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="320" y="160" as="sourcePoint"/>
+            <mxPoint x="520" y="160" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="3. db.search(q, category)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="520" y="200" as="sourcePoint"/>
+            <mxPoint x="720" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n1" value="FTS5 match on&lt;br&gt;programmes_fts;&lt;br&gt;fallback to LIKE" style="shape=note;whiteSpace=wrap;html=1;backgroundOutline=1;size=15;fillColor=#E6E6E6;strokeColor=#999999;fontSize=9;align=left;" vertex="1" parent="1">
+          <mxGeometry x="780" y="190" width="140" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="m4" value="list[Programme]" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="720" y="260" as="sourcePoint"/>
+            <mxPoint x="520" y="260" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="4. group_by_series(programmes)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="320" y="300" as="sourcePoint"/>
+            <mxPoint x="520" y="300" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6" value="list[SeriesGroup]" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="520" y="340" as="sourcePoint"/>
+            <mxPoint x="320" y="340" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m7" value="5. db.list_categories()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="320" y="380" as="sourcePoint"/>
+            <mxPoint x="720" y="380" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m8" value="categories" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="720" y="410" as="sourcePoint"/>
+            <mxPoint x="320" y="410" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m9" value="6. render search_results.html" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="320" y="450" as="sourcePoint"/>
+            <mxPoint x="920" y="450" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m10" value="HTML" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="920" y="480" as="sourcePoint"/>
+            <mxPoint x="320" y="480" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m11" value="7. HTML response" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="320" y="520" as="sourcePoint"/>
+            <mxPoint x="120" y="520" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ================================================================ -->
+  <!-- PAGE 3: GET /series + GET /series/{pid}                           -->
+  <!-- ================================================================ -->
+  <diagram name="GET /series, /series/{pid}" id="seq-series">
+    <mxGraphModel dx="1000" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;GET /series&lt;/b&gt; + &lt;b&gt;GET /series/{series_pid}&lt;/b&gt;" style="text;html=1;fontSize=16;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="Browser" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="50" width="120" height="560" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="FastAPI" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="120" height="560" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="CacheDB" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="520" y="50" width="120" height="560" as="geometry"/>
+        </mxCell>
+        <mxCell id="p4" value="Jinja2" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="740" y="50" width="120" height="560" as="geometry"/>
+        </mxCell>
+        <!-- Alt frame: /series (list) -->
+        <mxCell id="alt1" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;width=40;height=20;fillColor=none;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="100" width="820" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="alt1l" value="[GET /series]" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="120" y="100" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="m1" value="1. GET /series" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="140" as="sourcePoint"/><mxPoint x="360" y="140" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2. db.list_series()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="170" as="sourcePoint"/><mxPoint x="580" y="170" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="list[series rows]" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="200" as="sourcePoint"/><mxPoint x="360" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="3. render series_list.html" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="240" as="sourcePoint"/><mxPoint x="800" y="240" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="HTML response" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="270" as="sourcePoint"/><mxPoint x="140" y="270" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- Divider -->
+        <mxCell id="div1" value="" style="line;strokeWidth=1;dashed=1;strokeColor=#999999;" vertex="1" parent="1">
+          <mxGeometry x="70" y="310" width="820" height="10" as="geometry"/>
+        </mxCell>
+        <!-- Alt frame: /series/{pid} (detail) -->
+        <mxCell id="alt2" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;width=40;height=20;fillColor=none;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="320" width="820" height="240" as="geometry"/>
+        </mxCell>
+        <mxCell id="alt2l" value="[GET /series/{series_pid}]" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="120" y="320" width="170" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="m6" value="4. GET /series/{series_pid}?sort=date" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="360" as="sourcePoint"/><mxPoint x="360" y="360" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m7" value="5. db.get_series_episodes(pid)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="400" as="sourcePoint"/><mxPoint x="580" y="400" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m8" value="list[Programme]" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="430" as="sourcePoint"/><mxPoint x="360" y="430" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m8n" value="_sort_episodes()" style="text;html=1;fontSize=9;fontStyle=2;fillColor=none;align=left;" vertex="1" parent="1">
+          <mxGeometry x="370" y="440" width="120" height="18" as="geometry"/>
+        </mxCell>
+        <mxCell id="m9" value="6. render series_detail.html" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="470" as="sourcePoint"/><mxPoint x="800" y="470" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m10" value="HTML response" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="510" as="sourcePoint"/><mxPoint x="140" y="510" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ================================================================ -->
+  <!-- PAGE 4: GET /brands + GET /brands/{pid}                           -->
+  <!-- ================================================================ -->
+  <diagram name="GET /brands, /brands/{pid}" id="seq-brands">
+    <mxGraphModel dx="1000" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="650" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;GET /brands&lt;/b&gt; + &lt;b&gt;GET /brands/{brand_pid}&lt;/b&gt;" style="text;html=1;fontSize=16;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="Browser" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="50" width="120" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="FastAPI" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="120" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="CacheDB" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="520" y="50" width="120" height="500" as="geometry"/>
+        </mxCell>
+        <mxCell id="p4" value="Jinja2" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="740" y="50" width="120" height="500" as="geometry"/>
+        </mxCell>
+        <!-- /brands (list) -->
+        <mxCell id="alt1" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;width=40;height=20;fillColor=none;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="100" width="820" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="alt1l" value="[GET /brands]" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="120" y="100" width="100" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="m1" value="1. GET /brands" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="140" as="sourcePoint"/><mxPoint x="360" y="140" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2. db.list_brands()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="170" as="sourcePoint"/><mxPoint x="580" y="170" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="list[brand rows]" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="200" as="sourcePoint"/><mxPoint x="360" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="3. render brand_list.html → HTML response" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="240" as="sourcePoint"/><mxPoint x="140" y="240" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- /brands/{pid} -->
+        <mxCell id="alt2" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;width=40;height=20;fillColor=none;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="290" width="820" height="200" as="geometry"/>
+        </mxCell>
+        <mxCell id="alt2l" value="[GET /brands/{brand_pid}]" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="120" y="290" width="170" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="m5" value="4. GET /brands/{brand_pid}" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="330" as="sourcePoint"/><mxPoint x="360" y="330" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6" value="5. db.get_brand_series(brand_pid)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="370" as="sourcePoint"/><mxPoint x="580" y="370" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m7" value="series within brand" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="400" as="sourcePoint"/><mxPoint x="360" y="400" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m8" value="6. render brand_detail.html → HTML response" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="450" as="sourcePoint"/><mxPoint x="140" y="450" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ================================================================ -->
+  <!-- PAGE 5: GET /api/search                                           -->
+  <!-- ================================================================ -->
+  <diagram name="GET /api/search" id="seq-api-search">
+    <mxGraphModel dx="1000" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="500" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;GET /api/search&lt;/b&gt;  —  JSON Search" style="text;html=1;fontSize=16;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="400" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="Client" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="50" width="120" height="370" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="FastAPI&lt;br&gt;api_search()" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="120" height="370" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="search.py" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#B5D6F0;strokeColor=#5B8DB8;" vertex="1" parent="1">
+          <mxGeometry x="520" y="50" width="120" height="370" as="geometry"/>
+        </mxCell>
+        <mxCell id="p4" value="CacheDB" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="740" y="50" width="120" height="370" as="geometry"/>
+        </mxCell>
+        <mxCell id="m1" value="1. GET /api/search?q=mystery&amp;category=drama" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="120" as="sourcePoint"/><mxPoint x="360" y="120" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2. search_programmes(db, q, category)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="160" as="sourcePoint"/><mxPoint x="580" y="160" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="3. db.search(q, category)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="200" as="sourcePoint"/><mxPoint x="800" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="list[Programme]" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="800" y="240" as="sourcePoint"/><mxPoint x="580" y="240" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="programmes" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="270" as="sourcePoint"/><mxPoint x="360" y="270" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6" value="4. JSON: {programmes: [...], total: N}" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="330" as="sourcePoint"/><mxPoint x="140" y="330" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ================================================================ -->
+  <!-- PAGE 6: GET /api/categories + /api/stats + /api/programme/{pid}   -->
+  <!-- ================================================================ -->
+  <diagram name="GET /api/categories, /api/stats, /api/programme" id="seq-api-simple">
+    <mxGraphModel dx="1000" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="700" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;Simple JSON Endpoints&lt;/b&gt;  —  /api/categories, /api/stats, /api/programme/{pid}" style="text;html=1;fontSize=14;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="600" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="Client" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="50" width="120" height="580" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="FastAPI" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="120" height="580" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="CacheDB" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="520" y="50" width="120" height="580" as="geometry"/>
+        </mxCell>
+        <!-- /api/categories -->
+        <mxCell id="f1" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;width=40;height=20;fillColor=none;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="100" width="620" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="f1l" value="[GET /api/categories]" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="120" y="100" width="140" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="m1" value="1. GET /api/categories" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="140" as="sourcePoint"/><mxPoint x="360" y="140" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2. db.list_categories()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="170" as="sourcePoint"/><mxPoint x="580" y="170" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="3. JSON [{name, count}, ...]" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="210" as="sourcePoint"/><mxPoint x="140" y="210" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- /api/stats -->
+        <mxCell id="f2" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;width=40;height=20;fillColor=none;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="260" width="620" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="f2l" value="[GET /api/stats]" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="120" y="260" width="110" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="m4" value="4. GET /api/stats" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="300" as="sourcePoint"/><mxPoint x="360" y="300" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="5. db.stats()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="330" as="sourcePoint"/><mxPoint x="580" y="330" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6" value="6. JSON {total_programmes, total_series, ...}" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="370" as="sourcePoint"/><mxPoint x="140" y="370" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- /api/programme/{pid} -->
+        <mxCell id="f3" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;width=40;height=20;fillColor=none;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="420" width="620" height="170" as="geometry"/>
+        </mxCell>
+        <mxCell id="f3l" value="[GET /api/programme/{pid}]" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="120" y="420" width="170" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="m7" value="7. GET /api/programme/m002abc" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="460" as="sourcePoint"/><mxPoint x="360" y="460" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m8" value="8. db.get_programme(pid)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="490" as="sourcePoint"/><mxPoint x="580" y="490" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m9" value="Programme | None" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="520" as="sourcePoint"/><mxPoint x="360" y="520" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m10" value="9. JSON programme or 404" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="560" as="sourcePoint"/><mxPoint x="140" y="560" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ================================================================ -->
+  <!-- PAGE 7: GET /api/series + /api/series/{pid}                       -->
+  <!-- ================================================================ -->
+  <diagram name="GET /api/series, /api/series/{pid}" id="seq-api-series">
+    <mxGraphModel dx="900" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="550" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;GET /api/series&lt;/b&gt; + &lt;b&gt;GET /api/series/{series_pid}&lt;/b&gt;" style="text;html=1;fontSize=14;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="Client" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="50" width="120" height="430" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="FastAPI" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="120" height="430" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="CacheDB" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#D5E8D4;strokeColor=#82B366;" vertex="1" parent="1">
+          <mxGeometry x="520" y="50" width="120" height="430" as="geometry"/>
+        </mxCell>
+        <!-- /api/series -->
+        <mxCell id="f1" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;width=40;height=20;fillColor=none;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="100" width="620" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="f1l" value="[GET /api/series]" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="120" y="100" width="110" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="m1" value="1. GET /api/series" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="140" as="sourcePoint"/><mxPoint x="360" y="140" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2. db.list_series()" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="170" as="sourcePoint"/><mxPoint x="580" y="170" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="3. JSON [{series_pid, title, episode_count}, ...]" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="200" as="sourcePoint"/><mxPoint x="140" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <!-- /api/series/{pid} -->
+        <mxCell id="f2" value="alt" style="shape=umlFrame;whiteSpace=wrap;html=1;width=40;height=20;fillColor=none;strokeColor=#666666;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="70" y="250" width="620" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="f2l" value="[GET /api/series/{series_pid}]" style="text;html=1;fontSize=10;fontStyle=2;fillColor=#E6E6E6;" vertex="1" parent="1">
+          <mxGeometry x="120" y="250" width="180" height="20" as="geometry"/>
+        </mxCell>
+        <mxCell id="m4" value="4. GET /api/series/p0bfx9g0" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="290" as="sourcePoint"/><mxPoint x="360" y="290" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m5" value="5. db.get_series_episodes(pid)" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="330" as="sourcePoint"/><mxPoint x="580" y="330" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m6" value="list[Programme]" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="580" y="360" as="sourcePoint"/><mxPoint x="360" y="360" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m7" value="6. JSON {series_pid, title, episodes: [...]}" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="360" y="400" as="sourcePoint"/><mxPoint x="140" y="400" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+  <!-- ================================================================ -->
+  <!-- PAGE 8: GET /recordings (UI page)                                 -->
+  <!-- ================================================================ -->
+  <diagram name="GET /recordings (UI)" id="seq-recordings-ui">
+    <mxGraphModel dx="800" dy="500" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="900" pageHeight="400" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/><mxCell id="1" parent="0"/>
+        <mxCell id="t" value="&lt;b&gt;GET /recordings&lt;/b&gt;  —  Recording Management UI" style="text;html=1;fontSize=16;align=left;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="500" height="30" as="geometry"/>
+        </mxCell>
+        <mxCell id="p1" value="Browser" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="80" y="50" width="120" height="270" as="geometry"/>
+        </mxCell>
+        <mxCell id="p2" value="FastAPI&lt;br&gt;recordings_page()" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#DAE8FC;strokeColor=#6C8EBF;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="140" height="270" as="geometry"/>
+        </mxCell>
+        <mxCell id="p3" value="Jinja2" style="shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;container=0;dropTarget=0;collapsible=0;recursiveResize=0;outlineConnect=0;portConstraint=eastwest;newEdgeStyle={&quot;curved&quot;:0,&quot;rounded&quot;:0};size=40;fillColor=#FFF2CC;strokeColor=#D6B656;" vertex="1" parent="1">
+          <mxGeometry x="540" y="50" width="120" height="270" as="geometry"/>
+        </mxCell>
+        <mxCell id="m1" value="1. GET /recordings" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="140" y="120" as="sourcePoint"/><mxPoint x="370" y="120" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m2" value="2. render recordings.html" style="html=1;verticalAlign=bottom;endArrow=block;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="370" y="170" as="sourcePoint"/><mxPoint x="600" y="170" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m3" value="HTML (JS-driven SPA)" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="600" y="200" as="sourcePoint"/><mxPoint x="370" y="200" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="m4" value="3. HTML response" style="html=1;verticalAlign=bottom;endArrow=open;endFill=0;dashed=1;curved=0;rounded=0;fontSize=10;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="370" y="250" as="sourcePoint"/><mxPoint x="140" y="250" as="targetPoint"/>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+
+</root></mxGraphModel></diagram></mxfile>
