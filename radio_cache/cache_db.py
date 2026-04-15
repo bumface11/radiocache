@@ -51,6 +51,11 @@ CREATE TABLE IF NOT EXISTS cache_meta (
     value TEXT NOT NULL DEFAULT ''
 );
 
+CREATE TABLE IF NOT EXISTS categories (
+    name             TEXT PRIMARY KEY,
+    programme_count  INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE VIRTUAL TABLE IF NOT EXISTS programmes_fts USING fts5(
     pid,
     title,
@@ -240,6 +245,7 @@ class CacheDB:
         ]
         self._conn.executemany(_UPSERT_SQL, rows)
         self._conn.commit()
+        self._rebuild_categories()
         return len(rows)
 
     def get_programme(self, pid: str) -> Programme | None:
@@ -415,15 +421,25 @@ class CacheDB:
     def list_categories(self) -> list[dict[str, str | int]]:
         """List all distinct category tags with programme counts.
 
-        Categories are stored as comma-separated strings in the ``categories``
-        column.  This method splits those strings and aggregates across all
-        rows to return each unique tag together with how many programmes carry
-        it.
+        Reads from the ``categories`` summary table which is rebuilt
+        whenever programmes are bulk-upserted.  Falls back to scanning
+        the ``programmes`` table directly if the summary table is empty
+        (e.g. after individual single-programme inserts).
 
         Returns:
             List of dicts with ``category`` (display name) and
             ``programme_count`` keys, ordered alphabetically by category.
         """
+        cached = self._conn.execute(
+            "SELECT name, programme_count FROM categories ORDER BY name"
+        ).fetchall()
+        if cached:
+            return [
+                {"category": r["name"], "programme_count": r["programme_count"]}
+                for r in cached
+            ]
+
+        # Fallback: scan programmes table directly.
         rows = self._conn.execute(
             "SELECT categories FROM programmes WHERE categories != ''"
         ).fetchall()
@@ -569,7 +585,35 @@ class CacheDB:
             (now,),
         )
         self._conn.commit()
+        if cur.rowcount:
+            self._rebuild_categories()
         return cur.rowcount
+
+    def _rebuild_categories(self) -> None:
+        """Rebuild the ``categories`` summary table from programme data.
+
+        Scans every programme's comma-separated ``categories`` field,
+        aggregates counts, and replaces the contents of the
+        ``categories`` table.
+        """
+        rows = self._conn.execute(
+            "SELECT categories FROM programmes WHERE categories != ''"
+        ).fetchall()
+
+        counts: dict[str, int] = {}
+        for row in rows:
+            for tag in row["categories"].split(","):
+                tag = tag.strip()
+                if tag:
+                    counts[tag] = counts.get(tag, 0) + 1
+
+        self._conn.execute("DELETE FROM categories")
+        if counts:
+            self._conn.executemany(
+                "INSERT INTO categories (name, programme_count) VALUES (?, ?)",
+                list(counts.items()),
+            )
+        self._conn.commit()
 
     def rebuild_fts(self) -> None:
         """Rebuild the FTS index from scratch."""

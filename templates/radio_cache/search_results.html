@@ -3,16 +3,29 @@
 {% block title %}Search: {{ query }} - BBC Radio Drama Cache{% endblock %}
 
 {% block content %}
-<h2>
-    {% if query %}
-        Search: "{{ query }}"
-    {% elif category %}
-        Category: {{ category }}
-    {% else %}
-        Recent Programmes
-    {% endif %}
-</h2>
-<p class="text-muted">{{ programmes|length }} results{% if page > 1 %} (page {{ page }}){% endif %}</p>
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h2>
+            {% if query %}
+                Search: "{{ query }}"
+            {% elif category %}
+                Category: {{ category }}
+            {% else %}
+                Recent Programmes
+            {% endif %}
+        </h2>
+        <p class="text-muted mb-0">{{ programmes|length }} results{% if page > 1 %} (page {{ page }}){% endif %}</p>
+    </div>
+    <form action="/search" method="get" class="d-flex gap-2 align-items-end flex-shrink-0">
+        <input type="hidden" name="q" value="{{ query }}">
+        <select name="category" class="form-select form-select-sm" onchange="this.form.submit()">
+            <option value="">All categories</option>
+            {% for cat in categories %}
+            <option value="{{ cat.category }}" {% if cat.category == category %}selected{% endif %}>{{ cat.category }} ({{ cat.programme_count }})</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
 
 {% if series_groups|length > 1 or (series_groups|length == 1 and series_groups[0].series_pid != 'standalone') %}
 <div class="accordion mb-4" id="seriesAccordion">

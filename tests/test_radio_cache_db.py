@@ -321,6 +321,52 @@ class TestCacheDB:
         progs_upper = populated_db.programmes_by_category("Horror")
         assert [p.pid for p in progs_lower] == [p.pid for p in progs_upper]
 
+    def test_categories_table_populated_after_bulk_upsert(self, populated_db: CacheDB) -> None:
+        """The categories summary table is populated after upsert_programmes."""
+        rows = populated_db.query("SELECT name, programme_count FROM categories ORDER BY name")
+        tag_map = {r["name"]: r["programme_count"] for r in rows}
+        assert tag_map["Drama"] == 4
+        assert tag_map["Horror"] == 1
+        assert tag_map["Thriller"] == 1
+
+    def test_categories_table_updated_on_re_upsert(self, populated_db: CacheDB) -> None:
+        """Re-upserting with new categories updates the summary table."""
+        populated_db.upsert_programmes([
+            Programme(pid="p010", title="New Comedy", categories="Comedy"),
+        ])
+        rows = populated_db.query("SELECT name, programme_count FROM categories ORDER BY name")
+        tag_map = {r["name"]: r["programme_count"] for r in rows}
+        assert "Comedy" in tag_map
+        assert tag_map["Comedy"] == 1
+
+    def test_categories_table_updated_after_purge(self, db: CacheDB) -> None:
+        """Purging expired programmes rebuilds the categories table."""
+        db.upsert_programmes([
+            Programme(pid="exp1", title="Expired", categories="OldGenre",
+                      available_until="2020-01-01T00:00:00Z"),
+            Programme(pid="cur1", title="Current", categories="Drama"),
+        ])
+        db.purge_expired()
+        rows = db.query("SELECT name FROM categories ORDER BY name")
+        names = [r["name"] for r in rows]
+        assert "OldGenre" not in names
+        assert "Drama" in names
+
+    def test_list_categories_uses_cached_table(self, populated_db: CacheDB) -> None:
+        """list_categories returns data from the cached categories table."""
+        cats = populated_db.list_categories()
+        tag_map = {c["category"]: c["programme_count"] for c in cats}
+        assert tag_map["Drama"] == 4
+        assert tag_map["Horror"] == 1
+
+    def test_list_categories_fallback_without_bulk_upsert(self, db: CacheDB) -> None:
+        """list_categories falls back to scanning programmes when table is empty."""
+        # Use singular upsert which does not rebuild categories table.
+        db.upsert_programme(Programme(pid="f1", title="Fallback", categories="SciFi"))
+        cats = db.list_categories()
+        assert len(cats) == 1
+        assert cats[0]["category"] == "SciFi"
+
 
 class TestSanitiseFtsQuery:
     """Tests for the FTS query sanitiser."""

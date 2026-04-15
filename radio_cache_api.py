@@ -249,10 +249,11 @@ async def index(request: Request) -> HTMLResponse:
     with _get_db() as db:
         stats = db.stats()
         recent = db.recent_programmes(limit=20)
+        categories = db.list_categories()
     return templates.TemplateResponse(
         request,
         "index.html",
-        {"request": request, "stats": stats, "recent": recent},
+        {"request": request, "stats": stats, "recent": recent, "categories": categories},
     )
 
 
@@ -285,6 +286,7 @@ async def search_page(
         else:
             programmes = db.recent_programmes(limit=per_page)
         stats = db.stats()
+        categories_list = db.list_categories()
 
     series_groups = group_by_series(programmes)
     return templates.TemplateResponse(
@@ -299,6 +301,7 @@ async def search_page(
             "stats": stats,
             "page": page,
             "per_page": per_page,
+            "categories": categories_list,
         },
     )
 

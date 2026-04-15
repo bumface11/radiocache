@@ -14,6 +14,14 @@
                    placeholder="Search by title, series, genre..."
                    autofocus>
         </div>
+        <div class="col-md-3">
+            <select name="category" class="form-select form-select-lg">
+                <option value="">All categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat.category }}">{{ cat.category }} ({{ cat.programme_count }})</option>
+                {% endfor %}
+            </select>
+        </div>
         <div class="col-auto">
             <button type="submit" class="btn btn-lg" style="background:var(--rc-accent);color:#fff">Search</button>
         </div>
