@@ -8,8 +8,16 @@
         <h2 class="mb-0">All Series</h2>
         <p class="text-muted mb-0" id="series-count">{{ series|length }} series in the cache</p>
     </div>
-    <input type="search" class="form-control form-control-sm series-filter"
-           id="series-filter" placeholder="Filter series...">
+    <div class="d-flex gap-2 align-items-center">
+        <input type="search" class="form-control form-control-sm series-filter"
+               id="series-filter" placeholder="Filter series...">
+        <select class="form-select form-select-sm" id="series-sort" style="width:auto">
+            <option value="title-az" selected>Title A&ndash;Z</option>
+            <option value="title-za">Title Z&ndash;A</option>
+            <option value="episodes-desc">Most episodes</option>
+            <option value="episodes-asc">Fewest episodes</option>
+        </select>
+    </div>
 </div>
 
 <div class="table-responsive">
@@ -39,15 +47,16 @@
 {% block scripts %}
 <script>
 (function () {
-    const input = document.getElementById('series-filter');
-    const rows  = document.querySelectorAll('#series-table tbody tr');
-    const count = document.getElementById('series-count');
-    const total = rows.length;
+    const input  = document.getElementById('series-filter');
+    const sort   = document.getElementById('series-sort');
+    const tbody  = document.querySelector('#series-table tbody');
+    const count  = document.getElementById('series-count');
+    const total  = tbody.querySelectorAll('tr').length;
 
-    input.addEventListener('input', function () {
-        const q = this.value.toLowerCase();
+    function applyFilter() {
+        const q = input.value.toLowerCase();
         let visible = 0;
-        rows.forEach(row => {
+        tbody.querySelectorAll('tr').forEach(row => {
             const match = row.textContent.toLowerCase().includes(q);
             row.style.display = match ? '' : 'none';
             if (match) visible++;
@@ -55,7 +64,30 @@
         count.textContent = visible === total
             ? total + ' series in the cache'
             : visible + ' of ' + total + ' series';
-    });
+    }
+
+    function applySort() {
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const key  = sort.value;
+        rows.sort((a, b) => {
+            if (key === 'title-az') {
+                return a.cells[0].textContent.trim()
+                    .localeCompare(b.cells[0].textContent.trim());
+            }
+            if (key === 'title-za') {
+                return b.cells[0].textContent.trim()
+                    .localeCompare(a.cells[0].textContent.trim());
+            }
+            const na = parseInt(a.cells[1].textContent.trim(), 10) || 0;
+            const nb = parseInt(b.cells[1].textContent.trim(), 10) || 0;
+            return key === 'episodes-desc' ? nb - na : na - nb;
+        });
+        rows.forEach(r => tbody.appendChild(r));
+        applyFilter();
+    }
+
+    input.addEventListener('input', applyFilter);
+    sort.addEventListener('change', applySort);
 }());
 </script>
 {% endblock %}

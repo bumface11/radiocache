@@ -14,7 +14,7 @@
                 Recent Programmes
             {% endif %}
         </h2>
-        <p class="text-muted mb-0">{{ programmes|length }} results{% if page > 1 %} (page {{ page }}){% endif %}</p>
+        <p class="text-muted mb-0">{{ programmes|length }} results{% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}</p>
     </div>
     <form action="/search" method="get" class="d-flex gap-2 align-items-end flex-shrink-0">
         <input type="hidden" name="q" value="{{ query }}">
@@ -133,23 +133,27 @@
                             aria-controls="info-search-card-{{ prog.pid }}"
                             title="Show more details">i</button>
                 </div>
+                <div class="d-flex align-items-center gap-1 mb-1 badge-row">
                 {% if prog.series_title %}
                     <a href="/series/{{ prog.series_pid }}" class="badge bg-info series-badge text-decoration-none">
                         {{ prog.series_title }}
                     </a>
                 {% endif %}
+                <span class="d-flex gap-1 flex-shrink-0">
                 {% if prog.duration_secs %}
                     <span class="badge bg-secondary badge-duration">
                         {{ prog.duration_secs | format_duration }}
                     </span>
                 {% endif %}
                 {% if prog.first_broadcast and (prog.first_broadcast | is_recent_broadcast) %}
-                    <span class="badge text-bg-success ms-1">Recent</span>
+                    <span class="badge text-bg-success">Recent</span>
                 {% endif %}
                 {% if prog.available_until and (prog.available_until | is_expiring_soon) %}
-                    <span class="badge text-bg-warning ms-1">Expiring soon</span>
+                    <span class="badge text-bg-warning">Expiring soon</span>
                 {% endif %}
-                <p class="card-text small text-muted mt-2">
+                </span>
+                </div>
+                <p class="card-text small text-muted mt-1">
                     {{ prog.synopsis[:150] }}{% if prog.synopsis|length > 150 %}...{% endif %}
                 </p>
                 <div class="collapse mt-2" id="info-search-card-{{ prog.pid }}">
@@ -180,17 +184,25 @@
 </div>
 {% endif %}
 
-{% if programmes|length >= per_page %}
+{% if total_pages > 1 %}
 <nav class="mt-4" aria-label="Pagination">
     <ul class="pagination justify-content-center">
-        {% if page > 1 %}
-        <li class="page-item">
-            <a class="page-link" href="/search?q={{ query }}&page={{ page - 1 }}">Previous</a>
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+            <a class="page-link" href="/search?q={{ query | urlencode }}&category={{ category | urlencode }}&page={{ page - 1 }}">Previous</a>
         </li>
-        {% endif %}
-        <li class="page-item active"><a class="page-link" href="#">{{ page }}</a></li>
-        <li class="page-item">
-            <a class="page-link" href="/search?q={{ query }}&page={{ page + 1 }}">Next</a>
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+                <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+            {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
+                <li class="page-item">
+                    <a class="page-link" href="/search?q={{ query | urlencode }}&category={{ category | urlencode }}&page={{ p }}">{{ p }}</a>
+                </li>
+            {% elif p == page - 3 or p == page + 3 %}
+                <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+            <a class="page-link" href="/search?q={{ query | urlencode }}&category={{ category | urlencode }}&page={{ page + 1 }}">Next</a>
         </li>
     </ul>
 </nav>

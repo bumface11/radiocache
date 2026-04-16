@@ -80,23 +80,27 @@
                             aria-controls="info-recent-{{ prog.pid }}"
                             title="Show more details">i</button>
                 </div>
+                <div class="d-flex align-items-center gap-1 mb-1 badge-row">
                 {% if prog.series_title %}
                     <a href="/series/{{ prog.series_pid }}" class="badge bg-info series-badge text-decoration-none">
                         {{ prog.series_title }}
                     </a>
                 {% endif %}
+                <span class="d-flex gap-1 flex-shrink-0">
                 {% if prog.duration_secs %}
                     <span class="badge bg-secondary badge-duration">
                         {{ prog.duration_secs | format_duration }}
                     </span>
                 {% endif %}
                 {% if prog.first_broadcast and (prog.first_broadcast | is_recent_broadcast) %}
-                    <span class="badge text-bg-success ms-1">Recent</span>
+                    <span class="badge text-bg-success">Recent</span>
                 {% endif %}
                 {% if prog.available_until and (prog.available_until | is_expiring_soon) %}
-                    <span class="badge text-bg-warning ms-1">Expiring soon</span>
+                    <span class="badge text-bg-warning">Expiring soon</span>
                 {% endif %}
-                <p class="card-text small text-muted mt-2">
+                </span>
+                </div>
+                <p class="card-text small text-muted mt-1">
                     {{ prog.synopsis[:150] }}{% if prog.synopsis|length > 150 %}...{% endif %}
                 </p>
                 <div class="collapse mt-2" id="info-recent-{{ prog.pid }}">

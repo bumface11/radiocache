@@ -115,7 +115,22 @@ h1,h2,h3,h4,h5,h6 { font-weight: 600; }
 
 /* ── Badges ─────────────────────────────────────────────────── */
 .badge-duration { font-size: .72rem; }
-.series-badge   { font-size: .68rem; }
+/* .badge-row is a flex row: series-badge shrinks with ellipsis, rigid
+   badges in a flex-shrink-0 sibling span stay at their natural size. */
+.programme-card .badge-row {
+    min-width: 0;    /* allow the flex container itself to shrink */
+    overflow: hidden;
+}
+.series-badge {
+    font-size: .68rem;
+    display: inline-block;
+    min-width: 0;    /* allow shrinking below content width */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    flex-shrink: 1;
+}
 .badge.text-bg-success { background-color: #2a9d8f !important; }
 .badge.text-bg-warning { background-color: #e9c46a !important; color: #000 !important; }
 

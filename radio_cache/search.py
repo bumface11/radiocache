@@ -14,6 +14,50 @@ from radio_cache.cache_db import CacheDB
 from radio_cache.models import BrandGroup, Programme, SeriesGroup
 
 
+def search_programmes_count(
+    db: CacheDB,
+    query: str,
+    category: str = "",
+) -> int:
+    """Count programmes matching a search query.
+
+    Mirrors the logic in :func:`search_programmes` — tries FTS first,
+    falls back to ``LIKE``.
+
+    Args:
+        db: Open cache database.
+        query: User search string.
+        category: Optional category tag filter.
+
+    Returns:
+        Total number of matching programmes.
+    """
+    stripped = query.strip()
+    if not stripped:
+        return 0
+
+    fts_count = db.search_count(stripped, category=category)
+    if fts_count:
+        return fts_count
+
+    pattern = f"%{stripped}%"
+    cat_clause = ""
+    params: list[object] = [pattern, pattern, pattern, pattern, pattern]
+    if category:
+        cat_clause = (
+            " AND ',' || LOWER(categories) || ',' LIKE '%,' || LOWER(?) || ',%'"
+        )
+        params.append(category)
+    rows = db.query(
+        "SELECT COUNT(*) FROM programmes "
+        "WHERE (title LIKE ? OR synopsis LIKE ? OR series_title LIKE ? "
+        "OR brand_title LIKE ? OR categories LIKE ?)"
+        f"{cat_clause}",
+        tuple(params),
+    )
+    return int(rows[0][0]) if rows else 0
+
+
 def search_programmes(
     db: CacheDB,
     query: str,

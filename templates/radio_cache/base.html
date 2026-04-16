@@ -42,6 +42,10 @@
     </nav>
 
     <main class="container mt-4">
+        {% block back_button %}
+        <button id="rc-back-btn" class="btn btn-sm btn-outline-secondary mb-3 d-none"
+                type="button">&#8592; Back</button>
+        {% endblock %}
         {% block content %}{% endblock %}
     </main>
 
@@ -67,6 +71,15 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Generic back button — shown by JS when there is history to go back to.
+        (function () {
+            const btn = document.getElementById('rc-back-btn');
+            if (btn && history.length > 1 && location.pathname !== '/') {
+                btn.classList.remove('d-none');
+                btn.addEventListener('click', () => history.back());
+            }
+        }());
+
         document.querySelectorAll('.get-iplayer-cmd').forEach(el => {
             el.addEventListener('click', () => {
                 navigator.clipboard.writeText(el.textContent.trim());

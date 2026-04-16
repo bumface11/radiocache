@@ -33,6 +33,7 @@ from radio_cache.refresh import import_from_github, import_from_json, refresh_ca
 from radio_cache.search import (
     group_by_series,
     search_programmes,
+    search_programmes_count,
 )
 
 logger = logging.getLogger(__name__)
@@ -280,14 +281,18 @@ async def search_page(
 
     with _get_db() as db:
         if q:
-            programmes = search_programmes(db, q, limit=per_page, offset=offset)
+            programmes = search_programmes(db, q, limit=per_page, offset=offset, category=category)
+            total_count = search_programmes_count(db, q, category=category)
         elif category:
             programmes = db.programmes_by_category(category, limit=per_page, offset=offset)
+            total_count = db.programmes_by_category_count(category)
         else:
             programmes = db.recent_programmes(limit=per_page)
+            total_count = db.programme_count()
         stats = db.stats()
         categories_list = db.list_categories()
 
+    total_pages = max(1, -(-total_count // per_page))  # ceil division
     series_groups = group_by_series(programmes)
     return templates.TemplateResponse(
         request,
@@ -301,6 +306,7 @@ async def search_page(
             "stats": stats,
             "page": page,
             "per_page": per_page,
+            "total_pages": total_pages,
             "categories": categories_list,
         },
     )

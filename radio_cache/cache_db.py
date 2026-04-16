@@ -316,6 +316,69 @@ class CacheDB:
             ).fetchall()
         return [_row_to_programme(r) for r in rows]
 
+    def search_count(
+        self,
+        query: str,
+        category: str = "",
+    ) -> int:
+        """Count full-text search results (without fetching rows).
+
+        Args:
+            query: Search terms (FTS5 query syntax).
+            category: Optional category tag filter.
+
+        Returns:
+            Number of matching programmes.
+        """
+        safe_query = _sanitise_fts_query(query)
+        if not safe_query:
+            return 0
+
+        if category:
+            sql = """
+                SELECT COUNT(*) FROM programmes p
+                JOIN programmes_fts fts ON p.rowid = fts.rowid
+                WHERE programmes_fts MATCH :query
+                AND ',' || LOWER(p.categories) || ',' LIKE '%,' || LOWER(:category) || ',%'
+            """
+            row = self._conn.execute(
+                sql, {"query": safe_query, "category": category}
+            ).fetchone()
+        else:
+            sql = """
+                SELECT COUNT(*) FROM programmes p
+                JOIN programmes_fts fts ON p.rowid = fts.rowid
+                WHERE programmes_fts MATCH :query
+            """
+            row = self._conn.execute(sql, {"query": safe_query}).fetchone()
+        return int(row[0]) if row else 0
+
+    def programmes_by_category_count(self, category: str) -> int:
+        """Count programmes in a category.
+
+        Reads from the cached ``categories`` table when possible,
+        falling back to a ``COUNT(*)`` query.
+
+        Args:
+            category: Category tag to count.
+
+        Returns:
+            Number of matching programmes.
+        """
+        row = self._conn.execute(
+            "SELECT programme_count FROM categories WHERE name = ?",
+            (category,),
+        ).fetchone()
+        if row:
+            return int(row[0])
+
+        row = self._conn.execute(
+            "SELECT COUNT(*) FROM programmes "
+            "WHERE ',' || LOWER(categories) || ',' LIKE '%,' || LOWER(?) || ',%'",
+            (category,),
+        ).fetchone()
+        return int(row[0]) if row else 0
+
     def list_series(self) -> list[dict[str, str | int]]:
         """List all distinct series with episode counts.
 

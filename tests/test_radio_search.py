@@ -11,6 +11,7 @@ from radio_cache.search import (
     group_by_brand,
     group_by_series,
     search_programmes,
+    search_programmes_count,
 )
 
 
@@ -76,6 +77,20 @@ class TestSearchProgrammes:
         """Empty query returns empty list."""
         results = search_programmes(populated_db, "")
         assert results == []
+
+    def test_count_fts(self, populated_db: CacheDB) -> None:
+        """search_programmes_count returns total for FTS matches."""
+        count = search_programmes_count(populated_db, "mystery")
+        assert count >= 2
+
+    def test_count_like_fallback(self, populated_db: CacheDB) -> None:
+        """search_programmes_count falls back to LIKE for partial matches."""
+        count = search_programmes_count(populated_db, "nail")
+        assert count >= 1
+
+    def test_count_empty(self, populated_db: CacheDB) -> None:
+        """search_programmes_count returns 0 for empty query."""
+        assert search_programmes_count(populated_db, "") == 0
 
 
 class TestGroupBySeries:

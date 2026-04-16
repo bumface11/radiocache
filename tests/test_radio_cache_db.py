@@ -138,6 +138,28 @@ class TestCacheDB:
         results = populated_db.search("rural", category="Horror")
         assert all(r.pid != "p001" for r in results)
 
+    def test_search_count(self, populated_db: CacheDB) -> None:
+        """search_count returns total matching programmes."""
+        count = populated_db.search_count("Archers")
+        assert count >= 2
+
+    def test_search_count_with_category(self, populated_db: CacheDB) -> None:
+        """search_count with category filters correctly."""
+        count = populated_db.search_count("gothic", category="Horror")
+        assert count >= 1
+        count_none = populated_db.search_count("gothic", category="Thriller")
+        assert count_none == 0
+
+    def test_search_count_empty(self, populated_db: CacheDB) -> None:
+        """search_count returns 0 for empty query."""
+        assert populated_db.search_count("") == 0
+
+    def test_programmes_by_category_count(self, populated_db: CacheDB) -> None:
+        """programmes_by_category_count reads from cached table."""
+        assert populated_db.programmes_by_category_count("Drama") == 4
+        assert populated_db.programmes_by_category_count("Horror") == 1
+        assert populated_db.programmes_by_category_count("Nonexistent") == 0
+
     def test_list_series(self, populated_db: CacheDB) -> None:
         """List series returns distinct series with counts."""
         series = populated_db.list_series()
