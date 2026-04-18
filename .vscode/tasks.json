@@ -91,6 +91,23 @@
 				"clear": true
 			},
 			"problemMatcher": []
+		},
+		{
+			"label": "Upload Local Snapshot to GitHub Release",
+			"type": "shell",
+			"command": "powershell",
+			"args": [
+				"-NoProfile",
+				"-Command",
+				"& { $ErrorActionPreference = 'Stop'; if (-not (Test-Path radio_cache.db)) { throw 'radio_cache.db not found' }; c:/Users/Mich/radiocache/.venv/Scripts/python.exe -c \"from radio_cache.refresh import export_db_snapshot; export_db_snapshot('radio_cache.db', 'radio_cache.db.zip')\"; if (Test-Path radio.cache) { if (gh release view cache-latest --repo bumface11/radiocache > $null 2>&1) { gh release upload cache-latest radio_cache.db.zip radio.cache --repo bumface11/radiocache --clobber } else { gh release create cache-latest radio_cache.db.zip radio.cache --repo bumface11/radiocache --title 'Latest radio cache snapshot' --notes 'Manual upload from local workspace.' } } else { if (gh release view cache-latest --repo bumface11/radiocache > $null 2>&1) { gh release upload cache-latest radio_cache.db.zip --repo bumface11/radiocache --clobber } else { gh release create cache-latest radio_cache.db.zip --repo bumface11/radiocache --title 'Latest radio cache snapshot' --notes 'Manual upload from local workspace.' } } }"
+			],
+			"group": "build",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated",
+				"clear": true
+			},
+			"problemMatcher": []
 		}
 	]
 }

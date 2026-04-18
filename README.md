@@ -104,6 +104,11 @@ For Cloud Run, the default deployment target is:
 
 - `RADIO_CACHE_DB_SNAPSHOT_URL=https://github.com/bumface11/radiocache/releases/latest/download/radio_cache.db.zip`
 
+For manual publishing from your workstation, use the VS Code task
+`Upload Local Snapshot to GitHub Release`. It rebuilds `radio_cache.db.zip`
+from the current local database using the SQLite backup API and then uploads
+it to the `cache-latest` GitHub release, replacing the existing asset.
+
 The app will only bootstrap from a snapshot or JSON export when the target
 database is missing or empty. If a populated `RADIO_CACHE_DB` already exists,
 startup skips the import step.
