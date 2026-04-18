@@ -51,6 +51,20 @@ jobs:
             echo "value=recent" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Restore previous cache snapshot
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view cache-latest >/dev/null 2>&1; then
+            gh release download cache-latest --pattern radio_cache.db.zip --clobber
+            uv run python -m radio_cache.refresh \
+              --db radio_cache.db \
+              --import-db-snapshot radio_cache.db.zip \
+              --verbose
+          else
+            echo "No existing cache-latest release found; starting from empty DB"
+          fi
+
       - name: Refresh cache (${{ steps.depth.outputs.value }})
         run: |
           uv run python -m radio_cache.refresh \

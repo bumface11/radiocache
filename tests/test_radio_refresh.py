@@ -406,6 +406,33 @@ class TestRefreshDepth:
             _, kwargs = mock_fetch.call_args
             assert kwargs["max_pages"] == _RECENT_MAX_PAGES
             assert kwargs["backfill_containers"] is False
+            assert kwargs["existing_pids"] == set()
+
+    def test_recent_depth_uses_existing_valid_pids(self, tmp_path: Path) -> None:
+        """Recent refresh passes current valid PIDs for incremental paging."""
+        db_path = str(tmp_path / "existing_recent.db")
+        with CacheDB(db_path) as db:
+            db.upsert_programme(
+                Programme(
+                    pid="kept1",
+                    title="Already Cached",
+                    available_until="2099-01-01T00:00:00+00:00",
+                )
+            )
+
+        with patch(
+            "radio_cache.refresh.fetch_drama_programmes",
+            return_value=[Programme(pid="new1", title="New Episode")],
+        ) as mock_fetch:
+            refresh_cache(
+                db_path=db_path,
+                export_json=False,
+                export_get_iplayer=False,
+                depth="recent",
+            )
+
+        _, kwargs = mock_fetch.call_args
+        assert kwargs["existing_pids"] == {"kept1"}
 
     def test_full_depth_uses_large_page_limit(self, tmp_path: Path) -> None:
         """depth='full' passes the full max_pages and enables backfill."""
@@ -426,6 +453,7 @@ class TestRefreshDepth:
             _, kwargs = mock_fetch.call_args
             assert kwargs["max_pages"] == _FULL_MAX_PAGES
             assert kwargs["backfill_containers"] is True
+            assert kwargs["existing_pids"] is None
 
     def test_depth_records_per_bucket_metadata(self, tmp_path: Path) -> None:
         """Each depth level records its own last_refreshed timestamp."""

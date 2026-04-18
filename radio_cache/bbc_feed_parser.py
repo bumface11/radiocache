@@ -360,6 +360,7 @@ def fetch_drama_programmes(
     delay: float = _REQUEST_DELAY_SECS,
     backfill_containers: bool = False,
     container_max_pages: int = _DEFAULT_MAX_PAGES,
+    existing_pids: set[str] | None = None,
 ) -> list[Programme]:
     """Fetch radio drama programme metadata from BBC Sounds feeds.
 
@@ -398,6 +399,9 @@ def fetch_drama_programmes(
         backfill_containers: When ``True``, fetch all episodes for every
             brand/container discovered during the category scan.
         container_max_pages: Maximum pages per container during backfill.
+        existing_pids: Optional set of already cached, still-valid episode
+            PIDs. When provided, category pagination can stop early once an
+            entire page contains only already cached programmes.
 
     Returns:
         De-duplicated list of :class:`Programme` objects with merged
@@ -436,6 +440,8 @@ def fetch_drama_programmes(
                 break
 
             new_this_page = 0
+            existing_this_page = 0
+            uncached_this_page = 0
             for item in items:
                 prog = _parse_programme_item(item)
                 if prog is None:
@@ -458,6 +464,11 @@ def fetch_drama_programmes(
                     # Programme already seen – merge new categories in
                     pid_to_cats[prog.pid].update(item_cats)
 
+                if existing_pids and prog.pid in existing_pids:
+                    existing_this_page += 1
+                else:
+                    uncached_this_page += 1
+
             logger.info(
                 "  page %d: %d items (%d new, %d total unique)",
                 page + 1,
@@ -465,6 +476,15 @@ def fetch_drama_programmes(
                 new_this_page,
                 len(pid_to_prog),
             )
+
+            if existing_pids and uncached_this_page == 0 and existing_this_page:
+                logger.info(
+                    "  page %d: only cached programmes remain for category %s; "
+                    "stopping early",
+                    page + 1,
+                    slug,
+                )
+                break
 
             total = data.get("total", 0)
             if offset + len(items) >= total or len(items) < _PAGE_LIMIT:

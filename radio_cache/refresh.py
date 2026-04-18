@@ -101,6 +101,11 @@ def refresh_cache(
         category_slugs=slugs,
         max_pages=max_pages,
         backfill_containers=backfill,
+        existing_pids=(
+            _existing_valid_pids(db_path)
+            if depth == "recent"
+            else None
+        ),
     )
     logger.info("Fetched %d programmes from BBC feeds", len(programmes))
 
@@ -161,6 +166,16 @@ def _export_json(db: CacheDB, json_path: str) -> None:
     path = Path(json_path)
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False), encoding="utf-8")
     logger.info("Exported %d programmes to %s", len(programmes), json_path)
+
+
+def _existing_valid_pids(db_path: str) -> set[str]:
+    """Return currently cached valid PIDs when a DB already exists."""
+    path = Path(db_path)
+    if not path.exists():
+        return set()
+
+    with CacheDB(db_path) as db:
+        return db.valid_pids()
 
 
 def _export_get_iplayer_cache(db: CacheDB, cache_path: str) -> None:

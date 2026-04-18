@@ -55,6 +55,10 @@
 				"europe-west2",
 				"--image",
 				"europe-west2-docker.pkg.dev/radiodrama/radiocache/app:latest",
+				"--update-env-vars",
+				"RADIO_CACHE_DB_SNAPSHOT_URL=https://github.com/bumface11/radiocache/releases/latest/download/radio_cache.db.zip",
+				"--remove-env-vars",
+				"RADIO_CACHE_GITHUB_URL",
 				"--max-instances",
 				"1"
 			],

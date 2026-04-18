@@ -100,6 +100,10 @@ Set one of these environment variables for empty deployments:
 - `RADIO_CACHE_DB_SNAPSHOT` -- path to a local `.db` or `.zip` snapshot.
 - `RADIO_CACHE_DB_SNAPSHOT_URL` -- URL of a downloadable `.db` or `.zip` snapshot.
 
+For Cloud Run, the default deployment target is:
+
+- `RADIO_CACHE_DB_SNAPSHOT_URL=https://github.com/bumface11/radiocache/releases/latest/download/radio_cache.db.zip`
+
 The app will only bootstrap from a snapshot or JSON export when the target
 database is missing or empty. If a populated `RADIO_CACHE_DB` already exists,
 startup skips the import step.

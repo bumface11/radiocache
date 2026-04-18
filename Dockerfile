@@ -20,7 +20,7 @@ RUN mkdir -p recordings
 
 ENV RECORDINGS_OUTPUT_DIR=/app/recordings
 
-ENV RADIO_CACHE_GITHUB_URL=https://raw.githubusercontent.com/bumface11/radiocache/main/radio_cache_export.json
+ENV RADIO_CACHE_DB_SNAPSHOT_URL=https://github.com/bumface11/radiocache/releases/latest/download/radio_cache.db.zip
 
 EXPOSE 8080
 CMD ["/app/.venv/bin/uvicorn", "radio_cache_api:app", "--host", "0.0.0.0", "--port", "8080"]

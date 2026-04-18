@@ -20,8 +20,12 @@ tests/
 # Local recordings (ephemeral, regenerated at runtime)
 recordings/
 
-# The export JSON is large - only include if you need it bundled
-# radio_cache_export.json
+# Generated cache artefacts are downloaded at runtime when needed
+radio_cache.db
+radio_cache.db.zip
+radio_cache_export.json
+radio_cache_export.json.zip
+radio.cache
 
 # Editor/OS noise
 .vscode/
