@@ -652,6 +652,24 @@ class CacheDB:
             self._rebuild_categories()
         return cur.rowcount
 
+    def valid_pids(self) -> set[str]:
+        """Return PIDs of all currently non-expired programmes.
+
+        Used by the incremental refresh to tell the feed parser which
+        programmes are already cached, so pagination can stop early
+        once it reaches content the cache already holds.
+
+        Returns:
+            Set of PID strings whose availability has not yet passed.
+        """
+        now = datetime.now(UTC).isoformat()
+        rows = self._conn.execute(
+            "SELECT pid FROM programmes "
+            "WHERE available_until = '' OR available_until >= ?",
+            (now,),
+        ).fetchall()
+        return {row["pid"] for row in rows}
+
     def _rebuild_categories(self) -> None:
         """Rebuild the ``categories`` summary table from programme data.
 

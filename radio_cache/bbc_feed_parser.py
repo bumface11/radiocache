@@ -358,6 +358,8 @@ def fetch_drama_programmes(
     category_slugs: list[str] | None = None,
     max_pages: int = _DEFAULT_MAX_PAGES,
     delay: float = _REQUEST_DELAY_SECS,
+    backfill_containers: bool = False,
+    container_max_pages: int = _DEFAULT_MAX_PAGES,
 ) -> list[Programme]:
     """Fetch radio drama programme metadata from BBC Sounds feeds.
 
@@ -381,11 +383,21 @@ def fetch_drama_programmes(
     ``"thriller"`` will end up with ``"Drama,Thriller"`` rather than just
     the first slug encountered.
 
+    When *backfill_containers* is ``True``, a second pass fetches **all**
+    episodes for every brand/container PID discovered during the category
+    scan.  This captures entire back-catalogues (e.g. all 1,000+ episodes
+    of *In Our Time*) that would otherwise be missed because category
+    listings sorted by date only return the most recent episodes within
+    the page limit.
+
     Args:
         category_slugs: Category URL slugs to scan; defaults to
             built-in drama categories.
         max_pages: Maximum pages to fetch per category.
         delay: Seconds to sleep between HTTP requests.
+        backfill_containers: When ``True``, fetch all episodes for every
+            brand/container discovered during the category scan.
+        container_max_pages: Maximum pages per container during backfill.
 
     Returns:
         De-duplicated list of :class:`Programme` objects with merged
@@ -473,6 +485,54 @@ def fetch_drama_programmes(
 
         time.sleep(delay)
 
+    # ── Container backfill ────────────────────────────────────────────
+    # The category listing returns episodes sorted by date.  Large
+    # categories (e.g. "podcasts" with 88 K entries) have far more
+    # episodes than the page limit can reach, so only the most recent
+    # episodes of each brand are captured.  The container backfill
+    # fetches ALL episodes for every brand/container PID discovered in
+    # the category scan, ensuring complete back-catalogues are cached.
+    if backfill_containers:
+        # Collect unique container PIDs from the programmes found so far.
+        # Map each container PID to the set of categories inherited from
+        # the category scan (so backfilled episodes keep proper tags).
+        container_pids: dict[str, set[str]] = {}
+        for pid, prog in pid_to_prog.items():
+            cpid = prog.series_pid or prog.brand_pid
+            if cpid and cpid not in container_pids:
+                container_pids[cpid] = set()
+            if cpid:
+                container_pids[cpid].update(pid_to_cats.get(pid, set()))
+
+        logger.info(
+            "Container backfill: %d unique containers to expand",
+            len(container_pids),
+        )
+        for cpid, inherited_cats in container_pids.items():
+            backfilled = _fetch_container_episodes(
+                cpid,
+                max_pages=container_max_pages,
+                delay=delay,
+            )
+            for ep in backfilled:
+                ep_cats: set[str] = set(
+                    c.strip() for c in ep.categories.split(",") if c.strip()
+                )
+                ep_cats.update(inherited_cats)
+
+                if ep.pid not in pid_to_prog:
+                    pid_to_prog[ep.pid] = ep
+                    pid_to_cats[ep.pid] = ep_cats
+                else:
+                    pid_to_cats[ep.pid].update(ep_cats)
+
+            time.sleep(delay)
+
+        logger.info(
+            "After container backfill: %d total unique programmes",
+            len(pid_to_prog),
+        )
+
     # Build the final programme list, replacing each programme's categories
     # with the fully merged set gathered across all slug searches.
     # Categories from multiple slugs are peer-level tags (e.g. "Drama",
@@ -487,6 +547,57 @@ def fetch_drama_programmes(
 
     logger.info("Fetched %d unique programmes", len(programmes))
     return programmes
+
+
+def _fetch_container_episodes(
+    container_pid: str,
+    max_pages: int = _DEFAULT_MAX_PAGES,
+    delay: float = _REQUEST_DELAY_SECS,
+) -> list[Programme]:
+    """Fetch all playable episodes within a brand or series container.
+
+    Uses the BBC RMS ``?container=`` parameter to page through every
+    episode belonging to *container_pid*.
+
+    Args:
+        container_pid: BBC brand or series PID (e.g. ``"b006qykl"``).
+        max_pages: Maximum pages to fetch.
+        delay: Seconds to sleep between HTTP requests.
+
+    Returns:
+        List of :class:`Programme` objects found in the container.
+    """
+    episodes: list[Programme] = []
+    for page in range(max_pages):
+        offset = page * _PAGE_LIMIT
+        url = (
+            f"{_BBC_PLAYABLE_API}?container={container_pid}"
+            f"&sort=date&offset={offset}&limit={_PAGE_LIMIT}"
+        )
+        data = _fetch_json(url)
+        if data is None:
+            break
+
+        items = data.get("data") or []
+        if not items:
+            break
+
+        for item in items:
+            prog = _parse_programme_item(item)
+            if prog is not None:
+                episodes.append(prog)
+
+        total = data.get("total", 0)
+        if offset + len(items) >= total or len(items) < _PAGE_LIMIT:
+            break
+
+        time.sleep(delay)
+
+    if episodes:
+        logger.info(
+            "Container %s: fetched %d episodes", container_pid, len(episodes),
+        )
+    return episodes
 
 
 def fetch_programme_detail(pid: str) -> Programme | None:

@@ -9,6 +9,7 @@ from radio_cache.bbc_feed_parser import (
     _parse_programme_item,
     fetch_all_category_slugs,
     fetch_drama_programmes,
+    _fetch_container_episodes,
 )
 
 
@@ -323,3 +324,138 @@ class TestFetchAllCategorySlugs:
         url = mock_fetch.call_args[0][0]
         assert "rms.api.bbc.co.uk/v2/categories" in url
         assert "medium=audio" in url
+
+
+class TestFetchContainerEpisodes:
+    """Tests for _fetch_container_episodes."""
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_fetches_episodes_for_container(self, mock_fetch: MagicMock) -> None:
+        """Returns episodes from the container endpoint."""
+        items = [
+            {"urn": f"urn:bbc:radio:episode:ep{i}", "title": f"Ep {i}"}
+            for i in range(3)
+        ]
+        mock_fetch.return_value = {"data": items, "total": 3}
+        result = _fetch_container_episodes("b006qykl", max_pages=5, delay=0)
+        assert len(result) == 3
+        assert result[0].pid == "ep0"
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_uses_container_param(self, mock_fetch: MagicMock) -> None:
+        """URL uses container= parameter, not category=."""
+        mock_fetch.return_value = {"data": [], "total": 0}
+        _fetch_container_episodes("b006qykl", max_pages=1, delay=0)
+        url = mock_fetch.call_args[0][0]
+        assert "container=b006qykl" in url
+        assert "category=" not in url
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_paginates(self, mock_fetch: MagicMock) -> None:
+        """Pages through container results."""
+        page1 = [
+            {"urn": f"urn:bbc:radio:episode:ep{i}", "title": f"Ep {i}"}
+            for i in range(_PAGE_LIMIT)
+        ]
+        page2 = [
+            {"urn": "urn:bbc:radio:episode:last", "title": "Last"}
+        ]
+        mock_fetch.side_effect = [
+            {"data": page1, "total": _PAGE_LIMIT + 1},
+            {"data": page2, "total": _PAGE_LIMIT + 1},
+        ]
+        result = _fetch_container_episodes("brand1", max_pages=5, delay=0)
+        assert len(result) == _PAGE_LIMIT + 1
+        urls = [c[0][0] for c in mock_fetch.call_args_list]
+        assert "offset=0" in urls[0]
+        assert f"offset={_PAGE_LIMIT}" in urls[1]
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_handles_api_failure(self, mock_fetch: MagicMock) -> None:
+        """Returns empty list on API failure."""
+        mock_fetch.return_value = None
+        result = _fetch_container_episodes("brand_bad", max_pages=1, delay=0)
+        assert result == []
+
+
+class TestBackfillContainers:
+    """Tests for the container backfill phase in fetch_drama_programmes."""
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_backfill_expands_brand_episodes(self, mock_fetch: MagicMock) -> None:
+        """Backfill fetches additional episodes for discovered brands."""
+        # Phase 1: category scan finds one episode with a brand PID
+        category_item = {
+            "urn": "urn:bbc:radio:episode:ep1",
+            "title": "Latest Episode",
+            "container": {"id": "series1", "title": "My Series"},
+            "brand": {"id": "brand1", "title": "My Brand"},
+        }
+        category_response = {"data": [category_item], "total": 1}
+
+        # Phase 2: container backfill returns more episodes
+        backfill_items = [
+            {"urn": "urn:bbc:radio:episode:ep1", "title": "Latest Episode"},
+            {"urn": "urn:bbc:radio:episode:ep2", "title": "Older Episode"},
+            {"urn": "urn:bbc:radio:episode:ep3", "title": "Oldest Episode"},
+        ]
+        backfill_response = {"data": backfill_items, "total": 3}
+
+        mock_fetch.side_effect = [
+            category_response,  # category scan
+            backfill_response,  # container backfill for series1
+        ]
+        result = fetch_drama_programmes(
+            category_slugs=["drama"],
+            max_pages=1,
+            delay=0,
+            backfill_containers=True,
+            container_max_pages=5,
+        )
+        pids = {p.pid for p in result}
+        assert len(result) == 3
+        assert "ep1" in pids
+        assert "ep2" in pids
+        assert "ep3" in pids
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_backfill_inherits_categories(self, mock_fetch: MagicMock) -> None:
+        """Backfilled episodes inherit categories from the category scan."""
+        category_item = {
+            "urn": "urn:bbc:radio:episode:ep1",
+            "title": "Episode",
+            "container": {"id": "series1", "title": "Series"},
+        }
+        category_response = {"data": [category_item], "total": 1}
+
+        backfill_items = [
+            {"urn": "urn:bbc:radio:episode:ep2", "title": "Backfill Ep"},
+        ]
+        backfill_response = {"data": backfill_items, "total": 1}
+
+        mock_fetch.side_effect = [category_response, backfill_response]
+        result = fetch_drama_programmes(
+            category_slugs=["thriller"],
+            max_pages=1,
+            delay=0,
+            backfill_containers=True,
+            container_max_pages=5,
+        )
+        ep2 = [p for p in result if p.pid == "ep2"][0]
+        assert "Thriller" in ep2.categories
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_no_backfill_by_default(self, mock_fetch: MagicMock) -> None:
+        """Container backfill is disabled by default."""
+        item = {
+            "urn": "urn:bbc:radio:episode:ep1",
+            "title": "Ep",
+            "container": {"id": "series1", "title": "Series"},
+        }
+        mock_fetch.return_value = {"data": [item], "total": 1}
+        result = fetch_drama_programmes(
+            category_slugs=["drama"], max_pages=1, delay=0
+        )
+        # Only the category scan call should have been made
+        assert mock_fetch.call_count == 1
+        assert len(result) == 1

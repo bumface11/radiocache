@@ -12,6 +12,7 @@ import logging
 import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Final, Literal
 
 from radio_cache.bbc_feed_parser import (
     fetch_all_category_slugs,
@@ -22,6 +23,11 @@ from radio_cache.cache_db import CacheDB
 from radio_cache.models import Programme
 
 logger = logging.getLogger(__name__)
+
+RefreshDepth = Literal["recent", "full"]
+
+_RECENT_MAX_PAGES: Final[int] = 3
+_FULL_MAX_PAGES: Final[int] = 50
 
 _DEFAULT_GITHUB_URL: str = (
     "https://raw.githubusercontent.com/bumface11/radiocache/main/"
@@ -38,6 +44,7 @@ def refresh_cache(
     get_iplayer_path: str = "radio.cache",
     category_slugs: list[str] | None = None,
     all_categories: bool = False,
+    depth: RefreshDepth = "full",
 ) -> int:
     """Refresh the programme cache from BBC feeds.
 
@@ -54,18 +61,34 @@ def refresh_cache(
         all_categories: When ``True``, fetch every category slug
             discovered by the BBC categories API, overriding
             *category_slugs*.
+        depth: Controls how many pages to fetch per category.
+            ``"recent"`` fetches only the first few pages (newest
+            broadcasts), suitable for daily refreshes.  ``"full"``
+            pages through the entire back-catalogue, capturing
+            long-running shows like *In Our Time*.  The ``"full"``
+            depth also enables container backfill, which fetches
+            every episode of each discovered brand.
 
     Returns:
         Number of programmes in the updated cache.
     """
-    logger.info("Starting cache refresh -> %s", db_path)
+    max_pages = _RECENT_MAX_PAGES if depth == "recent" else _FULL_MAX_PAGES
+    backfill = depth == "full"
+    logger.info(
+        "Starting %s cache refresh -> %s (max %d pages/category, backfill=%s)",
+        depth, db_path, max_pages, backfill,
+    )
 
     slugs: list[str] | None = category_slugs
     if all_categories:
         slugs = fetch_all_category_slugs()
         logger.info("Using all %d category slugs from BBC API", len(slugs))
 
-    programmes = fetch_drama_programmes(category_slugs=slugs)
+    programmes = fetch_drama_programmes(
+        category_slugs=slugs,
+        max_pages=max_pages,
+        backfill_containers=backfill,
+    )
     logger.info("Fetched %d programmes from BBC feeds", len(programmes))
 
     with CacheDB(db_path) as db:
@@ -79,6 +102,7 @@ def refresh_cache(
 
         now = datetime.now(UTC).isoformat()
         db.set_meta("last_refreshed", now)
+        db.set_meta(f"last_refreshed_{depth}", now)
 
         stats = db.stats()
         logger.info(
@@ -276,6 +300,16 @@ def main() -> None:
         help="Fetch all available category slugs from the BBC API",
     )
     parser.add_argument(
+        "--depth",
+        choices=("recent", "full"),
+        default="full",
+        help=(
+            "Refresh depth: 'recent' fetches only the newest pages "
+            "(suitable for daily runs), 'full' pages through the "
+            "entire back-catalogue (default: full)"
+        ),
+    )
+    parser.add_argument(
         "--list-categories",
         action="store_true",
         help="List available BBC category slugs with programme counts and exit",
@@ -337,6 +371,7 @@ def main() -> None:
             get_iplayer_path=args.get_iplayer_cache,
             category_slugs=args.categories,
             all_categories=args.all_categories,
+            depth=args.depth,
         )
         logger.info("Cache contains %d programmes", count)
 

@@ -2,12 +2,26 @@ name: Refresh Radio Drama Cache
 
 on:
   schedule:
-    # Run daily at 18:15 UTC
+    # Daily recent refresh at 18:15 UTC
     - cron: "15 18 * * *"
+    # Weekly full refresh at 04:00 UTC on Sundays
+    - cron: "0 4 * * 0"
   workflow_dispatch:
+    inputs:
+      depth:
+        description: "Refresh depth"
+        required: false
+        default: "full"
+        type: choice
+        options:
+          - recent
+          - full
 
 permissions:
   contents: write
+
+env:
+  CATEGORIES: audiobooks comedy factual docudramas documentaries drama films gamesandquizzes podcasts readings
 
 jobs:
   refresh:
@@ -26,13 +40,25 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Refresh cache
+      - name: Determine refresh depth
+        id: depth
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ inputs.depth }}" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "0 4 * * 0" ]; then
+            echo "value=full" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=recent" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Refresh cache (${{ steps.depth.outputs.value }})
         run: |
           uv run python -m radio_cache.refresh \
             --db radio_cache.db \
             --json radio_cache_export.json \
             --verbose \
-            --categories audiobooks comedy factual docudramas documentaries drama films gamesandquizzes podcasts readings
+            --depth ${{ steps.depth.outputs.value }} \
+            --categories ${{ env.CATEGORIES }}
 
       - name: Upload cache artefacts
         uses: actions/upload-artifact@v4
@@ -52,6 +78,6 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit"
           else
-            git commit -m "chore: refresh radio drama cache $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git commit -m "chore: refresh radio drama cache (${{ steps.depth.outputs.value }}) $(date -u +%Y-%m-%dT%H:%M:%SZ)"
             git push
           fi

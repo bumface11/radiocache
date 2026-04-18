@@ -285,6 +285,34 @@ class TestCacheDB:
         assert purged == 1
         assert db.programme_count() == 1
 
+    def test_valid_pids_returns_non_expired(self, db: CacheDB) -> None:
+        """valid_pids returns PIDs that have not expired."""
+        db.upsert_programme(
+            Programme(pid="vp1", title="Valid", available_until="2099-01-01T00:00:00Z")
+        )
+        db.upsert_programme(
+            Programme(pid="vp2", title="No expiry", available_until="")
+        )
+        pids = db.valid_pids()
+        assert "vp1" in pids
+        assert "vp2" in pids
+
+    def test_valid_pids_excludes_expired(self, db: CacheDB) -> None:
+        """valid_pids excludes programmes whose availability has passed."""
+        db.upsert_programme(
+            Programme(pid="exp1", title="Expired", available_until="2020-01-01T00:00:00Z")
+        )
+        db.upsert_programme(
+            Programme(pid="ok1", title="Current", available_until="2099-01-01T00:00:00Z")
+        )
+        pids = db.valid_pids()
+        assert "exp1" not in pids
+        assert "ok1" in pids
+
+    def test_valid_pids_empty_db(self, db: CacheDB) -> None:
+        """valid_pids returns empty set for an empty database."""
+        assert db.valid_pids() == set()
+
     def test_context_manager(self) -> None:
         """CacheDB works as a context manager."""
         with CacheDB(":memory:") as db:

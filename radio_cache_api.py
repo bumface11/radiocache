@@ -661,6 +661,12 @@ async def api_refresh(
         alias="all",
         description="Fetch every BBC audio genre slug.",
     ),
+    depth: str = Query(
+        default="full",
+        description="Refresh depth: 'recent' fetches only the newest "
+        "pages (suitable for daily runs), 'full' pages through the "
+        "entire back-catalogue.",
+    ),
 ) -> dict:
     """Trigger a cache refresh from BBC feeds.
 
@@ -671,10 +677,13 @@ async def api_refresh(
     Args:
         categories: Specific category slugs to fetch.
         all_categories: Fetch all BBC audio genre slugs.
+        depth: Refresh depth – ``"recent"`` or ``"full"``.
 
     Returns:
         Dict confirming the refresh has started.
     """
+    if depth not in ("recent", "full"):
+        depth = "full"
     global _refresh_thread
     with _refresh_lock:
         if _refresh_thread is not None and _refresh_thread.is_alive():
@@ -694,6 +703,7 @@ async def api_refresh(
                     json_path=_JSON_PATH,
                     category_slugs=categories,
                     all_categories=all_categories,
+                    depth=depth,  # type: ignore[arg-type]
                 )
             except Exception:
                 logger.exception("Background cache refresh failed")
@@ -709,8 +719,8 @@ async def api_refresh(
         _refresh_thread.start()
 
     slugs_desc = "all" if all_categories else (categories or ["defaults"])
-    logger.info("Cache refresh started for categories: %s", slugs_desc)
-    return {"status": "started", "categories": slugs_desc}
+    logger.info("Cache refresh started for categories: %s (depth=%s)", slugs_desc, depth)
+    return {"status": "started", "categories": slugs_desc, "depth": depth}
 
 
 @app.get("/api/refresh/status")

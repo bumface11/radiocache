@@ -14,6 +14,8 @@ from radio_cache.refresh import (
     _programme_to_dict,
     import_from_json,
     refresh_cache,
+    _RECENT_MAX_PAGES,
+    _FULL_MAX_PAGES,
 )
 
 
@@ -296,3 +298,106 @@ class TestRefreshCache:
 
         data = json.loads(Path(json_path).read_text())
         assert data["meta"]["total_programmes"] == 2
+
+
+class TestRefreshDepth:
+    """Tests for the depth parameter controlling page limits."""
+
+    def test_recent_depth_limits_pages(self, tmp_path: Path) -> None:
+        """depth='recent' passes a small max_pages and no backfill."""
+        mock_programmes = [Programme(pid="d1", title="Depth Test")]
+        db_path = str(tmp_path / "depth.db")
+
+        with patch(
+            "radio_cache.refresh.fetch_drama_programmes",
+            return_value=mock_programmes,
+        ) as mock_fetch:
+            refresh_cache(
+                db_path=db_path,
+                export_json=False,
+                export_get_iplayer=False,
+                depth="recent",
+            )
+            mock_fetch.assert_called_once()
+            _, kwargs = mock_fetch.call_args
+            assert kwargs["max_pages"] == _RECENT_MAX_PAGES
+            assert kwargs["backfill_containers"] is False
+
+    def test_full_depth_uses_large_page_limit(self, tmp_path: Path) -> None:
+        """depth='full' passes the full max_pages and enables backfill."""
+        mock_programmes = [Programme(pid="d2", title="Full Depth")]
+        db_path = str(tmp_path / "depth_full.db")
+
+        with patch(
+            "radio_cache.refresh.fetch_drama_programmes",
+            return_value=mock_programmes,
+        ) as mock_fetch:
+            refresh_cache(
+                db_path=db_path,
+                export_json=False,
+                export_get_iplayer=False,
+                depth="full",
+            )
+            mock_fetch.assert_called_once()
+            _, kwargs = mock_fetch.call_args
+            assert kwargs["max_pages"] == _FULL_MAX_PAGES
+            assert kwargs["backfill_containers"] is True
+
+    def test_depth_records_per_bucket_metadata(self, tmp_path: Path) -> None:
+        """Each depth level records its own last_refreshed timestamp."""
+        mock_programmes = [Programme(pid="d3", title="Bucket Meta")]
+        db_path = str(tmp_path / "bucket_meta.db")
+
+        with patch(
+            "radio_cache.refresh.fetch_drama_programmes",
+            return_value=mock_programmes,
+        ):
+            refresh_cache(
+                db_path=db_path,
+                export_json=False,
+                export_get_iplayer=False,
+                depth="recent",
+            )
+
+        with CacheDB(db_path) as db:
+            assert db.get_meta("last_refreshed") != ""
+            assert db.get_meta("last_refreshed_recent") != ""
+            assert db.get_meta("last_refreshed_full") == ""
+
+    def test_categories_passed_with_depth(self, tmp_path: Path) -> None:
+        """category_slugs are forwarded regardless of depth."""
+        mock_programmes = [Programme(pid="d4", title="Cat Depth")]
+        db_path = str(tmp_path / "cat_depth.db")
+
+        with patch(
+            "radio_cache.refresh.fetch_drama_programmes",
+            return_value=mock_programmes,
+        ) as mock_fetch:
+            refresh_cache(
+                db_path=db_path,
+                export_json=False,
+                export_get_iplayer=False,
+                category_slugs=["drama", "comedy"],
+                depth="recent",
+            )
+            mock_fetch.assert_called_once()
+            _, kwargs = mock_fetch.call_args
+            assert kwargs["category_slugs"] == ["drama", "comedy"]
+            assert kwargs["max_pages"] == _RECENT_MAX_PAGES
+
+    def test_default_depth_is_full(self, tmp_path: Path) -> None:
+        """Omitting depth defaults to 'full'."""
+        mock_programmes = [Programme(pid="d5", title="Default Depth")]
+        db_path = str(tmp_path / "default_depth.db")
+
+        with patch(
+            "radio_cache.refresh.fetch_drama_programmes",
+            return_value=mock_programmes,
+        ) as mock_fetch:
+            refresh_cache(
+                db_path=db_path,
+                export_json=False,
+                export_get_iplayer=False,
+            )
+            _, kwargs = mock_fetch.call_args
+            assert kwargs["max_pages"] == _FULL_MAX_PAGES
