@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import io
 import json
+import zipfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -12,6 +14,9 @@ from radio_cache.refresh import (
     _export_get_iplayer_cache,
     _export_json,
     _programme_to_dict,
+    export_db_snapshot,
+    import_db_snapshot_from_github,
+    import_from_db_snapshot,
     import_from_json,
     refresh_cache,
     _RECENT_MAX_PAGES,
@@ -91,6 +96,63 @@ class TestImportFromJson:
 
         with CacheDB(db_path) as db2:
             assert db2.get_meta("last_refreshed") == original_ts
+
+
+class TestDbSnapshot:
+    """Tests for SQLite snapshot export/import."""
+
+    def test_export_and_import_zipped_snapshot(self, tmp_path: Path) -> None:
+        """A zipped DB snapshot round-trips programme data and metadata."""
+        db_path = tmp_path / "source.db"
+        with CacheDB(str(db_path)) as db:
+            db.upsert_programme(Programme(pid="db1", title="DB Snapshot"))
+            db.set_meta("last_refreshed", "2026-04-18T04:00:00+00:00")
+
+        snapshot_path = tmp_path / "radio_cache.db.zip"
+        export_db_snapshot(str(db_path), str(snapshot_path))
+
+        restored_path = tmp_path / "restored.db"
+        count = import_from_db_snapshot(str(snapshot_path), str(restored_path))
+
+        assert count == 1
+        with CacheDB(str(restored_path)) as restored:
+            prog = restored.get_programme("db1")
+            assert prog is not None
+            assert prog.title == "DB Snapshot"
+            assert restored.get_meta("last_refreshed") == "2026-04-18T04:00:00+00:00"
+
+    def test_import_snapshot_from_url(self, tmp_path: Path) -> None:
+        """A downloaded zipped snapshot is restored into the destination DB."""
+        db_path = tmp_path / "source.db"
+        with CacheDB(str(db_path)) as db:
+            db.upsert_programme(Programme(pid="db2", title="Remote Snapshot"))
+
+        snapshot_path = tmp_path / "radio_cache.db.zip"
+        export_db_snapshot(str(db_path), str(snapshot_path))
+        payload = snapshot_path.read_bytes()
+
+        class _Response:
+            def __enter__(self) -> _Response:
+                return self
+
+            def __exit__(self, exc_type, exc, tb) -> None:
+                return None
+
+            def read(self) -> bytes:
+                return payload
+
+        restored_path = tmp_path / "downloaded.db"
+        with patch("urllib.request.urlopen", return_value=_Response()):
+            count = import_db_snapshot_from_github(
+                "https://example.com/radio_cache.db.zip",
+                str(restored_path),
+            )
+
+        assert count == 1
+        with CacheDB(str(restored_path)) as restored:
+            prog = restored.get_programme("db2")
+            assert prog is not None
+            assert prog.title == "Remote Snapshot"
 
 
 class TestExportGetIplayerCache:
@@ -298,6 +360,28 @@ class TestRefreshCache:
 
         data = json.loads(Path(json_path).read_text())
         assert data["meta"]["total_programmes"] == 2
+
+    def test_refresh_can_export_db_snapshot(self, tmp_path: Path) -> None:
+        """refresh_cache can write a compressed DB snapshot for deployment."""
+        mock_programmes = [Programme(pid="ref3", title="Snapshot Export")]
+        db_path = str(tmp_path / "refresh.db")
+        snapshot_path = tmp_path / "radio_cache.db.zip"
+
+        with patch(
+            "radio_cache.refresh.fetch_drama_programmes",
+            return_value=mock_programmes,
+        ):
+            count = refresh_cache(
+                db_path=db_path,
+                export_json=False,
+                db_snapshot_path=str(snapshot_path),
+                export_get_iplayer=False,
+            )
+
+        assert count == 1
+        assert snapshot_path.exists()
+        with zipfile.ZipFile(snapshot_path) as archive:
+            assert any(name.endswith(".db") for name in archive.namelist())
 
 
 class TestRefreshDepth:

@@ -7,9 +7,14 @@ be executed by a GitHub Actions cron job once per day.
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import logging
+import shutil
+import sqlite3
+import tempfile
 import urllib.request
+import zipfile
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final, Literal
@@ -33,12 +38,17 @@ _DEFAULT_GITHUB_URL: str = (
     "https://raw.githubusercontent.com/bumface11/radiocache/main/"
     "radio_cache_export.json"
 )
+_DEFAULT_DB_SNAPSHOT_URL: str = (
+    "https://github.com/bumface11/radiocache/releases/latest/download/"
+    "radio_cache.db.zip"
+)
 
 
 def refresh_cache(
     db_path: str = "radio_cache.db",
     export_json: bool = True,
     json_path: str = "radio_cache_export.json",
+    db_snapshot_path: str = "",
     purge_expired: bool = True,
     export_get_iplayer: bool = True,
     get_iplayer_path: str = "radio.cache",
@@ -52,6 +62,9 @@ def refresh_cache(
         db_path: Path to the SQLite database file.
         export_json: Whether to also export a static JSON snapshot.
         json_path: Output path for the JSON export.
+        db_snapshot_path: Optional SQLite snapshot output path.  When the
+            path ends in ``.zip``, a compressed archive containing the
+            database file is written.
         purge_expired: Whether to remove expired programmes.
         export_get_iplayer: Whether to export a get_iplayer-compatible cache file.
         get_iplayer_path: Output path for the get_iplayer cache file.
@@ -118,7 +131,12 @@ def refresh_cache(
         if export_get_iplayer:
             _export_get_iplayer_cache(db, get_iplayer_path)
 
-        return stats.total_programmes
+        total_programmes = stats.total_programmes
+
+    if db_snapshot_path:
+        export_db_snapshot(db_path, db_snapshot_path)
+
+    return total_programmes
 
 
 def _export_json(db: CacheDB, json_path: str) -> None:
@@ -158,6 +176,163 @@ def _export_get_iplayer_cache(db: CacheDB, cache_path: str) -> None:
     """
     count = db.export_get_iplayer_cache(cache_path)
     logger.info("Exported %d programmes to get_iplayer cache %s", count, cache_path)
+
+
+def _copy_sqlite_database(source_path: Path, dest_path: Path) -> None:
+    """Create a consistent SQLite copy using the backup API."""
+    if source_path.resolve() == dest_path.resolve():
+        return
+
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    if dest_path.exists():
+        dest_path.unlink()
+
+    source_conn = sqlite3.connect(f"file:{source_path}?mode=ro", uri=True)
+    dest_conn = sqlite3.connect(dest_path)
+    try:
+        source_conn.backup(dest_conn)
+    finally:
+        dest_conn.close()
+        source_conn.close()
+
+
+def _cleanup_sqlite_sidecars(db_path: Path) -> None:
+    """Remove stale SQLite sidecar files before replacing the database."""
+    for suffix in ("-wal", "-shm", "-journal"):
+        sidecar = Path(f"{db_path}{suffix}")
+        if sidecar.exists():
+            sidecar.unlink()
+
+
+def export_db_snapshot(db_path: str, snapshot_path: str) -> None:
+    """Export a consistent SQLite snapshot.
+
+    Args:
+        db_path: Source SQLite database path.
+        snapshot_path: Destination path for the snapshot.  A ``.zip``
+            suffix writes a compressed archive containing the database.
+    """
+    source = Path(db_path)
+    target = Path(snapshot_path)
+
+    if not source.exists():
+        raise FileNotFoundError(source)
+
+    if source.resolve() == target.resolve():
+        logger.info(
+            "Skipping DB snapshot export because source and target match: %s",
+            source,
+        )
+        return
+
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    if target.suffix.lower() == ".zip":
+        with tempfile.TemporaryDirectory() as tmpdir:
+            temp_db = Path(tmpdir) / source.name
+            _copy_sqlite_database(source, temp_db)
+            with zipfile.ZipFile(
+                target,
+                mode="w",
+                compression=zipfile.ZIP_DEFLATED,
+                compresslevel=9,
+            ) as archive:
+                archive.write(temp_db, arcname=source.name)
+    else:
+        _copy_sqlite_database(source, target)
+
+    logger.info("Exported SQLite snapshot to %s", target)
+
+
+def _restore_db_snapshot_file(snapshot_file: Path, db_path: str, source: str) -> int:
+    """Replace the target database with a snapshot file and return its row count."""
+    target = Path(db_path)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    _cleanup_sqlite_sidecars(target)
+    shutil.copyfile(snapshot_file, target)
+
+    with CacheDB(str(target)) as db:
+        count = db.programme_count()
+
+    logger.info("Imported %d programmes from DB snapshot %s", count, source)
+    return count
+
+
+def _extract_snapshot_archive(raw: bytes, temp_dir: Path) -> Path:
+    """Extract a zipped DB snapshot and return the extracted DB path."""
+    with zipfile.ZipFile(io.BytesIO(raw)) as archive:
+        members = [
+            info
+            for info in archive.infolist()
+            if not info.is_dir()
+        ]
+        if not members:
+            raise ValueError("DB snapshot archive is empty")
+
+        preferred = next(
+            (info for info in members if info.filename.lower().endswith(".db")),
+            members[0],
+        )
+        extracted = temp_dir / Path(preferred.filename).name
+        with archive.open(preferred) as src, extracted.open("wb") as dst:
+            shutil.copyfileobj(src, dst)
+        return extracted
+
+
+def import_from_db_snapshot(
+    snapshot_path: str,
+    db_path: str = "radio_cache.db",
+) -> int:
+    """Import a SQLite DB snapshot into the cache.
+
+    Args:
+        snapshot_path: Path to a raw ``.db`` file or a zipped snapshot.
+        db_path: Destination SQLite database path.
+
+    Returns:
+        Number of programmes available in the imported database.
+    """
+    source = Path(snapshot_path)
+    if not source.exists():
+        raise FileNotFoundError(source)
+
+    if source.suffix.lower() == ".zip":
+        with tempfile.TemporaryDirectory() as tmpdir:
+            extracted = _extract_snapshot_archive(source.read_bytes(), Path(tmpdir))
+            return _restore_db_snapshot_file(extracted, db_path, snapshot_path)
+
+    return _restore_db_snapshot_file(source, db_path, snapshot_path)
+
+
+def import_db_snapshot_from_github(
+    url: str = _DEFAULT_DB_SNAPSHOT_URL,
+    db_path: str = "radio_cache.db",
+    timeout: int = 60,
+) -> int:
+    """Download a SQLite DB snapshot and import it.
+
+    Args:
+        url: Snapshot URL.
+        db_path: Destination SQLite database path.
+        timeout: HTTP request timeout in seconds.
+
+    Returns:
+        Number of programmes available in the imported database.
+    """
+    logger.info("Fetching DB snapshot from %s", url)
+    req = urllib.request.Request(url, headers={"User-Agent": "RadioCache/1.0"})
+    with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+        raw = resp.read()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir)
+        if zipfile.is_zipfile(io.BytesIO(raw)):
+            extracted = _extract_snapshot_archive(raw, tmp_path)
+            return _restore_db_snapshot_file(extracted, db_path, url)
+
+        snapshot_file = tmp_path / Path(url).name
+        snapshot_file.write_bytes(raw)
+        return _restore_db_snapshot_file(snapshot_file, db_path, url)
 
 
 def _programme_to_dict(prog: Programme) -> dict:
@@ -274,6 +449,14 @@ def main() -> None:
         help="JSON export path (default: radio_cache_export.json)",
     )
     parser.add_argument(
+        "--db-snapshot",
+        default="",
+        help=(
+            "Optional SQLite snapshot output path. Use a .zip path for a "
+            "compressed snapshot."
+        ),
+    )
+    parser.add_argument(
         "--no-json",
         action="store_true",
         help="Skip JSON export",
@@ -313,6 +496,21 @@ def main() -> None:
         "--list-categories",
         action="store_true",
         help="List available BBC category slugs with programme counts and exit",
+    )
+    parser.add_argument(
+        "--import-db-snapshot",
+        metavar="FILE",
+        help="Import from a SQLite snapshot file instead of fetching from BBC",
+    )
+    parser.add_argument(
+        "--import-db-github",
+        nargs="?",
+        const=_DEFAULT_DB_SNAPSHOT_URL,
+        metavar="URL",
+        help=(
+            "Import from a downloadable SQLite snapshot instead of fetching "
+            "from BBC. Optionally provide a custom URL."
+        ),
     )
     parser.add_argument(
         "--import-json",
@@ -356,7 +554,13 @@ def main() -> None:
             )
         return
 
-    if args.import_github:
+    if args.import_db_github:
+        count = import_db_snapshot_from_github(args.import_db_github, args.db)
+        logger.info("Imported %d programmes from DB snapshot URL", count)
+    elif args.import_db_snapshot:
+        count = import_from_db_snapshot(args.import_db_snapshot, args.db)
+        logger.info("Imported %d programmes from DB snapshot", count)
+    elif args.import_github:
         count = import_from_github(args.import_github, args.db)
         logger.info("Imported %d programmes from GitHub", count)
     elif args.import_json:
@@ -367,6 +571,7 @@ def main() -> None:
             db_path=args.db,
             export_json=not args.no_json,
             json_path=args.json,
+            db_snapshot_path=args.db_snapshot,
             export_get_iplayer=not args.no_get_iplayer_cache,
             get_iplayer_path=args.get_iplayer_cache,
             category_slugs=args.categories,

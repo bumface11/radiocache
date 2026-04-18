@@ -14,8 +14,10 @@ search interface.
   `/api/series`, `/api/programme/{pid}`, and `/api/stats`.
 - **Web UI** for searching and browsing, with one-click `get_iplayer` command
   copying for local downloads.
-- **Static JSON export** (`radio_cache_export.json`) for cheap static hosting
-  on GitHub Pages or similar.
+- **Downloadable SQLite snapshot** (`radio_cache.db.zip`) for fast deployment
+  bootstrap without replaying a large JSON import.
+- **Optional JSON export** (`radio_cache_export.json`) when a flat data dump is
+  still useful.
 
 ## Quick Start
 
@@ -28,8 +30,8 @@ uv sync --group dev
 # Refresh the cache (fetches from BBC feeds)
 uv run python -m radio_cache.refresh --verbose
 
-# Or import from a JSON export
-uv run python -m radio_cache.refresh --import-json radio_cache_export.json
+# Or import from a SQLite snapshot
+uv run python -m radio_cache.refresh --import-db-snapshot radio_cache.db.zip
 
 # Start the web search UI
 uv run uvicorn radio_cache_api:app --reload --reload-include="*.json"
@@ -45,7 +47,7 @@ shows a copyable `get_iplayer` command for local download.
 | **Render free tier** | Free | Deploy `radio_cache_api.py`; spins down on idle |
 | **Fly.io** | Free tier | 3 shared VMs free |
 | **Railway** | Free trial | Simple Docker deploy |
-| **GitHub Pages** | Free | Host `radio_cache_export.json` as static file |
+| **GitHub Releases** | Free | Host `radio_cache.db.zip` as a downloadable snapshot |
 | **GitHub Actions** | Free | Daily cache refresh via cron workflow |
 
 ## Downloading Programmes
@@ -89,4 +91,15 @@ approach used by other BBC Sounds clients such as
 - `templates/radio_cache/` -- Jinja2 HTML templates
 - `static/radio_cache/` -- CSS styles
 - `tests/` -- unit tests (61 tests)
-- `.github/workflows/refresh-radio-cache.yml` -- daily cache refresh cron job
+- `.github/workflows/refresh-radio-cache.yml` -- daily cache refresh and SQLite snapshot publishing
+
+## Deployment Bootstrap
+
+Set one of these environment variables for empty deployments:
+
+- `RADIO_CACHE_DB_SNAPSHOT` -- path to a local `.db` or `.zip` snapshot.
+- `RADIO_CACHE_DB_SNAPSHOT_URL` -- URL of a downloadable `.db` or `.zip` snapshot.
+
+The app will only bootstrap from a snapshot or JSON export when the target
+database is missing or empty. If a populated `RADIO_CACHE_DB` already exists,
+startup skips the import step.

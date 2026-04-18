@@ -55,7 +55,8 @@ jobs:
         run: |
           uv run python -m radio_cache.refresh \
             --db radio_cache.db \
-            --json radio_cache_export.json \
+            --db-snapshot radio_cache.db.zip \
+            --no-json \
             --verbose \
             --depth ${{ steps.depth.outputs.value }} \
             --categories ${{ env.CATEGORIES }}
@@ -65,19 +66,18 @@ jobs:
         with:
           name: radio-cache
           path: |
-            radio_cache.db
-            radio_cache_export.json
+            radio_cache.db.zip
             radio.cache
           retention-days: 7
 
-      - name: Commit updated cache export
+      - name: Publish latest cache snapshot release
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add radio_cache_export.json radio.cache
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
+          if gh release view cache-latest >/dev/null 2>&1; then
+            gh release upload cache-latest radio_cache.db.zip radio.cache --clobber
           else
-            git commit -m "chore: refresh radio drama cache (${{ steps.depth.outputs.value }}) $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            git push
+            gh release create cache-latest radio_cache.db.zip radio.cache \
+              --title "Latest radio cache snapshot" \
+              --notes "Automated SQLite snapshot for radiocache deployments."
           fi

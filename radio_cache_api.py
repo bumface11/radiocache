@@ -23,13 +23,19 @@ from pathlib import Path
 from typing import Final, Literal
 
 from fastapi import FastAPI, Query, Request
-from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, StreamingResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from radio_cache.cache_db import CacheDB
 from radio_cache.models import Programme, format_duration
-from radio_cache.refresh import import_from_github, import_from_json, refresh_cache
+from radio_cache.refresh import (
+    import_db_snapshot_from_github,
+    import_from_db_snapshot,
+    import_from_github,
+    import_from_json,
+    refresh_cache,
+)
 from radio_cache.search import (
     group_by_series,
     search_programmes,
@@ -42,6 +48,8 @@ _DB_PATH: Final[str] = os.environ.get("RADIO_CACHE_DB", "radio_cache.db")
 _JSON_PATH: Final[str] = os.environ.get(
     "RADIO_CACHE_JSON", "radio_cache_export.json"
 )
+_DB_SNAPSHOT_PATH: Final[str] = os.environ.get("RADIO_CACHE_DB_SNAPSHOT", "")
+_DB_SNAPSHOT_URL: Final[str] = os.environ.get("RADIO_CACHE_DB_SNAPSHOT_URL", "")
 _GITHUB_URL: Final[str] = os.environ.get("RADIO_CACHE_GITHUB_URL", "")
 _BASE_DIR: Final[Path] = Path(__file__).resolve().parent
 _PODCAST_MAX_AGE_DAYS: Final[int] = int(os.environ.get("PODCAST_MAX_AGE_DAYS", "1"))
@@ -49,16 +57,35 @@ _PODCAST_MAX_AGE_DAYS: Final[int] = int(os.environ.get("PODCAST_MAX_AGE_DAYS", "
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Import cache from the JSON export file on startup.
+    """Bootstrap an empty cache database on startup.
 
-    When the JSON export (populated by GitHub Actions) exists, its
-    contents are loaded into the SQLite database so the web UI always
-    reflects the latest data.  If the JSON file is missing and
-    ``RADIO_CACHE_GITHUB_URL`` is set, the export is fetched from
-    GitHub instead.
+    The app prefers a SQLite snapshot when bootstrapping because copying a
+    database file is cheaper than parsing a large JSON export and replaying
+    inserts.  JSON import remains as a fallback for older deployments.
     """
+    if _existing_db_has_programmes(_DB_PATH):
+        yield
+        return
+
+    snapshot_path = Path(_DB_SNAPSHOT_PATH) if _DB_SNAPSHOT_PATH else None
     json_path = Path(_JSON_PATH)
-    if json_path.exists():
+    if snapshot_path and snapshot_path.exists():
+        try:
+            count = import_from_db_snapshot(str(snapshot_path), _DB_PATH)
+            logger.info(
+                "Loaded %d programmes from DB snapshot %s on startup",
+                count,
+                snapshot_path,
+            )
+        except Exception:
+            logger.exception("Failed to import DB snapshot from %s", snapshot_path)
+    elif _DB_SNAPSHOT_URL:
+        try:
+            count = import_db_snapshot_from_github(_DB_SNAPSHOT_URL, _DB_PATH)
+            logger.info("Loaded %d programmes from DB snapshot URL on startup", count)
+        except Exception:
+            logger.exception("Failed to import DB snapshot from %s", _DB_SNAPSHOT_URL)
+    elif json_path.exists():
         try:
             count = import_from_json(str(json_path), _DB_PATH)
             logger.info(
@@ -75,6 +102,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         except Exception:
             logger.exception("Failed to import cache from GitHub")
     yield
+
+
+def _existing_db_has_programmes(db_path: str) -> bool:
+    """Return True when a local DB file already contains programme rows."""
+    path = Path(db_path)
+    if not path.exists():
+        return False
+
+    try:
+        with CacheDB(db_path) as db:
+            return db.programme_count() > 0
+    except Exception:
+        logger.exception("Failed to inspect existing cache DB %s", db_path)
+        return False
 
 
 app = FastAPI(
@@ -701,6 +742,7 @@ async def api_refresh(
                     db_path=_DB_PATH,
                     export_json=True,
                     json_path=_JSON_PATH,
+                    db_snapshot_path=_DB_SNAPSHOT_PATH,
                     category_slugs=categories,
                     all_categories=all_categories,
                     depth=depth,  # type: ignore[arg-type]

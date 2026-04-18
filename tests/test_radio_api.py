@@ -9,11 +9,38 @@ from fastapi.testclient import TestClient
 
 from radio_cache.cache_db import CacheDB
 from radio_cache.models import Programme
-from radio_cache.refresh import _export_json
+from radio_cache.refresh import _export_json, export_db_snapshot
 
 
 class TestLifespanImport:
     """Tests for the lifespan startup cache import."""
+
+    def test_lifespan_imports_db_snapshot_on_startup(self, tmp_path: Path) -> None:
+        """App imports a SQLite snapshot into an empty DB on startup."""
+        source_db = tmp_path / "source.db"
+        with CacheDB(str(source_db)) as db:
+            db.upsert_programme(Programme(pid="snap1", title="Snapshot Test"))
+
+        snapshot_path = tmp_path / "radio_cache.db.zip"
+        export_db_snapshot(str(source_db), str(snapshot_path))
+
+        db_path = str(tmp_path / "startup.db")
+
+        with (
+            patch("radio_cache_api._DB_SNAPSHOT_PATH", str(snapshot_path)),
+            patch("radio_cache_api._DB_SNAPSHOT_URL", ""),
+            patch("radio_cache_api._JSON_PATH", str(tmp_path / "missing.json")),
+            patch("radio_cache_api._DB_PATH", db_path),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app):
+                pass
+
+        with CacheDB(db_path) as db2:
+            prog = db2.get_programme("snap1")
+            assert prog is not None
+            assert prog.title == "Snapshot Test"
 
     def test_lifespan_imports_json_on_startup(self, tmp_path: Path) -> None:
         """App imports radio_cache_export.json into the DB on startup."""
@@ -30,6 +57,8 @@ class TestLifespanImport:
         db_path = str(tmp_path / "startup.db")
 
         with (
+            patch("radio_cache_api._DB_SNAPSHOT_PATH", ""),
+            patch("radio_cache_api._DB_SNAPSHOT_URL", ""),
             patch("radio_cache_api._JSON_PATH", json_path),
             patch("radio_cache_api._DB_PATH", db_path),
         ):
@@ -52,6 +81,8 @@ class TestLifespanImport:
         db_path = str(tmp_path / "empty.db")
 
         with (
+            patch("radio_cache_api._DB_SNAPSHOT_PATH", ""),
+            patch("radio_cache_api._DB_SNAPSHOT_URL", ""),
             patch("radio_cache_api._JSON_PATH", missing),
             patch("radio_cache_api._DB_PATH", db_path),
         ):
