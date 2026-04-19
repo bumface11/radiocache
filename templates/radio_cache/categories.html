@@ -18,25 +18,6 @@
     </div>
 </div>
 
-<div class="series-list-toolbar mb-3">
-    <div class="series-list-controls">
-        <div class="series-control-group series-control-search">
-            <label for="category-search" class="form-label small mb-1">Filter categories</label>
-            <input type="text" id="category-search" class="form-control form-control-sm" 
-                   placeholder="Search by name or slug...">
-        </div>
-        <div class="series-control-group series-control-sort">
-            <label for="category-sort" class="form-label small mb-1">Sort by</label>
-            <select id="category-sort" class="form-select form-select-sm">
-                <option value="name-asc">Name (A-Z)</option>
-                <option value="name-desc">Name (Z-A)</option>
-                <option value="count-desc">Most programmes</option>
-                <option value="count-asc">Fewest programmes</option>
-            </select>
-        </div>
-    </div>
-</div>
-
 <div class="d-flex align-items-center gap-2 text-muted small mb-2" id="status-bar">
     <div class="spinner-border spinner-border-sm text-primary" role="status" id="throbber">
         <span class="visually-hidden">Loading…</span>
@@ -172,60 +153,6 @@
 
     toggle.addEventListener('change', start);
     start();
-
-    // ── Search and Sort functionality ──────────────────────────────
-    const searchInput = document.getElementById('category-search');
-    const sortSelect = document.getElementById('category-sort');
-
-    function applyFiltersAndSort() {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const sortBy = sortSelect.value;
-        
-        // Get all rows (excluding placeholder)
-        const rows = Array.from(tbody.querySelectorAll('tr:not(#placeholder-row)'));
-        
-        // Filter rows based on search
-        rows.forEach(row => {
-            const categoryName = row.cells[0].textContent.toLowerCase();
-            const categorySlug = row.cells[1].textContent.toLowerCase();
-            const matches = !searchTerm || 
-                          categoryName.includes(searchTerm) || 
-                          categorySlug.includes(searchTerm);
-            row.style.display = matches ? '' : 'none';
-        });
-
-        // Get visible rows for sorting
-        const visibleRows = rows.filter(row => row.style.display !== 'none');
-        
-        // Sort visible rows
-        visibleRows.sort((a, b) => {
-            switch(sortBy) {
-                case 'name-asc':
-                    return a.cells[0].textContent.localeCompare(b.cells[0].textContent);
-                case 'name-desc':
-                    return b.cells[0].textContent.localeCompare(a.cells[0].textContent);
-                case 'count-desc': {
-                    const countA = parseInt(a.cells[2].textContent.replace(/,/g, '') || '0');
-                    const countB = parseInt(b.cells[2].textContent.replace(/,/g, '') || '0');
-                    return countB - countA;
-                }
-                case 'count-asc': {
-                    const countA = parseInt(a.cells[2].textContent.replace(/,/g, '') || '0');
-                    const countB = parseInt(b.cells[2].textContent.replace(/,/g, '') || '0');
-                    return countA - countB;
-                }
-                default:
-                    return 0;
-            }
-        });
-
-        // Re-append rows in sorted order (all rows, visible will show, hidden will stay hidden)
-        const allSorted = [...visibleRows, ...rows.filter(row => row.style.display === 'none')];
-        allSorted.forEach(row => tbody.appendChild(row));
-    }
-
-    searchInput.addEventListener('input', applyFiltersAndSort);
-    sortSelect.addEventListener('change', applyFiltersAndSort);
 })();
 </script>
 {% endblock %}
