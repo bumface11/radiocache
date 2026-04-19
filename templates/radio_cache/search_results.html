@@ -15,7 +15,8 @@
             {% endif %}
         </h2>
         <p class="text-muted mb-0">
-            {{ programmes|length }} results on this page{% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}
+            <span id="original-count">{{ programmes|length }} results on this page{% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}</span>
+            <span id="filtered-count" style="display: none;"></span>
         </p>
     </div>
     <form action="/search" method="get" class="d-flex gap-2 align-items-end flex-shrink-0">
@@ -207,7 +208,7 @@
 {% endif %}
 
 {% if total_pages > 1 %}
-<nav class="mt-4" aria-label="Pagination">
+<nav class="mt-4" aria-label="Pagination" id="pagination-nav">
     <ul class="pagination justify-content-center">
         <li class="page-item {% if page <= 1 %}disabled{% endif %}">
             <a class="page-link" href="/search?q={{ query | urlencode }}&category={{ category | urlencode }}&page={{ page - 1 }}">Previous</a>
@@ -239,9 +240,24 @@
     
     if (!searchInput || !sortSelect) return;
 
+    const paginationNav = document.getElementById('pagination-nav');
+    const originalCount = document.getElementById('original-count');
+    const filteredCount = document.getElementById('filtered-count');
+
     function applyFiltersAndSort() {
         const searchTerm = searchInput.value.toLowerCase().trim();
         const sortBy = sortSelect.value;
+        
+        // Toggle pagination visibility based on search
+        if (paginationNav) {
+            paginationNav.style.display = searchTerm ? 'none' : '';
+        }
+        
+        // Toggle count displays
+        if (originalCount && filteredCount) {
+            originalCount.style.display = searchTerm ? 'none' : '';
+            filteredCount.style.display = searchTerm ? '' : 'none';
+        }
         
         // Handle accordion view (series groups)
         const accordion = document.getElementById('seriesAccordion');
@@ -324,6 +340,25 @@
             });
             
             visibleCards.forEach(card => cardContainer.appendChild(card));
+        }
+        
+        // Update filtered count
+        if (searchTerm && filteredCount) {
+            let visibleCount = 0;
+            if (accordion) {
+                // Count visible episodes in accordion
+                const visibleEpisodes = accordion.querySelectorAll('.list-group-item');
+                visibleEpisodes.forEach(ep => {
+                    if (ep.style.display !== 'none') visibleCount++;
+                });
+            } else if (cardContainer) {
+                // Count visible cards
+                const visibleCardCols = cardContainer.querySelectorAll('.col-md-6');
+                visibleCardCols.forEach(col => {
+                    if (col.style.display !== 'none') visibleCount++;
+                });
+            }
+            filteredCount.innerHTML = `<span class="badge bg-info">${visibleCount} filtered result${visibleCount !== 1 ? 's' : ''}</span> <small>(pagination disabled)</small>`;
         }
     }
 
