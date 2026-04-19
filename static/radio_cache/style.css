@@ -168,6 +168,102 @@ h1,h2,h3,h4,h5,h6 { font-weight: 600; }
     box-shadow: 0 0 0 .2rem var(--rc-glow);
 }
 
+/* ── Series detail toolbar ──────────────────────────────────── */
+.series-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+    align-items: flex-end;
+}
+
+.series-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: flex-end;
+    margin-left: auto;
+    padding: .75rem;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: .5rem;
+    background: var(--rc-surface);
+}
+
+.series-list-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: flex-end;
+    justify-content: space-between;
+}
+
+.series-list-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .75rem;
+    align-items: flex-end;
+    padding: .75rem;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: .5rem;
+    background: var(--rc-surface);
+}
+
+.series-control-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.series-control-search {
+    min-width: min(100%, 22rem);
+    flex: 1 1 16rem;
+}
+
+.series-control-sort {
+    min-width: 13rem;
+    flex: 0 1 15rem;
+}
+
+.series-control-actions {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    padding-top: 1.35rem;
+}
+
+@media (max-width: 767.98px) {
+    .series-toolbar > .btn,
+    .series-toolbar > button {
+        flex: 1 1 auto;
+    }
+
+    .series-list-toolbar {
+        align-items: stretch;
+    }
+
+    .series-controls {
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .series-list-controls {
+        width: 100%;
+    }
+
+    .series-control-search,
+    .series-control-sort,
+    .series-control-actions {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .series-control-actions {
+        padding-top: 0;
+    }
+
+    .series-control-actions .btn {
+        flex: 1 1 auto;
+    }
+}
+
 /* ── Recordings page ────────────────────────────────────────── */
 #podcast-feed-bar {
     background: var(--rc-surface) !important;

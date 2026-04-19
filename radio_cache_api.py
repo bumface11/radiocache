@@ -332,6 +332,9 @@ async def search_page(
             total_count = db.programme_count()
         stats = db.stats()
         categories_list = db.list_categories()
+        series_counts = db.get_series_episode_counts(
+            [prog.series_pid for prog in programmes]
+        )
 
     total_pages = max(1, -(-total_count // per_page))  # ceil division
     series_groups = group_by_series(programmes)
@@ -349,6 +352,7 @@ async def search_page(
             "per_page": per_page,
             "total_pages": total_pages,
             "categories": categories_list,
+            "series_counts": series_counts,
         },
     )
 
@@ -378,6 +382,7 @@ async def series_detail(
     request: Request,
     series_pid: str,
     sort: SortOption = Query(default="series_order"),
+    q: str = Query(default="", description="Filter episodes within the series"),
     prev: str = Query(default=""),
 ) -> HTMLResponse:
     """Show episodes in a series.
@@ -390,10 +395,33 @@ async def series_detail(
         Rendered HTML page showing series episodes.
     """
     with _get_db() as db:
-        episodes = db.get_series_episodes(series_pid)
+        all_episodes = db.get_series_episodes(series_pid)
         stats = db.stats()
+        total_episode_count = db.get_series_episode_counts([series_pid]).get(
+            series_pid, len(all_episodes)
+        )
+    series_title = all_episodes[0].series_title if all_episodes else series_pid
+    filter_query = q.strip()
+    if filter_query:
+        lowered = filter_query.casefold()
+        episodes = [
+            ep
+            for ep in all_episodes
+            if lowered in " ".join(
+                part
+                for part in (
+                    ep.title,
+                    ep.synopsis,
+                    ep.channel,
+                    ep.categories,
+                    ep.first_broadcast,
+                )
+                if part
+            ).casefold()
+        ]
+    else:
+        episodes = all_episodes
     episodes = _sort_episodes(episodes, sort)
-    series_title = episodes[0].series_title if episodes else series_pid
     if prev.startswith("/") and not prev.startswith("//"):
         previous_url = prev
     else:
@@ -424,6 +452,8 @@ async def series_detail(
             "series_pid": series_pid,
             "series_title": series_title,
             "episodes": episodes,
+            "total_episode_count": total_episode_count,
+            "filter_query": filter_query,
             "sort": sort,
             "sort_options": sort_options,
             "previous_url": previous_url,

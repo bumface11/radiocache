@@ -3,20 +3,28 @@
 {% block title %}Series - BBC Radio Drama Cache{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+<div class="series-list-toolbar mb-3">
     <div>
         <h2 class="mb-0">All Series</h2>
         <p class="text-muted mb-0" id="series-count">{{ series|length }} series in the cache</p>
     </div>
-    <div class="d-flex gap-2 align-items-center">
-        <input type="search" class="form-control form-control-sm series-filter"
-               id="series-filter" placeholder="Filter series...">
-        <select class="form-select form-select-sm" id="series-sort" style="width:auto">
-            <option value="title-az" selected>Title A&ndash;Z</option>
-            <option value="title-za">Title Z&ndash;A</option>
-            <option value="episodes-desc">Most episodes</option>
-            <option value="episodes-asc">Fewest episodes</option>
-        </select>
+    <div class="series-list-controls">
+        <div class="series-control-group series-control-search">
+            <label for="series-filter" class="form-label small text-muted mb-1">Filter</label>
+            <input type="search" class="form-control form-control-sm series-filter"
+                id="series-filter" placeholder="Filter series..."
+                autocomplete="off">
+            <div id="series-filter-count" class="small text-muted mt-1"></div>
+        </div>
+        <div class="series-control-group series-control-sort">
+            <label for="series-sort" class="form-label small text-muted mb-1">Sort</label>
+            <select class="form-select form-select-sm" id="series-sort">
+                <option value="title-az" selected>Title A&ndash;Z</option>
+                <option value="title-za">Title Z&ndash;A</option>
+                <option value="episodes-desc">Most episodes</option>
+                <option value="episodes-asc">Fewest episodes</option>
+            </select>
+        </div>
     </div>
 </div>
 
@@ -30,9 +38,9 @@
         </thead>
         <tbody>
             {% for s in series %}
-            <tr>
+            <tr data-filter-item>
                 <td>
-                    <a href="/series/{{ s.series_pid }}">{{ s.series_title or s.series_pid }}</a>
+                    <a href="/series/{{ s.series_pid }}" data-filter-text>{{ s.series_title or s.series_pid }}</a>
                 </td>
                 <td class="text-end">
                     <span class="badge bg-primary">{{ s.episode_count }}</span>
@@ -51,19 +59,22 @@
     const sort   = document.getElementById('series-sort');
     const tbody  = document.querySelector('#series-table tbody');
     const count  = document.getElementById('series-count');
+    const filterCount = document.getElementById('series-filter-count');
     const total  = tbody.querySelectorAll('tr').length;
 
     function applyFilter() {
         const q = input.value.toLowerCase();
         let visible = 0;
         tbody.querySelectorAll('tr').forEach(row => {
-            const match = row.textContent.toLowerCase().includes(q);
+            const text = (row.querySelector('[data-filter-text]') || row).textContent.toLowerCase();
+            const match = text.includes(q);
             row.style.display = match ? '' : 'none';
             if (match) visible++;
         });
         count.textContent = visible === total
             ? total + ' series in the cache'
             : visible + ' of ' + total + ' series';
+        filterCount.textContent = q ? visible + ' matches' : '';
     }
 
     function applySort() {

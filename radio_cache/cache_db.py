@@ -428,6 +428,33 @@ class CacheDB:
         rows = self._conn.execute(sql, (series_pid,)).fetchall()
         return [_row_to_programme(r) for r in rows]
 
+    def get_series_episode_counts(
+        self, series_pids: list[str]
+    ) -> dict[str, int]:
+        """Return total cached episode counts for each requested series.
+
+        Args:
+            series_pids: BBC series PIDs to count.
+
+        Returns:
+            Mapping of ``series_pid`` to cached episode count.
+        """
+        wanted = sorted({pid for pid in series_pids if pid})
+        if not wanted:
+            return {}
+
+        placeholders = ", ".join("?" for _ in wanted)
+        rows = self._conn.execute(
+            (
+                "SELECT series_pid, COUNT(*) AS episode_count "
+                "FROM programmes "
+                f"WHERE series_pid IN ({placeholders}) "
+                "GROUP BY series_pid"
+            ),
+            tuple(wanted),
+        ).fetchall()
+        return {r["series_pid"]: int(r["episode_count"]) for r in rows}
+
     def list_brands(self) -> list[dict[str, str | int]]:
         """List all distinct brands with series and episode counts.
 

@@ -14,7 +14,9 @@
                 Recent Programmes
             {% endif %}
         </h2>
-        <p class="text-muted mb-0">{{ programmes|length }} results{% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}</p>
+        <p class="text-muted mb-0">
+            {{ programmes|length }} results on this page{% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}
+        </p>
     </div>
     <form action="/search" method="get" class="d-flex gap-2 align-items-end flex-shrink-0">
         <input type="hidden" name="q" value="{{ query }}">
@@ -41,7 +43,7 @@
                     {% else %}
                         Standalone Programmes
                     {% endif %}
-                    <span class="badge bg-primary ms-2">{{ group.episode_count }}</span>
+                    <span class="badge bg-primary ms-2">{{ series_counts.get(group.series_pid, group.episode_count) }}</span>
                 </button>
                 {% if group.series_pid != 'standalone' %}
                     <a href="/series/{{ group.series_pid }}"

@@ -14,9 +14,11 @@
 </nav>
 
 <h2>{{ series_title }}</h2>
-<p class="text-muted">{{ episodes|length }} episodes</p>
+<p class="text-muted">
+    {{ total_episode_count }} episodes{% if filter_query %} &middot; showing {{ episodes|length }} matches for "{{ filter_query }}"{% endif %}
+</p>
 
-<div class="mb-3 d-flex gap-2 flex-wrap">
+<div class="series-toolbar mb-3">
     <a href="{{ previous_url }}" class="btn btn-sm btn-outline-secondary">Back</a>
     <a href="/series" class="btn btn-sm btn-outline-primary">All Series</a>
     {% if episodes %}
@@ -24,15 +26,31 @@
             data-pids='[{% for ep in episodes %}"{{ ep.pid }}"{% if not loop.last %},{% endif %}{% endfor %}]'
             title="Queue all episodes in this series for recording">Record series</button>
     {% endif %}
-    <form method="get" action="/series/{{ series_pid }}" class="ms-auto d-flex align-items-center gap-2">
+    <form method="get" action="/series/{{ series_pid }}" class="series-controls ms-auto">
         <input type="hidden" name="prev" value="{{ previous_url }}">
-        <label for="sort-select" class="small text-muted">Sort:</label>
-        <select id="sort-select" name="sort" class="form-select form-select-sm" onchange="this.form.submit()">
-            {% for option in sort_options %}
-                <option value="{{ option.value }}" {% if sort == option.value %}selected{% endif %}>{{ option.label }}</option>
-            {% endfor %}
-        </select>
-        <noscript><button type="submit" class="btn btn-sm btn-primary">Apply</button></noscript>
+        <div class="series-control-group series-control-search">
+            <label for="series-query" class="form-label small text-muted mb-1">Search</label>
+            <input id="series-query"
+                   type="search"
+                   name="q"
+                   value="{{ filter_query }}"
+                   class="form-control form-control-sm"
+                   placeholder="Filter this series...">
+        </div>
+        <div class="series-control-group series-control-sort">
+            <label for="sort-select" class="form-label small text-muted mb-1">Sort</label>
+            <select id="sort-select" name="sort" class="form-select form-select-sm">
+                {% for option in sort_options %}
+                    <option value="{{ option.value }}" {% if sort == option.value %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="series-control-actions">
+            <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+            {% if filter_query %}
+            <a href="/series/{{ series_pid }}?sort={{ sort | urlencode }}&prev={{ previous_url | urlencode }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+            {% endif %}
+        </div>
     </form>
 </div>
 
@@ -106,12 +124,33 @@
     </div>
 </div>
 {% else %}
-<div class="alert alert-info">No episodes found for this series.</div>
+<div class="alert alert-info">
+    {% if filter_query %}
+        No episodes found in this series for "{{ filter_query }}".
+    {% else %}
+        No episodes found for this series.
+    {% endif %}
+</div>
 {% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script>
+    (function () {
+        const form = document.querySelector('.series-controls');
+        const searchInput = document.getElementById('series-query');
+        const sortSelect = document.getElementById('sort-select');
+        if (!form || !searchInput || !sortSelect) {
+            return;
+        }
+
+        sortSelect.addEventListener('change', function () {
+            if (!searchInput.value.trim()) {
+                form.submit();
+            }
+        });
+    }());
+
     const _recordAllBtn = document.getElementById('record-all-btn');
     if (_recordAllBtn) {
         _recordAllBtn.addEventListener('click', async function () {

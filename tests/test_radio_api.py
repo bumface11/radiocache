@@ -90,3 +90,60 @@ class TestLifespanImport:
 
             with TestClient(app):
                 pass  # should not raise
+
+
+class TestSeriesTotalsOnPages:
+    """Page responses show total series counts, not only page slices."""
+
+    def test_search_page_and_series_page_show_total_episode_count(
+        self, tmp_path: Path
+    ) -> None:
+        db_path = str(tmp_path / "series-counts.db")
+
+        with CacheDB(db_path) as db:
+            db.upsert_programmes(
+                [
+                    Programme(
+                        pid=f"big-{index:03d}",
+                        title=f"Big Serial Episode {index}",
+                        synopsis="Long-running test serial",
+                        series_pid="s_big_serial",
+                        series_title="Big Serial",
+                        brand_pid="b_big_serial",
+                        brand_title="Big Serial Brand",
+                        episode_number=index,
+                        channel="Radio 4",
+                        categories="Drama",
+                    )
+                    for index in range(1, 61)
+                ]
+            )
+
+        with (
+            patch("radio_cache_api._DB_SNAPSHOT_PATH", ""),
+            patch("radio_cache_api._DB_SNAPSHOT_URL", ""),
+            patch("radio_cache_api._JSON_PATH", str(tmp_path / "missing.json")),
+            patch("radio_cache_api._DB_PATH", db_path),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app) as client:
+                search_resp = client.get("/search", params={"q": "Big Serial"})
+                assert search_resp.status_code == 200
+                assert "50 results on this page" in search_resp.text
+                assert "page 1 of 2" in search_resp.text
+                assert "Big Serial" in search_resp.text
+                assert ">60<" in search_resp.text
+
+                series_resp = client.get("/series/s_big_serial")
+                assert series_resp.status_code == 200
+                assert "60 episodes" in series_resp.text
+
+                filtered_series_resp = client.get(
+                    "/series/s_big_serial",
+                    params={"q": "Episode 17"},
+                )
+                assert filtered_series_resp.status_code == 200
+                assert 'showing 1 matches for "Episode 17"' in filtered_series_resp.text
+                assert "Big Serial Episode 17" in filtered_series_resp.text
+                assert "Big Serial Episode 18" not in filtered_series_resp.text

@@ -174,6 +174,15 @@ class TestCacheDB:
         assert len(episodes) == 2
         assert episodes[0].episode_number <= episodes[1].episode_number
 
+    def test_get_series_episode_counts(self, populated_db: CacheDB) -> None:
+        """Series episode counts return total cached episodes per series."""
+        counts = populated_db.get_series_episode_counts([
+            "s_archers",
+            "s_dracula",
+            "missing",
+        ])
+        assert counts == {"s_archers": 2, "s_dracula": 1}
+
     def test_get_series_episodes_unnumbered_sort_last(self, db: CacheDB) -> None:
         """Episodes with episode_number=0 sort after numbered episodes."""
         programmes = [
