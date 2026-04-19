@@ -361,6 +361,7 @@ def fetch_drama_programmes(
     backfill_containers: bool = False,
     container_max_pages: int = _DEFAULT_MAX_PAGES,
     existing_pids: set[str] | None = None,
+    priority_brands: set[str] | None = None,
 ) -> list[Programme]:
     """Fetch radio drama programme metadata from BBC Sounds feeds.
 
@@ -402,6 +403,9 @@ def fetch_drama_programmes(
         existing_pids: Optional set of already cached, still-valid episode
             PIDs. When provided, category pagination can stop early once an
             entire page contains only already cached programmes.
+        priority_brands: Optional set of brand PIDs that should be backfilled
+            even when backfill_containers is False (for daily refreshes of
+            active brands).
 
     Returns:
         De-duplicated list of :class:`Programme` objects with merged
@@ -504,6 +508,41 @@ def fetch_drama_programmes(
             time.sleep(delay)
 
         time.sleep(delay)
+
+    # ── Priority brand backfill ───────────────────────────────────────
+    # For "recent" refreshes, backfill brands that have been active in
+    # the last 7 days even if they weren't discovered in the category
+    # scan. This ensures daily shows like The Archers always get their
+    # latest episodes without waiting for the weekly full refresh.
+    if priority_brands and not backfill_containers:
+        logger.info(
+            "Priority brand backfill: %d brands with recent activity",
+            len(priority_brands),
+        )
+        for brand_pid in priority_brands:
+            # Fetch latest episodes for this brand (limit to 5 pages for daily updates)
+            backfilled = _fetch_container_episodes(
+                brand_pid,
+                max_pages=5,
+                delay=delay,
+            )
+            for ep in backfilled:
+                ep_cats: set[str] = set(
+                    c.strip() for c in ep.categories.split(",") if c.strip()
+                )
+
+                if ep.pid not in pid_to_prog:
+                    pid_to_prog[ep.pid] = ep
+                    pid_to_cats[ep.pid] = ep_cats
+                else:
+                    pid_to_cats[ep.pid].update(ep_cats)
+
+            time.sleep(delay)
+
+        logger.info(
+            "After priority brand backfill: %d total unique programmes",
+            len(pid_to_prog),
+        )
 
     # ── Container backfill ────────────────────────────────────────────
     # The category listing returns episodes sorted by date.  Large

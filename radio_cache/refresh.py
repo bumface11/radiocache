@@ -97,10 +97,22 @@ def refresh_cache(
         slugs = fetch_all_category_slugs()
         logger.info("Using all %d category slugs from BBC API", len(slugs))
 
+    # Get priority brands that need daily backfill (active in last 7 days)
+    priority_brands: set[str] = set()
+    if depth == "recent":
+        with CacheDB(db_path) as db:
+            priority_brands = db.recently_active_brands(days=7)
+            if priority_brands:
+                logger.info(
+                    "Priority backfill: %d recently active brands",
+                    len(priority_brands)
+                )
+
     programmes = fetch_drama_programmes(
         category_slugs=slugs,
         max_pages=max_pages,
         backfill_containers=backfill,
+        priority_brands=priority_brands,
         existing_pids=(
             _existing_valid_pids(db_path)
             if depth == "recent"
