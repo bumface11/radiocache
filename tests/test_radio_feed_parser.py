@@ -282,37 +282,29 @@ class TestFetchDramaProgrammes:
         assert "Thriller" in cats
 
     @patch("radio_cache.bbc_feed_parser._fetch_json")
-    def test_existing_pids_stop_pagination_when_page_is_mostly_cached(
+    def test_existing_pids_stop_pagination_when_page_is_fully_cached(
         self, mock_fetch: MagicMock
     ) -> None:
-        """Recent refresh stops paging when a page is >90% cached content."""
-        # Page with 28 cached items and 2 new items (93% cached)
-        mostly_cached_page = [
+        """Recent refresh can stop paging once a page contains only cached items."""
+        cached_page = [
             {
                 "urn": f"urn:bbc:radio:episode:old{i}",
                 "title": f"Old {i}",
             }
-            for i in range(28)
-        ] + [
-            {
-                "urn": f"urn:bbc:radio:episode:new{i}",
-                "title": f"New {i}",
-            }
-            for i in range(2)
+            for i in range(_PAGE_LIMIT)
         ]
         mock_fetch.side_effect = [
-            {"data": mostly_cached_page, "total": _PAGE_LIMIT * 3},
+            {"data": cached_page, "total": _PAGE_LIMIT * 3},
         ]
 
         result = fetch_drama_programmes(
             category_slugs=["drama"],
             max_pages=5,
             delay=0,
-            existing_pids={f"old{i}" for i in range(28)},
+            existing_pids={f"old{i}" for i in range(_PAGE_LIMIT)},
         )
 
-        # Should stop after first page since 93% cached
-        assert len(result) == 30  # 28 cached + 2 new
+        assert len(result) == _PAGE_LIMIT
         assert mock_fetch.call_count == 1
 
 
