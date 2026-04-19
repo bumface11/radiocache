@@ -477,14 +477,20 @@ def fetch_drama_programmes(
                 len(pid_to_prog),
             )
 
-            if existing_pids and uncached_this_page == 0 and existing_this_page:
-                logger.info(
-                    "  page %d: only cached programmes remain for category %s; "
-                    "stopping early",
-                    page + 1,
-                    slug,
-                )
-                break
+            # Early stopping when we've hit the watermark - stop if this page
+            # contains mostly already-cached content (>90% cached)
+            if existing_pids and existing_this_page > 0:
+                cached_ratio = existing_this_page / len(items)
+                if cached_ratio > 0.9:
+                    logger.info(
+                        "  page %d: %.0f%% cached (%d/%d); stopping early for category %s",
+                        page + 1,
+                        cached_ratio * 100,
+                        existing_this_page,
+                        len(items),
+                        slug,
+                    )
+                    break
 
             total = data.get("total", 0)
             if offset + len(items) >= total or len(items) < _PAGE_LIMIT:
