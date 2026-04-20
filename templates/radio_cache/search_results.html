@@ -45,6 +45,8 @@
                 <option value="title-desc">Title (Z-A)</option>
                 <option value="date-desc">Newest first</option>
                 <option value="date-asc">Oldest first</option>
+                <option value="duration-desc">Longest first</option>
+                <option value="duration-asc">Shortest first</option>
             </select>
         </div>
     </div>
@@ -53,7 +55,7 @@
 {% if series_groups|length > 1 or (series_groups|length == 1 and series_groups[0].series_pid != 'standalone') %}
 <div class="accordion mb-4" id="seriesAccordion">
     {% for group in series_groups %}
-    <div class="accordion-item">
+    <div class="accordion-item" data-series-title="{{ group.series_title }}" data-first-broadcast="{{ group.episodes[0].first_broadcast if group.episodes else '' }}">
         <h2 class="accordion-header">
             <div class="d-flex align-items-stretch">
                 <button class="accordion-button flex-grow-1 {% if not loop.first %}collapsed{% endif %}"
@@ -79,7 +81,7 @@
             <div class="accordion-body p-0">
                 <div class="list-group list-group-flush">
                     {% for ep in group.episodes %}
-                    <div class="list-group-item">
+                    <div class="list-group-item" data-title="{{ ep.title }}" data-first-broadcast="{{ ep.first_broadcast }}" data-duration="{{ ep.duration_secs }}">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
                                 <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
@@ -143,7 +145,7 @@
 {% else %}
 <div class="row g-3">
     {% for prog in programmes %}
-    <div class="col-md-6 col-lg-4">
+    <div class="col-md-6 col-lg-4" data-title="{{ prog.title }}" data-first-broadcast="{{ prog.first_broadcast }}" data-duration="{{ prog.duration_secs }}">
         <div class="card programme-card h-100">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start gap-2">
@@ -234,147 +236,130 @@
 
 {% block scripts %}
 <script>
-(function() {
+(function () {
     const searchInput = document.getElementById('results-search');
-    const sortSelect = document.getElementById('results-sort');
-    
+    const sortSelect  = document.getElementById('results-sort');
     if (!searchInput || !sortSelect) return;
 
-    const paginationNav = document.getElementById('pagination-nav');
-    const originalCount = document.getElementById('original-count');
-    const filteredCount = document.getElementById('filtered-count');
+    const paginationNav  = document.getElementById('pagination-nav');
+    const originalCount  = document.getElementById('original-count');
+    const filteredCount  = document.getElementById('filtered-count');
+
+    // Compare helper used for episode-level sorts
+    function compareEpisodes(a, b, sortBy) {
+        switch (sortBy) {
+            case 'title-asc':     return (a.dataset.title || '').localeCompare(b.dataset.title || '');
+            case 'title-desc':    return (b.dataset.title || '').localeCompare(a.dataset.title || '');
+            case 'date-desc':     return (b.dataset.firstBroadcast || '').localeCompare(a.dataset.firstBroadcast || '');
+            case 'date-asc':      return (a.dataset.firstBroadcast || '').localeCompare(b.dataset.firstBroadcast || '');
+            case 'duration-desc': return parseInt(b.dataset.duration || '0') - parseInt(a.dataset.duration || '0');
+            case 'duration-asc':  return parseInt(a.dataset.duration || '0') - parseInt(b.dataset.duration || '0');
+            default:              return 0;
+        }
+    }
+
+    // For date-sorting groups, use the most-recent episode's broadcast in each group
+    function groupBroadcastKey(item) {
+        return Array.from(item.querySelectorAll('.list-group-item'))
+            .filter(ep => ep.style.display !== 'none')
+            .reduce((best, ep) => (ep.dataset.firstBroadcast || '') > best ? (ep.dataset.firstBroadcast || '') : best, '');
+    }
+
+    function groupMaxDuration(item) {
+        return Array.from(item.querySelectorAll('.list-group-item'))
+            .filter(ep => ep.style.display !== 'none')
+            .reduce((best, ep) => Math.max(best, parseInt(ep.dataset.duration || '0')), 0);
+    }
+
+    function compareGroups(a, b, sortBy) {
+        switch (sortBy) {
+            case 'title-asc':     return (a.dataset.seriesTitle || '').localeCompare(b.dataset.seriesTitle || '');
+            case 'title-desc':    return (b.dataset.seriesTitle || '').localeCompare(a.dataset.seriesTitle || '');
+            case 'date-desc':     return groupBroadcastKey(b).localeCompare(groupBroadcastKey(a));
+            case 'date-asc':      return groupBroadcastKey(a).localeCompare(groupBroadcastKey(b));
+            case 'duration-desc': return groupMaxDuration(b) - groupMaxDuration(a);
+            case 'duration-asc':  return groupMaxDuration(a) - groupMaxDuration(b);
+            default:              return 0;
+        }
+    }
 
     function applyFiltersAndSort() {
         const searchTerm = searchInput.value.toLowerCase().trim();
-        const sortBy = sortSelect.value;
-        
-        // Toggle pagination visibility based on search
-        if (paginationNav) {
-            paginationNav.style.display = searchTerm ? 'none' : '';
-        }
-        
-        // Toggle count displays
-        if (originalCount && filteredCount) {
-            originalCount.style.display = searchTerm ? 'none' : '';
-            filteredCount.style.display = searchTerm ? '' : 'none';
-        }
-        
-        // Handle accordion view (series groups)
+        const sortBy     = sortSelect.value;
+
+        if (paginationNav) paginationNav.style.display = searchTerm ? 'none' : '';
+        if (originalCount) originalCount.style.display = searchTerm ? 'none' : '';
+        if (filteredCount) filteredCount.style.display  = searchTerm ? ''     : 'none';
+
+        // ── Accordion view ────────────────────────────────────────────────
         const accordion = document.getElementById('seriesAccordion');
         if (accordion) {
-            const items = Array.from(accordion.querySelectorAll('.accordion-item'));
-            
-            // Filter accordion items
+            const items = Array.from(accordion.querySelectorAll(':scope > .accordion-item'));
+
+            // 1. Filter episodes; hide groups with no match
             items.forEach(item => {
-                const button = item.querySelector('.accordion-button');
-                const seriesTitle = button ? button.textContent.toLowerCase() : '';
-                const episodes = Array.from(item.querySelectorAll('.list-group-item'));
-                
+                const seriesTitle = (item.dataset.seriesTitle || '').toLowerCase();
                 let hasMatch = false;
-                episodes.forEach(ep => {
-                    const title = ep.querySelector('h6')?.textContent.toLowerCase() || '';
-                    const synopsis = ep.querySelector('.text-muted')?.textContent.toLowerCase() || '';
-                    const matches = !searchTerm || title.includes(searchTerm) || synopsis.includes(searchTerm) || seriesTitle.includes(searchTerm);
-                    ep.style.display = matches ? '' : 'none';
-                    if (matches) hasMatch = true;
+                item.querySelectorAll('.list-group-item').forEach(ep => {
+                    const title    = (ep.dataset.title || '').toLowerCase();
+                    const synopsis = ep.querySelector('p.text-muted')?.textContent.toLowerCase() || '';
+                    const match    = !searchTerm || title.includes(searchTerm)
+                                                 || synopsis.includes(searchTerm)
+                                                 || seriesTitle.includes(searchTerm);
+                    ep.style.display = match ? '' : 'none';
+                    if (match) hasMatch = true;
                 });
-                
                 item.style.display = hasMatch ? '' : 'none';
             });
-            
-            // Sort accordion items
-            const visibleItems = items.filter(item => item.style.display !== 'none');
-            visibleItems.sort((a, b) => {
-                const titleA = a.querySelector('.accordion-button')?.textContent.trim() || '';
-                const titleB = b.querySelector('.accordion-button')?.textContent.trim() || '';
-                
-                switch(sortBy) {
-                    case 'title-asc':
-                        return titleA.localeCompare(titleB);
-                    case 'title-desc':
-                        return titleB.localeCompare(titleA);
-                    case 'relevance':
-                    default:
-                        return 0; // Keep original order
-                }
+
+            // 2. Sort episodes within each visible group
+            items.forEach(item => {
+                if (item.style.display === 'none') return;
+                const list = item.querySelector('.list-group-flush');
+                if (!list) return;
+                const eps = Array.from(list.querySelectorAll('.list-group-item'))
+                    .filter(ep => ep.style.display !== 'none');
+                eps.sort((a, b) => compareEpisodes(a, b, sortBy));
+                eps.forEach(ep => list.appendChild(ep));
             });
-            
-            visibleItems.forEach(item => accordion.appendChild(item));
-        }
-        
-        // Handle card view (standalone programmes)
-        const cardContainer = document.querySelector('.row.g-3');
-        if (cardContainer && !accordion) {
-            const cards = Array.from(cardContainer.querySelectorAll('.col-md-6'));
-            
-            // Filter cards
-            cards.forEach(cardCol => {
-                const card = cardCol.querySelector('.programme-card');
-                const title = card?.querySelector('.card-title')?.textContent.toLowerCase() || '';
-                const synopsis = card?.querySelector('.card-text')?.textContent.toLowerCase() || '';
-                const matches = !searchTerm || title.includes(searchTerm) || synopsis.includes(searchTerm);
-                cardCol.style.display = matches ? '' : 'none';
-            });
-            
-            // Sort cards
-            const visibleCards = cards.filter(card => card.style.display !== 'none');
-            visibleCards.sort((a, b) => {
-                const titleA = a.querySelector('.card-title')?.textContent.trim() || '';
-                const titleB = b.querySelector('.card-title')?.textContent.trim() || '';
-                const dateA = a.querySelector('.card-footer')?.textContent || '';
-                const dateB = b.querySelector('.card-footer')?.textContent || '';
-                
-                switch(sortBy) {
-                    case 'title-asc':
-                        return titleA.localeCompare(titleB);
-                    case 'title-desc':
-                        return titleB.localeCompare(titleA);
-                    case 'date-desc':
-                        return dateB.localeCompare(dateA);
-                    case 'date-asc':
-                        return dateA.localeCompare(dateB);
-                    case 'relevance':
-                    default:
-                        return 0;
-                }
-            });
-            
-            visibleCards.forEach(card => cardContainer.appendChild(card));
-        }
-        
-        // Update filtered count
-        if (searchTerm && filteredCount) {
-            let visibleCount = 0;
-            if (accordion) {
-                // Count visible episodes in accordion
-                const visibleEpisodes = accordion.querySelectorAll('.list-group-item');
-                visibleEpisodes.forEach(ep => {
-                    if (ep.style.display !== 'none') visibleCount++;
-                });
-            } else if (cardContainer) {
-                // Count visible cards
-                const visibleCardCols = cardContainer.querySelectorAll('.col-md-6');
-                visibleCardCols.forEach(col => {
-                    if (col.style.display !== 'none') visibleCount++;
-                });
+
+            // 3. Sort groups themselves
+            const visible = items.filter(i => i.style.display !== 'none');
+            visible.sort((a, b) => compareGroups(a, b, sortBy));
+            visible.forEach(item => accordion.appendChild(item));
+
+            // 4. Update filtered count
+            if (searchTerm && filteredCount) {
+                const n = accordion.querySelectorAll('.list-group-item:not([style*="display: none"])').length;
+                filteredCount.innerHTML = `<span class="badge bg-info">${n} filtered result${n !== 1 ? 's' : ''}</span> <small>(pagination disabled)</small>`;
             }
-            filteredCount.textContent = '';
+            return;
+        }
 
-            const badge = document.createElement('span');
-            badge.className = 'badge bg-info';
-            badge.textContent = `${visibleCount} filtered result${visibleCount !== 1 ? 's' : ''}`;
+        // ── Card view (standalone programmes) ─────────────────────────────
+        const cardContainer = document.querySelector('.row.g-3');
+        if (cardContainer) {
+            const cols = Array.from(cardContainer.querySelectorAll(':scope > .col-md-6'));
 
-            const paginationNote = document.createElement('small');
-            paginationNote.textContent = '(pagination disabled)';
+            cols.forEach(col => {
+                const title    = (col.dataset.title || '').toLowerCase();
+                const synopsis = col.querySelector('.card-text')?.textContent.toLowerCase() || '';
+                col.style.display = (!searchTerm || title.includes(searchTerm) || synopsis.includes(searchTerm)) ? '' : 'none';
+            });
 
-            filteredCount.appendChild(badge);
-            filteredCount.appendChild(document.createTextNode(' '));
-            filteredCount.appendChild(paginationNote);
+            const visible = cols.filter(c => c.style.display !== 'none');
+            visible.sort((a, b) => compareEpisodes(a, b, sortBy));
+            visible.forEach(col => cardContainer.appendChild(col));
+
+            if (searchTerm && filteredCount) {
+                const n = visible.length;
+                filteredCount.innerHTML = `<span class="badge bg-info">${n} filtered result${n !== 1 ? 's' : ''}</span> <small>(pagination disabled)</small>`;
+            }
         }
     }
 
     searchInput.addEventListener('input', applyFiltersAndSort);
     sortSelect.addEventListener('change', applyFiltersAndSort);
-})();
+}());
 </script>
 {% endblock %}

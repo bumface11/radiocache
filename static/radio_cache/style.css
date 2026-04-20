@@ -1,8 +1,8 @@
 /* ── Radio Cache custom theme ────────────────────────────────── */
 :root {
-    --rc-accent: #e63946;          /* BBC-ish red */
+    --rc-accent: #331cf9;          /* blue */
     --rc-accent-soft: rgba(230, 57, 70, .12);
-    --rc-accent-hover: #c1121f;
+    --rc-accent-hover: #2977f5;
     --rc-glow: rgba(230, 57, 70, .25);
     --rc-surface: rgba(255,255,255,.04);
     --rc-surface-hover: rgba(255,255,255,.08);
