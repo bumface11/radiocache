@@ -21,3 +21,8 @@ updates:
       python-deps:
         patterns:
           - "*"
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: monthly
