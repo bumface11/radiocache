@@ -358,7 +358,18 @@
                     if (col.style.display !== 'none') visibleCount++;
                 });
             }
-            filteredCount.innerHTML = `<span class="badge bg-info">${visibleCount} filtered result${visibleCount !== 1 ? 's' : ''}</span> <small>(pagination disabled)</small>`;
+            filteredCount.textContent = '';
+
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-info';
+            badge.textContent = `${visibleCount} filtered result${visibleCount !== 1 ? 's' : ''}`;
+
+            const paginationNote = document.createElement('small');
+            paginationNote.textContent = '(pagination disabled)';
+
+            filteredCount.appendChild(badge);
+            filteredCount.appendChild(document.createTextNode(' '));
+            filteredCount.appendChild(paginationNote);
         }
     }
 

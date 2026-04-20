@@ -568,29 +568,7 @@ a:hover {
     transition: background var(--rc-transition-fast);
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.3); }
-/* ── Radio Cache custom theme ────────────────────────────────── */
-:root {
-    --rc-accent: #e63946;          /* BBC-ish red */
-    --rc-accent-soft: rgba(230, 57, 70, .12);
-    --rc-accent-hover: #c1121f;
-    --rc-glow: rgba(230, 57, 70, .25);
-    --rc-surface: rgba(255,255,255,.04);
-}
 
-/* ── Typography ─────────────────────────────────────────────── */
-body {
-    min-height: 100vh;
-    font-feature-settings: "cv11", "ss01";  /* nicer default glyphs */
-    letter-spacing: .01em;
-}
-h1,h2,h3,h4,h5,h6 { font-weight: 600; }
-
-/* ── Navbar ─────────────────────────────────────────────────── */
-.navbar {
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255,255,255,.06);
-}
 .navbar-brand {
     font-weight: 700;
     letter-spacing: -.02em;
