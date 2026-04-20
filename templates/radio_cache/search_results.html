@@ -15,7 +15,8 @@
             {% endif %}
         </h2>
         <p class="text-muted mb-0">
-            {{ programmes|length }} results on this page{% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}
+            <span id="original-count">{{ programmes|length }} results on this page{% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}</span>
+            <span id="filtered-count" style="display: none;"></span>
         </p>
     </div>
     <form action="/search" method="get" class="d-flex gap-2 align-items-end flex-shrink-0">
@@ -27,6 +28,26 @@
             {% endfor %}
         </select>
     </form>
+</div>
+
+<div class="series-list-toolbar mb-3">
+    <div class="series-list-controls">
+        <div class="series-control-group series-control-search">
+            <label for="results-search" class="form-label small mb-1">Filter results</label>
+            <input type="text" id="results-search" class="form-control form-control-sm" 
+                   placeholder="Search by title or synopsis...">
+        </div>
+        <div class="series-control-group series-control-sort">
+            <label for="results-sort" class="form-label small mb-1">Sort by</label>
+            <select id="results-sort" class="form-select form-select-sm">
+                <option value="relevance">Relevance</option>
+                <option value="title-asc">Title (A-Z)</option>
+                <option value="title-desc">Title (Z-A)</option>
+                <option value="date-desc">Newest first</option>
+                <option value="date-asc">Oldest first</option>
+            </select>
+        </div>
+    </div>
 </div>
 
 {% if series_groups|length > 1 or (series_groups|length == 1 and series_groups[0].series_pid != 'standalone') %}
@@ -187,7 +208,7 @@
 {% endif %}
 
 {% if total_pages > 1 %}
-<nav class="mt-4" aria-label="Pagination">
+<nav class="mt-4" aria-label="Pagination" id="pagination-nav">
     <ul class="pagination justify-content-center">
         <li class="page-item {% if page <= 1 %}disabled{% endif %}">
             <a class="page-link" href="/search?q={{ query | urlencode }}&category={{ category | urlencode }}&page={{ page - 1 }}">Previous</a>
@@ -209,4 +230,151 @@
     </ul>
 </nav>
 {% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function() {
+    const searchInput = document.getElementById('results-search');
+    const sortSelect = document.getElementById('results-sort');
+    
+    if (!searchInput || !sortSelect) return;
+
+    const paginationNav = document.getElementById('pagination-nav');
+    const originalCount = document.getElementById('original-count');
+    const filteredCount = document.getElementById('filtered-count');
+
+    function applyFiltersAndSort() {
+        const searchTerm = searchInput.value.toLowerCase().trim();
+        const sortBy = sortSelect.value;
+        
+        // Toggle pagination visibility based on search
+        if (paginationNav) {
+            paginationNav.style.display = searchTerm ? 'none' : '';
+        }
+        
+        // Toggle count displays
+        if (originalCount && filteredCount) {
+            originalCount.style.display = searchTerm ? 'none' : '';
+            filteredCount.style.display = searchTerm ? '' : 'none';
+        }
+        
+        // Handle accordion view (series groups)
+        const accordion = document.getElementById('seriesAccordion');
+        if (accordion) {
+            const items = Array.from(accordion.querySelectorAll('.accordion-item'));
+            
+            // Filter accordion items
+            items.forEach(item => {
+                const button = item.querySelector('.accordion-button');
+                const seriesTitle = button ? button.textContent.toLowerCase() : '';
+                const episodes = Array.from(item.querySelectorAll('.list-group-item'));
+                
+                let hasMatch = false;
+                episodes.forEach(ep => {
+                    const title = ep.querySelector('h6')?.textContent.toLowerCase() || '';
+                    const synopsis = ep.querySelector('.text-muted')?.textContent.toLowerCase() || '';
+                    const matches = !searchTerm || title.includes(searchTerm) || synopsis.includes(searchTerm) || seriesTitle.includes(searchTerm);
+                    ep.style.display = matches ? '' : 'none';
+                    if (matches) hasMatch = true;
+                });
+                
+                item.style.display = hasMatch ? '' : 'none';
+            });
+            
+            // Sort accordion items
+            const visibleItems = items.filter(item => item.style.display !== 'none');
+            visibleItems.sort((a, b) => {
+                const titleA = a.querySelector('.accordion-button')?.textContent.trim() || '';
+                const titleB = b.querySelector('.accordion-button')?.textContent.trim() || '';
+                
+                switch(sortBy) {
+                    case 'title-asc':
+                        return titleA.localeCompare(titleB);
+                    case 'title-desc':
+                        return titleB.localeCompare(titleA);
+                    case 'relevance':
+                    default:
+                        return 0; // Keep original order
+                }
+            });
+            
+            visibleItems.forEach(item => accordion.appendChild(item));
+        }
+        
+        // Handle card view (standalone programmes)
+        const cardContainer = document.querySelector('.row.g-3');
+        if (cardContainer && !accordion) {
+            const cards = Array.from(cardContainer.querySelectorAll('.col-md-6'));
+            
+            // Filter cards
+            cards.forEach(cardCol => {
+                const card = cardCol.querySelector('.programme-card');
+                const title = card?.querySelector('.card-title')?.textContent.toLowerCase() || '';
+                const synopsis = card?.querySelector('.card-text')?.textContent.toLowerCase() || '';
+                const matches = !searchTerm || title.includes(searchTerm) || synopsis.includes(searchTerm);
+                cardCol.style.display = matches ? '' : 'none';
+            });
+            
+            // Sort cards
+            const visibleCards = cards.filter(card => card.style.display !== 'none');
+            visibleCards.sort((a, b) => {
+                const titleA = a.querySelector('.card-title')?.textContent.trim() || '';
+                const titleB = b.querySelector('.card-title')?.textContent.trim() || '';
+                const dateA = a.querySelector('.card-footer')?.textContent || '';
+                const dateB = b.querySelector('.card-footer')?.textContent || '';
+                
+                switch(sortBy) {
+                    case 'title-asc':
+                        return titleA.localeCompare(titleB);
+                    case 'title-desc':
+                        return titleB.localeCompare(titleA);
+                    case 'date-desc':
+                        return dateB.localeCompare(dateA);
+                    case 'date-asc':
+                        return dateA.localeCompare(dateB);
+                    case 'relevance':
+                    default:
+                        return 0;
+                }
+            });
+            
+            visibleCards.forEach(card => cardContainer.appendChild(card));
+        }
+        
+        // Update filtered count
+        if (searchTerm && filteredCount) {
+            let visibleCount = 0;
+            if (accordion) {
+                // Count visible episodes in accordion
+                const visibleEpisodes = accordion.querySelectorAll('.list-group-item');
+                visibleEpisodes.forEach(ep => {
+                    if (ep.style.display !== 'none') visibleCount++;
+                });
+            } else if (cardContainer) {
+                // Count visible cards
+                const visibleCardCols = cardContainer.querySelectorAll('.col-md-6');
+                visibleCardCols.forEach(col => {
+                    if (col.style.display !== 'none') visibleCount++;
+                });
+            }
+            filteredCount.textContent = '';
+
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-info';
+            badge.textContent = `${visibleCount} filtered result${visibleCount !== 1 ? 's' : ''}`;
+
+            const paginationNote = document.createElement('small');
+            paginationNote.textContent = '(pagination disabled)';
+
+            filteredCount.appendChild(badge);
+            filteredCount.appendChild(document.createTextNode(' '));
+            filteredCount.appendChild(paginationNote);
+        }
+    }
+
+    searchInput.addEventListener('input', applyFiltersAndSort);
+    sortSelect.addEventListener('change', applyFiltersAndSort);
+})();
+</script>
 {% endblock %}

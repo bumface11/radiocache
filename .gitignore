@@ -4,8 +4,10 @@
 .ruff_cache/
 __pycache__/
 *.egg-info/
+radio.cache
 radio_cache.db
 radio_cache.db.zip
+radio_cache_export.json
 radio_cache_export.json.zip
 *.db-journal
 recordings/

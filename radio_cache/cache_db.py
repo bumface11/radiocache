@@ -508,6 +508,30 @@ class CacheDB:
             for r in rows
         ]
 
+    def recently_active_brands(self, days: int = 7) -> set[str]:
+        """Get brand PIDs that have had episodes broadcast in the last N days.
+
+        This identifies "active" brands with ongoing series that need
+        frequent refresh checks, even on lightweight daily refreshes.
+
+        Args:
+            days: Look back this many days from now.
+
+        Returns:
+            Set of brand PIDs with recent broadcasts.
+        """
+        from datetime import UTC, datetime, timedelta
+
+        cutoff = (datetime.now(UTC) - timedelta(days=days)).isoformat()
+        sql = """
+            SELECT DISTINCT brand_pid
+            FROM programmes
+            WHERE brand_pid != ''
+              AND first_broadcast >= ?
+        """
+        rows = self._conn.execute(sql, (cutoff,)).fetchall()
+        return {r["brand_pid"] for r in rows}
+
     def list_categories(self) -> list[dict[str, str | int]]:
         """List all distinct category tags with programme counts.
 
