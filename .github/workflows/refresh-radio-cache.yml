@@ -21,7 +21,7 @@ permissions:
   contents: write
 
 env:
-  CATEGORIES: audiobooks comedy factual docudramas documentaries drama films gamesandquizzes podcasts readings
+  CATEGORIES: audiobooks comedy factual docudramas documentaries drama films gamesandquizzes podcasts readings discussionandtalk
 
 jobs:
   refresh:
