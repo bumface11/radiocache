@@ -15,7 +15,7 @@
 
 <h2>{{ series_title }}</h2>
 <p class="text-muted">
-    {{ total_episode_count }} episodes{% if filter_query %} &middot; showing {{ episodes|length }} matches for "{{ filter_query }}"{% endif %}
+    <span id="series-count-label">{{ total_episode_count }} episodes</span>
 </p>
 
 <div class="series-toolbar mb-3">
@@ -26,17 +26,17 @@
             data-pids='[{% for ep in episodes %}"{{ ep.pid }}"{% if not loop.last %},{% endif %}{% endfor %}]'
             title="Queue all episodes in this series for recording">Record series</button>
     {% endif %}
-    <form method="get" action="/series/{{ series_pid }}" class="series-controls ms-auto">
-        <input type="hidden" name="prev" value="{{ previous_url }}">
+    <div class="series-controls ms-auto">
         <div class="series-control-group series-control-search">
             <label for="series-query" class="form-label small text-muted mb-1">Search</label>
             <input id="series-query"
                    type="search"
-                   name="q"
-                   value="{{ filter_query }}"
                    class="form-control form-control-sm"
                    placeholder="Filter this series...">
         </div>
+    </div>
+    <form method="get" action="/series/{{ series_pid }}" class="series-controls">
+        <input type="hidden" name="prev" value="{{ previous_url }}">
         <div class="series-control-group series-control-sort">
             <label for="sort-select" class="form-label small text-muted mb-1">Sort</label>
             <select id="sort-select" name="sort" class="form-select form-select-sm">
@@ -47,17 +47,19 @@
         </div>
         <div class="series-control-actions">
             <button type="submit" class="btn btn-sm btn-primary">Apply</button>
-            {% if filter_query %}
-            <a href="/series/{{ series_pid }}?sort={{ sort | urlencode }}&prev={{ previous_url | urlencode }}" class="btn btn-sm btn-outline-secondary">Clear</a>
-            {% endif %}
         </div>
     </form>
 </div>
 
 {% if episodes %}
-<div class="list-group">
+<div class="list-group" id="series-episodes-list">
     {% for ep in episodes %}
-    <div class="list-group-item">
+    <div class="list-group-item"
+         data-title="{{ ep.title }}"
+         data-synopsis="{{ ep.synopsis }}"
+         data-channel="{{ ep.channel }}"
+         data-categories="{{ ep.categories }}"
+         data-broadcast="{{ ep.first_broadcast }}">
         <div class="d-flex justify-content-between align-items-start">
             <div class="flex-grow-1">
                 <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
@@ -137,18 +139,48 @@
 {% block scripts %}
 <script>
     (function () {
-        const form = document.querySelector('.series-controls');
         const searchInput = document.getElementById('series-query');
+        const seriesCountLabel = document.getElementById('series-count-label');
+        const episodeItems = Array.from(document.querySelectorAll('#series-episodes-list .list-group-item'));
+        const sortForm = document.querySelector('form.series-controls');
         const sortSelect = document.getElementById('sort-select');
-        if (!form || !searchInput || !sortSelect) {
+        if (!searchInput || !sortSelect) {
             return;
         }
 
+        function applyTypeahead() {
+            const needle = searchInput.value.trim().toLowerCase();
+            let visible = 0;
+
+            episodeItems.forEach(function (item) {
+                const haystack = [
+                    item.dataset.title || '',
+                    item.dataset.synopsis || '',
+                    item.dataset.channel || '',
+                    item.dataset.categories || '',
+                    item.dataset.broadcast || ''
+                ].join(' ').toLowerCase();
+                const matches = !needle || haystack.includes(needle);
+                item.style.display = matches ? '' : 'none';
+                if (matches) {
+                    visible += 1;
+                }
+            });
+
+            if (seriesCountLabel) {
+                seriesCountLabel.textContent = needle
+                    ? `${visible} of {{ total_episode_count }} episodes`
+                    : `{{ total_episode_count }} episodes`;
+            }
+        }
+
         sortSelect.addEventListener('change', function () {
-            if (!searchInput.value.trim()) {
-                form.submit();
+            if (sortForm) {
+                sortForm.submit();
             }
         });
+
+        searchInput.addEventListener('input', applyTypeahead);
     }());
 
     const _recordAllBtn = document.getElementById('record-all-btn');

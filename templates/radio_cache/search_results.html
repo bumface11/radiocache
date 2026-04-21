@@ -15,12 +15,12 @@
             {% endif %}
         </h2>
         <p class="text-muted mb-0">
-            <span id="original-count">{{ programmes|length }} results on this page{% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}</span>
-            <span id="filtered-count" style="display: none;"></span>
+            {{ result_count }} results on this page{% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}
         </p>
     </div>
     <form action="/search" method="get" class="d-flex gap-2 align-items-end flex-shrink-0">
         <input type="hidden" name="q" value="{{ query }}">
+        <input type="hidden" name="sort" value="{{ sort }}">
         <select name="category" class="form-select form-select-sm" onchange="this.form.submit()">
             <option value="">All categories</option>
             {% for cat in categories %}
@@ -32,33 +32,42 @@
 
 <div class="series-list-toolbar mb-3">
     <div class="series-list-controls">
-        <div class="series-control-group series-control-search">
-            <label for="results-search" class="form-label small mb-1">Filter results</label>
-            <input type="text" id="results-search" class="form-control form-control-sm" 
-                   placeholder="Search by title or synopsis...">
-        </div>
-        <div class="series-control-group series-control-sort">
+        <form action="/search" method="get" class="series-control-group series-control-search">
+            <input type="hidden" name="category" value="{{ category }}">
+            <input type="hidden" name="sort" value="{{ sort }}">
+            <label for="results-search" class="form-label small mb-1">Search</label>
+            <div class="d-flex gap-2 align-items-end">
+                <input type="search" id="results-search" name="q" value="{{ query }}" class="form-control form-control-sm"
+                       placeholder="Search by title or synopsis...">
+                <button type="submit" class="btn btn-sm btn-primary">Search</button>
+            </div>
+        </form>
+        <form action="/search" method="get" class="series-control-group series-control-sort">
+            <input type="hidden" name="q" value="{{ query }}">
+            <input type="hidden" name="category" value="{{ category }}">
             <label for="results-sort" class="form-label small mb-1">Sort by</label>
-            <select id="results-sort" class="form-select form-select-sm">
-                <option value="relevance">Relevance</option>
-                <option value="title-asc">Title (A-Z)</option>
-                <option value="title-desc">Title (Z-A)</option>
-                <option value="date-desc">Newest first</option>
-                <option value="date-asc">Oldest first</option>
-                <option value="duration-desc">Longest first</option>
-                <option value="duration-asc">Shortest first</option>
+            <select id="results-sort" name="sort" class="form-select form-select-sm" onchange="this.form.submit()">
+                {% if query %}
+                <option value="relevance" {% if sort == 'relevance' %}selected{% endif %}>Relevance</option>
+                {% endif %}
+                <option value="title-asc" {% if sort == 'title-asc' %}selected{% endif %}>Title (A-Z)</option>
+                <option value="title-desc" {% if sort == 'title-desc' %}selected{% endif %}>Title (Z-A)</option>
+                <option value="date-desc" {% if sort == 'date-desc' %}selected{% endif %}>Newest first</option>
+                <option value="date-asc" {% if sort == 'date-asc' %}selected{% endif %}>Oldest first</option>
+                <option value="duration-desc" {% if sort == 'duration-desc' %}selected{% endif %}>Longest first</option>
+                <option value="duration-asc" {% if sort == 'duration-asc' %}selected{% endif %}>Shortest first</option>
             </select>
-        </div>
+        </form>
     </div>
 </div>
 
 {% if series_groups|length > 1 or (series_groups|length == 1 and series_groups[0].series_pid != 'standalone') %}
 <div class="accordion mb-4" id="seriesAccordion">
     {% for group in series_groups %}
-    <div class="accordion-item" data-series-title="{{ group.series_title }}" data-first-broadcast="{{ group.episodes[0].first_broadcast if group.episodes else '' }}">
+    <div class="accordion-item" data-series-title="{{ group.series_title }}" data-first-broadcast="{{ group.episodes[0].first_broadcast if group.episodes else '' }}" data-episode-count="{{ group.episodes|length }}">
         <h2 class="accordion-header">
             <div class="d-flex align-items-stretch">
-                <button class="accordion-button flex-grow-1 {% if not loop.first %}collapsed{% endif %}"
+                <button class="accordion-button flex-grow-1 collapsed"
                         type="button" data-bs-toggle="collapse"
                         data-bs-target="#series-{{ loop.index }}">
                     {% if group.series_pid != 'standalone' %}
@@ -77,10 +86,10 @@
             </div>
         </h2>
         <div id="series-{{ loop.index }}"
-             class="accordion-collapse collapse {% if loop.first %}show{% endif %}">
+             class="accordion-collapse collapse {% if group.episodes|length >= 40 %}rc-collapse-fast{% endif %}">
             <div class="accordion-body p-0">
                 <div class="list-group list-group-flush">
-                    {% for ep in group.episodes %}
+                    {% for ep in group.episodes[:20] %}
                     <div class="list-group-item" data-title="{{ ep.title }}" data-first-broadcast="{{ ep.first_broadcast }}" data-duration="{{ ep.duration_secs }}">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
@@ -136,6 +145,16 @@
                         </div>
                     </div>
                     {% endfor %}
+                    {% if group.episodes|length > 20 %}
+                    <div class="list-group-item text-center py-3 bg-light border-top-0" style="background: rgba(255,255,255,.01) !important;">
+                        <span class="text-muted small">Showing first 20 episodes.</span>
+                        {% if group.series_pid != 'standalone' %}
+                        <a href="/series/{{ group.series_pid }}" class="btn btn-sm btn-outline-primary mt-1 ms-2">
+                            View all {{ group.episodes|length }} episodes
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -213,21 +232,21 @@
 <nav class="mt-4" aria-label="Pagination" id="pagination-nav">
     <ul class="pagination justify-content-center">
         <li class="page-item {% if page <= 1 %}disabled{% endif %}">
-            <a class="page-link" href="/search?q={{ query | urlencode }}&category={{ category | urlencode }}&page={{ page - 1 }}">Previous</a>
+            <a class="page-link" href="/search?q={{ query | urlencode }}&category={{ category | urlencode }}&sort={{ sort | urlencode }}&page={{ page - 1 }}">Previous</a>
         </li>
         {% for p in range(1, total_pages + 1) %}
             {% if p == page %}
                 <li class="page-item active"><span class="page-link">{{ p }}</span></li>
             {% elif p == 1 or p == total_pages or (p >= page - 2 and p <= page + 2) %}
                 <li class="page-item">
-                    <a class="page-link" href="/search?q={{ query | urlencode }}&category={{ category | urlencode }}&page={{ p }}">{{ p }}</a>
+                    <a class="page-link" href="/search?q={{ query | urlencode }}&category={{ category | urlencode }}&sort={{ sort | urlencode }}&page={{ p }}">{{ p }}</a>
                 </li>
             {% elif p == page - 3 or p == page + 3 %}
                 <li class="page-item disabled"><span class="page-link">&hellip;</span></li>
             {% endif %}
         {% endfor %}
         <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
-            <a class="page-link" href="/search?q={{ query | urlencode }}&category={{ category | urlencode }}&page={{ page + 1 }}">Next</a>
+            <a class="page-link" href="/search?q={{ query | urlencode }}&category={{ category | urlencode }}&sort={{ sort | urlencode }}&page={{ page + 1 }}">Next</a>
         </li>
     </ul>
 </nav>
@@ -236,130 +255,72 @@
 
 {% block scripts %}
 <script>
-(function () {
-    const searchInput = document.getElementById('results-search');
-    const sortSelect  = document.getElementById('results-sort');
-    if (!searchInput || !sortSelect) return;
-
-    const paginationNav  = document.getElementById('pagination-nav');
-    const originalCount  = document.getElementById('original-count');
-    const filteredCount  = document.getElementById('filtered-count');
-
-    // Compare helper used for episode-level sorts
-    function compareEpisodes(a, b, sortBy) {
-        switch (sortBy) {
-            case 'title-asc':     return (a.dataset.title || '').localeCompare(b.dataset.title || '');
-            case 'title-desc':    return (b.dataset.title || '').localeCompare(a.dataset.title || '');
-            case 'date-desc':     return (b.dataset.firstBroadcast || '').localeCompare(a.dataset.firstBroadcast || '');
-            case 'date-asc':      return (a.dataset.firstBroadcast || '').localeCompare(b.dataset.firstBroadcast || '');
-            case 'duration-desc': return parseInt(b.dataset.duration || '0') - parseInt(a.dataset.duration || '0');
-            case 'duration-asc':  return parseInt(a.dataset.duration || '0') - parseInt(b.dataset.duration || '0');
-            default:              return 0;
-        }
-    }
-
-    // For date-sorting groups, use the most-recent episode's broadcast in each group
-    function groupBroadcastKey(item) {
-        return Array.from(item.querySelectorAll('.list-group-item'))
-            .filter(ep => ep.style.display !== 'none')
-            .reduce((best, ep) => (ep.dataset.firstBroadcast || '') > best ? (ep.dataset.firstBroadcast || '') : best, '');
-    }
-
-    function groupMaxDuration(item) {
-        return Array.from(item.querySelectorAll('.list-group-item'))
-            .filter(ep => ep.style.display !== 'none')
-            .reduce((best, ep) => Math.max(best, parseInt(ep.dataset.duration || '0')), 0);
-    }
-
-    function compareGroups(a, b, sortBy) {
-        switch (sortBy) {
-            case 'title-asc':     return (a.dataset.seriesTitle || '').localeCompare(b.dataset.seriesTitle || '');
-            case 'title-desc':    return (b.dataset.seriesTitle || '').localeCompare(a.dataset.seriesTitle || '');
-            case 'date-desc':     return groupBroadcastKey(b).localeCompare(groupBroadcastKey(a));
-            case 'date-asc':      return groupBroadcastKey(a).localeCompare(groupBroadcastKey(b));
-            case 'duration-desc': return groupMaxDuration(b) - groupMaxDuration(a);
-            case 'duration-asc':  return groupMaxDuration(a) - groupMaxDuration(b);
-            default:              return 0;
-        }
-    }
-
-    function applyFiltersAndSort() {
-        const searchTerm = searchInput.value.toLowerCase().trim();
-        const sortBy     = sortSelect.value;
-
-        if (paginationNav) paginationNav.style.display = searchTerm ? 'none' : '';
-        if (originalCount) originalCount.style.display = searchTerm ? 'none' : '';
-        if (filteredCount) filteredCount.style.display  = searchTerm ? ''     : 'none';
-
-        // ── Accordion view ────────────────────────────────────────────────
+    (function () {
         const accordion = document.getElementById('seriesAccordion');
-        if (accordion) {
-            const items = Array.from(accordion.querySelectorAll(':scope > .accordion-item'));
-
-            // 1. Filter episodes; hide groups with no match
-            items.forEach(item => {
-                const seriesTitle = (item.dataset.seriesTitle || '').toLowerCase();
-                let hasMatch = false;
-                item.querySelectorAll('.list-group-item').forEach(ep => {
-                    const title    = (ep.dataset.title || '').toLowerCase();
-                    const synopsis = ep.querySelector('p.text-muted')?.textContent.toLowerCase() || '';
-                    const match    = !searchTerm || title.includes(searchTerm)
-                                                 || synopsis.includes(searchTerm)
-                                                 || seriesTitle.includes(searchTerm);
-                    ep.style.display = match ? '' : 'none';
-                    if (match) hasMatch = true;
-                });
-                item.style.display = hasMatch ? '' : 'none';
-            });
-
-            // 2. Sort episodes within each visible group
-            items.forEach(item => {
-                if (item.style.display === 'none') return;
-                const list = item.querySelector('.list-group-flush');
-                if (!list) return;
-                const eps = Array.from(list.querySelectorAll('.list-group-item'))
-                    .filter(ep => ep.style.display !== 'none');
-                eps.sort((a, b) => compareEpisodes(a, b, sortBy));
-                eps.forEach(ep => list.appendChild(ep));
-            });
-
-            // 3. Sort groups themselves
-            const visible = items.filter(i => i.style.display !== 'none');
-            visible.sort((a, b) => compareGroups(a, b, sortBy));
-            visible.forEach(item => accordion.appendChild(item));
-
-            // 4. Update filtered count
-            if (searchTerm && filteredCount) {
-                const n = accordion.querySelectorAll('.list-group-item:not([style*="display: none"])').length;
-                filteredCount.innerHTML = `<span class="badge bg-info">${n} filtered result${n !== 1 ? 's' : ''}</span> <small>(pagination disabled)</small>`;
-            }
+        const showOverlay = window.rcShowLoadingOverlay;
+        const hideOverlay = window.rcHideLoadingOverlay;
+        if (!accordion || typeof showOverlay !== 'function' || typeof hideOverlay !== 'function') {
             return;
         }
 
-        // ── Card view (standalone programmes) ─────────────────────────────
-        const cardContainer = document.querySelector('.row.g-3');
-        if (cardContainer) {
-            const cols = Array.from(cardContainer.querySelectorAll(':scope > .col-md-6'));
+        const LARGE_GROUP_THRESHOLD = 40;
 
-            cols.forEach(col => {
-                const title    = (col.dataset.title || '').toLowerCase();
-                const synopsis = col.querySelector('.card-text')?.textContent.toLowerCase() || '';
-                col.style.display = (!searchTerm || title.includes(searchTerm) || synopsis.includes(searchTerm)) ? '' : 'none';
+        accordion.querySelectorAll('.accordion-button').forEach(button => {
+            button.addEventListener('click', function (event) {
+                if (!button.classList.contains('collapsed')) {
+                    return;
+                }
+
+                const item = button.closest('.accordion-item');
+                const episodeCount = parseInt(item?.dataset.episodeCount || '0', 10);
+                if (episodeCount < LARGE_GROUP_THRESHOLD || button.dataset.loadingIntercepted === '1') {
+                    return;
+                }
+
+                const targetSelector = button.getAttribute('data-bs-target');
+                const collapse = targetSelector ? document.querySelector(targetSelector) : null;
+                if (!(collapse instanceof HTMLElement)) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+                button.dataset.loadingIntercepted = '1';
+                showOverlay('Opening series', `Rendering ${episodeCount} episodes...`);
+
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => {
+                        bootstrap.Collapse.getOrCreateInstance(collapse, {toggle: false}).show();
+                        delete button.dataset.loadingIntercepted;
+                    });
+                });
+            }, true);
+        });
+
+        accordion.querySelectorAll('.accordion-collapse').forEach(collapse => {
+            collapse.addEventListener('show.bs.collapse', function () {
+                const item = collapse.closest('.accordion-item');
+                const episodeCount = parseInt(item?.dataset.episodeCount || '0', 10);
+                if (episodeCount < LARGE_GROUP_THRESHOLD) {
+                    return;
+                }
+                showOverlay('Opening series', `Rendering ${episodeCount} episodes...`);
             });
 
-            const visible = cols.filter(c => c.style.display !== 'none');
-            visible.sort((a, b) => compareEpisodes(a, b, sortBy));
-            visible.forEach(col => cardContainer.appendChild(col));
+            collapse.addEventListener('shown.bs.collapse', function () {
+                // Yield to the browser so the massive UI repaints can finish
+                // and become responsive before the overlay is dismissed.
+                requestAnimationFrame(() => {
+                    setTimeout(() => {
+                        hideOverlay();
+                    }, 50);
+                });
+            });
 
-            if (searchTerm && filteredCount) {
-                const n = visible.length;
-                filteredCount.innerHTML = `<span class="badge bg-info">${n} filtered result${n !== 1 ? 's' : ''}</span> <small>(pagination disabled)</small>`;
-            }
-        }
-    }
-
-    searchInput.addEventListener('input', applyFiltersAndSort);
-    sortSelect.addEventListener('change', applyFiltersAndSort);
-}());
+            collapse.addEventListener('hide.bs.collapse', function () {
+                hideOverlay();
+            });
+        });
+    }());
 </script>
 {% endblock %}

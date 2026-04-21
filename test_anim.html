@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .no-transition.collapsing {
+            transition: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="accordion">
+        <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#c1">B</button>
+            </h2>
+            <div id="c1" class="accordion-collapse collapse no-transition">
+                <div class="accordion-body">X</div>
+            </div>
+        </div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('c1').addEventListener('shown.bs.collapse', () => {
+            document.body.innerHTML += '<p>shown event fired!</p>';
+        });
+    </script>
+</body>
+</html>

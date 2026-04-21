@@ -24,6 +24,57 @@ body {
 }
 h1,h2,h3,h4,h5,h6 { font-weight: 600; }
 
+/* ── Loading overlay ────────────────────────────────────────── */
+.rc-loading-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    background: rgba(10, 12, 18, .66);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--rc-transition-base), visibility var(--rc-transition-base);
+    z-index: 2000;
+}
+
+.rc-loading-overlay.is-visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.rc-loading-card {
+    min-width: min(22rem, 100%);
+    max-width: 26rem;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: .85rem;
+    background: rgba(17, 20, 29, .94);
+    box-shadow: var(--rc-shadow-lg);
+    text-align: center;
+}
+
+.rc-loading-spinner {
+    width: 2.25rem;
+    height: 2.25rem;
+    margin-bottom: .75rem;
+}
+
+.rc-loading-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: .25rem;
+}
+
+.rc-loading-text {
+    color: rgba(255,255,255,.68);
+    font-size: .92rem;
+}
+
 /* ── Navbar ─────────────────────────────────────────────────── */
 .navbar {
     backdrop-filter: blur(12px);
@@ -266,6 +317,11 @@ h1,h2,h3,h4,h5,h6 { font-weight: 600; }
     box-shadow: 0 0 0 .25rem var(--rc-glow);
     background: var(--rc-surface-hover);
     transform: translateY(-1px);
+}
+
+/* ── Accordion Performance ──────────────────────────────────── */
+.rc-collapse-fast.collapsing {
+    transition: none !important;
 }
 
 /* ── Series detail toolbar ──────────────────────────────────── */

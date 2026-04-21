@@ -7,11 +7,17 @@ import pytest
 from radio_cache.cache_db import CacheDB
 from radio_cache.models import Programme
 from radio_cache.search import (
+    category_groups_count,
+    category_programmes_by_groups,
     filter_available,
     group_by_brand,
     group_by_series,
+    normalise_search_sort,
+    search_by_groups,
+    search_groups_count,
     search_programmes,
     search_programmes_count,
+    sort_programmes,
 )
 
 
@@ -29,6 +35,8 @@ def populated_db() -> CacheDB:
             brand_pid="b_drama",
             brand_title="BBC Drama",
             episode_number=1,
+            categories="audiobooks",
+            first_broadcast="2024-01-03T00:00:00+00:00",
         ),
         Programme(
             pid="ep2",
@@ -39,6 +47,8 @@ def populated_db() -> CacheDB:
             brand_pid="b_drama",
             brand_title="BBC Drama",
             episode_number=2,
+            categories="audiobooks",
+            first_broadcast="2024-01-02T00:00:00+00:00",
         ),
         Programme(
             pid="ep3",
@@ -49,11 +59,15 @@ def populated_db() -> CacheDB:
             brand_pid="b_drama",
             brand_title="BBC Drama",
             episode_number=1,
+            categories="audiobooks",
+            first_broadcast="2024-01-01T00:00:00+00:00",
         ),
         Programme(
             pid="ep4",
             title="Standalone Thriller",
             synopsis="One-off nail-biter",
+            categories="audiobooks",
+            first_broadcast="2023-12-31T00:00:00+00:00",
         ),
     ]
     db.upsert_programmes(programmes)
@@ -91,6 +105,134 @@ class TestSearchProgrammes:
     def test_count_empty(self, populated_db: CacheDB) -> None:
         """search_programmes_count returns 0 for empty query."""
         assert search_programmes_count(populated_db, "") == 0
+
+
+class TestSearchByGroups:
+    """Tests for the group-paginated search functions."""
+
+    def test_groups_count_fts(self, populated_db: CacheDB) -> None:
+        """search_groups_count counts series groups, not individual episodes."""
+        count = search_groups_count(populated_db, "mystery")
+        # ep1 and ep2 share series s_mystery → 1 group
+        assert count == 1
+
+    def test_groups_count_like_fallback(self, populated_db: CacheDB) -> None:
+        """search_groups_count falls back to LIKE for partial matches."""
+        count = search_groups_count(populated_db, "nail")
+        assert count == 1
+
+    def test_groups_count_empty(self, populated_db: CacheDB) -> None:
+        """search_groups_count returns 0 for empty query."""
+        assert search_groups_count(populated_db, "") == 0
+
+    def test_search_by_groups_returns_all_episodes(
+        self, populated_db: CacheDB
+    ) -> None:
+        """search_by_groups returns all matching episodes for the page."""
+        results = search_by_groups(populated_db, "mystery")
+        pids = {p.pid for p in results}
+        assert "ep1" in pids
+        assert "ep2" in pids
+
+    def test_search_by_groups_like_fallback(self, populated_db: CacheDB) -> None:
+        """search_by_groups falls back to LIKE for partial word matches."""
+        results = search_by_groups(populated_db, "nail")
+        assert any(p.pid == "ep4" for p in results)
+
+    def test_search_by_groups_empty(self, populated_db: CacheDB) -> None:
+        """search_by_groups returns empty list for empty query."""
+        assert search_by_groups(populated_db, "") == []
+
+    def test_groups_count_less_than_programmes_count(
+        self, populated_db: CacheDB
+    ) -> None:
+        """Group count is less than episode count when series have multiple episodes."""
+        ep_count = search_programmes_count(populated_db, "mystery")
+        grp_count = search_groups_count(populated_db, "mystery")
+        assert ep_count >= 2
+        assert grp_count == 1
+
+
+class TestCategoryProgrammesByGroups:
+    """Tests for group-paginated category browsing."""
+
+    def test_category_groups_count(self, populated_db: CacheDB) -> None:
+        """Category count uses distinct groups rather than episode count."""
+        assert category_groups_count(populated_db, "audiobooks") == 3
+
+    def test_category_programmes_by_groups_first_page(
+        self, populated_db: CacheDB
+    ) -> None:
+        """First page returns all episodes for the top group only."""
+        results = category_programmes_by_groups(
+            populated_db, "audiobooks", limit=1, offset=0
+        )
+        assert {programme.pid for programme in results} == {"ep1", "ep2"}
+
+    def test_category_programmes_by_groups_second_page(
+        self, populated_db: CacheDB
+    ) -> None:
+        """Later pages do not repeat the previous series group."""
+        results = category_programmes_by_groups(
+            populated_db, "audiobooks", limit=1, offset=1
+        )
+        assert {programme.pid for programme in results} == {"ep3"}
+
+    def test_category_programmes_by_groups_title_sort(
+        self, populated_db: CacheDB
+    ) -> None:
+        """Category group paging respects server-side title sorting."""
+        results = category_programmes_by_groups(
+            populated_db, "audiobooks", limit=1, offset=0, sort="title-desc"
+        )
+        assert {programme.pid for programme in results} == {"ep4"}
+
+
+class TestServerSideSorting:
+    """Tests for server-side sort helpers."""
+
+    def test_group_by_series_preserves_input_group_order(self) -> None:
+        """Search result groups can preserve database-selected ordering."""
+        progs = [
+            Programme(pid="b", title="B", series_pid="s2", series_title="S2"),
+            Programme(pid="a", title="A", series_pid="s1", series_title="S1"),
+        ]
+        groups = group_by_series(progs, preserve_group_order=True)
+        assert [group.series_pid for group in groups] == ["s2", "s1"]
+
+    def test_group_by_series_date_sort_orders_episodes(self) -> None:
+        """Server-side episode sorting follows the requested sort option."""
+        progs = [
+            Programme(
+                pid="old",
+                title="Old",
+                series_pid="s1",
+                series_title="Series",
+                first_broadcast="2024-01-01T00:00:00+00:00",
+            ),
+            Programme(
+                pid="new",
+                title="New",
+                series_pid="s1",
+                series_title="Series",
+                first_broadcast="2024-02-01T00:00:00+00:00",
+            ),
+        ]
+        groups = group_by_series(progs, sort="date-desc", preserve_group_order=True)
+        assert [episode.pid for episode in groups[0].episodes] == ["new", "old"]
+
+    def test_sort_programmes_title_asc(self) -> None:
+        """Flat programme pages can be sorted on the server."""
+        progs = [
+            Programme(pid="b", title="Zulu"),
+            Programme(pid="a", title="Alpha"),
+        ]
+        sorted_programmes = sort_programmes(progs, "title-asc")
+        assert [programme.pid for programme in sorted_programmes] == ["a", "b"]
+
+    def test_normalise_search_sort_without_query(self) -> None:
+        """Relevance falls back to newest-first when no text query exists."""
+        assert normalise_search_sort("relevance", has_query=False) == "date-desc"
 
 
 class TestGroupBySeries:

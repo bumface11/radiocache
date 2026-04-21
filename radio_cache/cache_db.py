@@ -353,6 +353,143 @@ class CacheDB:
             row = self._conn.execute(sql, {"query": safe_query}).fetchone()
         return int(row[0]) if row else 0
 
+    def search_groups_count(
+        self,
+        query: str,
+        category: str = "",
+    ) -> int:
+        """Count distinct series groups matching a FTS query.
+
+        Each series (same ``series_pid``) counts as one group; standalone
+        programmes (empty ``series_pid``) each count individually.
+
+        Args:
+            query: Search terms (FTS5 query syntax).
+            category: Optional category tag filter.
+
+        Returns:
+            Number of distinct series groups containing a match.
+        """
+        safe_query = _sanitise_fts_query(query)
+        if not safe_query:
+            return 0
+
+        if category:
+            sql = """
+                SELECT COUNT(DISTINCT COALESCE(NULLIF(p.series_pid, ''), p.pid))
+                FROM programmes p
+                JOIN programmes_fts fts ON p.rowid = fts.rowid
+                WHERE programmes_fts MATCH :query
+                AND ',' || LOWER(p.categories) || ',' LIKE '%,' || LOWER(:category) || ',%'
+            """
+            row = self._conn.execute(
+                sql, {"query": safe_query, "category": category}
+            ).fetchone()
+        else:
+            sql = """
+                SELECT COUNT(DISTINCT COALESCE(NULLIF(p.series_pid, ''), p.pid))
+                FROM programmes p
+                JOIN programmes_fts fts ON p.rowid = fts.rowid
+                WHERE programmes_fts MATCH :query
+            """
+            row = self._conn.execute(sql, {"query": safe_query}).fetchone()
+        return int(row[0]) if row else 0
+
+    def search_by_groups(
+        self,
+        query: str,
+        limit: int = 50,
+        offset: int = 0,
+        category: str = "",
+        sort: str = "relevance",
+    ) -> list[Programme]:
+        """Fetch all matching programmes for a page of series groups.
+
+        Groups are ordered by most-recent episode date.  All matching
+        episodes for each group on the requested page are returned, so
+        the result may contain more than *limit* rows.
+
+        Args:
+            query: Search terms (FTS5 query syntax).
+            limit: Number of series groups per page.
+            offset: Group-level pagination offset.
+            category: Optional category tag filter.
+
+        Returns:
+            Matching programmes for the requested page of groups.
+        """
+        safe_query = _sanitise_fts_query(query)
+        if not safe_query:
+            return []
+
+        order_by = {
+            "relevance": "max_broadcast DESC, LOWER(group_title) ASC, grp ASC",
+            "title-asc": "LOWER(group_title) ASC, grp ASC",
+            "title-desc": "LOWER(group_title) DESC, grp DESC",
+            "date-desc": "max_broadcast DESC, LOWER(group_title) ASC, grp ASC",
+            "date-asc": "min_broadcast ASC, LOWER(group_title) ASC, grp ASC",
+            "duration-desc": "max_duration DESC, LOWER(group_title) ASC, grp ASC",
+            "duration-asc": "min_duration ASC, LOWER(group_title) ASC, grp ASC",
+        }.get(sort, "max_broadcast DESC, LOWER(group_title) ASC, grp ASC")
+
+        cat_filter = ""
+        params: dict[str, object] = {
+            "query": safe_query,
+            "limit": limit,
+            "offset": offset,
+        }
+        if category:
+            cat_filter = (
+                "AND ',' || LOWER(p.categories) || ',' "
+                "LIKE '%,' || LOWER(:category) || ',%'"
+            )
+            params["category"] = category
+
+        sql = f"""
+            WITH matched AS (
+                SELECT p.pid,
+                       COALESCE(NULLIF(p.series_pid, ''), p.pid) AS grp,
+                       COALESCE(NULLIF(p.series_title, ''), p.title) AS group_title,
+                       p.first_broadcast,
+                      p.duration_secs
+                FROM programmes p
+                JOIN programmes_fts fts ON p.rowid = fts.rowid
+                WHERE programmes_fts MATCH :query
+                {cat_filter}
+            ),
+            grouped AS (
+                SELECT grp,
+                       MIN(group_title) AS group_title,
+                       COALESCE(MAX(first_broadcast), '') AS max_broadcast,
+                       COALESCE(MIN(NULLIF(first_broadcast, '')), '9999-99-99T99:99:99Z') AS min_broadcast,
+                       MAX(duration_secs) AS max_duration,
+                       MIN(duration_secs) AS min_duration
+                FROM matched
+                GROUP BY grp
+            ),
+            paged_groups AS (
+                SELECT grp,
+                       group_title,
+                       max_broadcast,
+                       min_broadcast,
+                       max_duration,
+                       min_duration
+                FROM grouped
+                ORDER BY {order_by}
+                LIMIT :limit OFFSET :offset
+            )
+            SELECT p.*
+            FROM programmes p
+            INNER JOIN matched m ON m.pid = p.pid
+            INNER JOIN paged_groups pg ON pg.grp = m.grp
+            ORDER BY {order_by.replace('max_broadcast', 'pg.max_broadcast').replace('min_broadcast', 'pg.min_broadcast').replace('max_duration', 'pg.max_duration').replace('min_duration', 'pg.min_duration').replace('group_title', 'pg.group_title').replace('grp', 'pg.grp')},
+                     p.first_broadcast DESC,
+                     p.title,
+                     p.pid
+        """
+        rows = self._conn.execute(sql, params).fetchall()
+        return [_row_to_programme(r) for r in rows]
+
     def programmes_by_category_count(self, category: str) -> int:
         """Count programmes in a category.
 
@@ -378,6 +515,58 @@ class CacheDB:
             (category,),
         ).fetchone()
         return int(row[0]) if row else 0
+
+    def programme_groups_by_category_count(self, category: str) -> int:
+        """Count distinct result groups in a category.
+
+        Each series counts as one group; standalone programmes count
+        individually.
+
+        Args:
+            category: Category tag to count.
+
+        Returns:
+            Number of distinct matching groups.
+        """
+        row = self._conn.execute(
+            "SELECT COUNT(DISTINCT COALESCE(NULLIF(series_pid, ''), pid)) "
+            "FROM programmes "
+            "WHERE ',' || LOWER(categories) || ',' LIKE '%,' || LOWER(?) || ',%'",
+            (category,),
+        ).fetchone()
+        return int(row[0]) if row else 0
+
+    def programmes_page(
+        self,
+        limit: int = 50,
+        offset: int = 0,
+        sort: str = "date-desc",
+    ) -> list[Programme]:
+        """Fetch a page of programmes using the requested sort order.
+
+        Args:
+            limit: Maximum results.
+            offset: Pagination offset.
+            sort: Requested sort key.
+
+        Returns:
+            Programmes for the requested page.
+        """
+        order_by = {
+            "title-asc": "title ASC, pid ASC",
+            "title-desc": "title DESC, pid DESC",
+            "date-desc": "first_broadcast DESC, title ASC, pid ASC",
+            "date-asc": "CASE WHEN first_broadcast = '' THEN 1 ELSE 0 END, first_broadcast ASC, title ASC, pid ASC",
+            "duration-desc": "duration_secs DESC, title ASC, pid ASC",
+            "duration-asc": "duration_secs ASC, title ASC, pid ASC",
+        }.get(sort, "first_broadcast DESC, title ASC, pid ASC")
+        sql = f"""
+            SELECT * FROM programmes
+            ORDER BY {order_by}
+            LIMIT ? OFFSET ?
+        """
+        rows = self._conn.execute(sql, (limit, offset)).fetchall()
+        return [_row_to_programme(r) for r in rows]
 
     def list_series(self) -> list[dict[str, str | int]]:
         """List all distinct series with episode counts.
@@ -598,6 +787,71 @@ class CacheDB:
         """
         rows = self._conn.execute(sql, (category, limit, offset)).fetchall()
         return [_row_to_programme(r) for r in rows]
+
+    def programme_groups_by_category(
+        self,
+        category: str,
+        limit: int = 50,
+        offset: int = 0,
+        sort: str = "date-desc",
+    ) -> list[Programme]:
+        """Fetch category matches for a page of distinct result groups.
+
+        Groups are ordered by most-recent broadcast date. All matching
+        programmes for the selected groups are returned.
+
+        Args:
+            category: Category tag to filter by.
+            limit: Number of groups per page.
+            offset: Group-level pagination offset.
+
+        Returns:
+            Matching programmes for the requested page of groups.
+        """
+        order_by = {
+            "title-asc": "LOWER(group_title) ASC, grp ASC",
+            "title-desc": "LOWER(group_title) DESC, grp DESC",
+            "date-desc": "max_broadcast DESC, LOWER(group_title) ASC, grp ASC",
+            "date-asc": "min_broadcast ASC, LOWER(group_title) ASC, grp ASC",
+            "duration-desc": "max_duration DESC, LOWER(group_title) ASC, grp ASC",
+            "duration-asc": "min_duration ASC, LOWER(group_title) ASC, grp ASC",
+        }.get(sort, "max_broadcast DESC, LOWER(group_title) ASC, grp ASC")
+        group_sql = f"""
+            SELECT COALESCE(NULLIF(series_pid, ''), pid) AS grp,
+                   MIN(COALESCE(NULLIF(series_title, ''), title)) AS group_title,
+                   COALESCE(MAX(first_broadcast), '') AS max_broadcast,
+                   COALESCE(MIN(NULLIF(first_broadcast, '')), '9999-99-99T99:99:99Z') AS min_broadcast,
+                   MAX(duration_secs) AS max_duration,
+                   MIN(duration_secs) AS min_duration
+            FROM programmes
+            WHERE ',' || LOWER(categories) || ',' LIKE '%,' || LOWER(?) || ',%'
+            GROUP BY grp
+            ORDER BY {order_by}
+            LIMIT ? OFFSET ?
+        """
+        group_rows = self._conn.execute(group_sql, (category, limit, offset)).fetchall()
+        group_keys = [row["grp"] for row in group_rows]
+        if not group_keys:
+            return []
+
+        placeholders = ", ".join("?" for _ in group_keys)
+        row_sql = (
+            "SELECT * FROM programmes "
+            "WHERE ',' || LOWER(categories) || ',' LIKE '%,' || LOWER(?) || ',%' "
+            f"AND COALESCE(NULLIF(series_pid, ''), pid) IN ({placeholders})"
+        )
+        rows = self._conn.execute(row_sql, (category, *group_keys)).fetchall()
+
+        rows_by_group: dict[str, list[sqlite3.Row]] = {}
+        for row in rows:
+            group_key = row["series_pid"] or row["pid"]
+            rows_by_group.setdefault(group_key, []).append(row)
+
+        ordered_rows: list[sqlite3.Row] = []
+        for group_key in group_keys:
+            ordered_rows.extend(rows_by_group.get(group_key, []))
+
+        return [_row_to_programme(r) for r in ordered_rows]
 
     def recent_programmes(self, limit: int = 50) -> list[Programme]:
         """Fetch the most recently broadcast programmes.

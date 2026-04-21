@@ -37,9 +37,14 @@ from radio_cache.refresh import (
     refresh_cache,
 )
 from radio_cache.search import (
+    category_groups_count,
+    category_programmes_by_groups,
     group_by_series,
+    normalise_search_sort,
+    search_by_groups,
+    search_groups_count,
     search_programmes,
-    search_programmes_count,
+    sort_programmes,
 )
 
 logger = logging.getLogger(__name__)
@@ -305,6 +310,15 @@ async def search_page(
     q: str = Query(default="", description="Search query"),
     category: str = Query(default="", description="Filter by category display name or slug"),
     page: int = Query(default=1, ge=1, description="Page number"),
+    sort: Literal[
+        "relevance",
+        "title-asc",
+        "title-desc",
+        "date-desc",
+        "date-asc",
+        "duration-desc",
+        "duration-asc",
+    ] = Query(default="relevance", description="Sort order"),
 ) -> HTMLResponse:
     """Render search results.
 
@@ -317,18 +331,36 @@ async def search_page(
     Returns:
         Rendered HTML with search results.
     """
-    per_page = 50
+    per_page = 10
     offset = (page - 1) * per_page
+    resolved_sort = normalise_search_sort(sort, has_query=bool(q))
 
     with _get_db() as db:
         if q:
-            programmes = search_programmes(db, q, limit=per_page, offset=offset, category=category)
-            total_count = search_programmes_count(db, q, category=category)
+            programmes = search_by_groups(
+                db,
+                q,
+                limit=per_page,
+                offset=offset,
+                category=category,
+                sort=resolved_sort,
+            )
+            total_count = search_groups_count(db, q, category=category)
         elif category:
-            programmes = db.programmes_by_category(category, limit=per_page, offset=offset)
-            total_count = db.programmes_by_category_count(category)
+            programmes = category_programmes_by_groups(
+                db,
+                category,
+                limit=per_page,
+                offset=offset,
+                sort=resolved_sort,
+            )
+            total_count = category_groups_count(db, category)
         else:
-            programmes = db.recent_programmes(limit=per_page)
+            programmes = db.programmes_page(
+                limit=per_page,
+                offset=offset,
+                sort=resolved_sort,
+            )
             total_count = db.programme_count()
         stats = db.stats()
         categories_list = db.list_categories()
@@ -337,7 +369,14 @@ async def search_page(
         )
 
     total_pages = max(1, -(-total_count // per_page))  # ceil division
-    series_groups = group_by_series(programmes)
+    series_groups = group_by_series(
+        programmes,
+        sort=resolved_sort if (q or category) else "series_order",
+        preserve_group_order=bool(q or category),
+    )
+    if not (q or category):
+        programmes = sort_programmes(programmes, resolved_sort)
+    result_count = len(series_groups) if (q or category) else len(programmes)
     return templates.TemplateResponse(
         request,
         "search_results.html",
@@ -350,6 +389,8 @@ async def search_page(
             "stats": stats,
             "page": page,
             "per_page": per_page,
+            "result_count": result_count,
+            "sort": resolved_sort,
             "total_pages": total_pages,
             "categories": categories_list,
             "series_counts": series_counts,
@@ -382,7 +423,7 @@ async def series_detail(
     request: Request,
     series_pid: str,
     sort: SortOption = Query(default="series_order"),
-    q: str = Query(default="", description="Filter episodes within the series"),
+    q: str = Query(default="", description="Legacy series filter query"),
     prev: str = Query(default=""),
 ) -> HTMLResponse:
     """Show episodes in a series.
@@ -401,26 +442,7 @@ async def series_detail(
             series_pid, len(all_episodes)
         )
     series_title = all_episodes[0].series_title if all_episodes else series_pid
-    filter_query = q.strip()
-    if filter_query:
-        lowered = filter_query.casefold()
-        episodes = [
-            ep
-            for ep in all_episodes
-            if lowered in " ".join(
-                part
-                for part in (
-                    ep.title,
-                    ep.synopsis,
-                    ep.channel,
-                    ep.categories,
-                    ep.first_broadcast,
-                )
-                if part
-            ).casefold()
-        ]
-    else:
-        episodes = all_episodes
+    episodes = all_episodes
     episodes = _sort_episodes(episodes, sort)
     if prev.startswith("/") and not prev.startswith("//"):
         previous_url = prev
@@ -453,7 +475,6 @@ async def series_detail(
             "series_title": series_title,
             "episodes": episodes,
             "total_episode_count": total_episode_count,
-            "filter_query": filter_query,
             "sort": sort,
             "sort_options": sort_options,
             "previous_url": previous_url,

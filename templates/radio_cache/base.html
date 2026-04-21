@@ -9,6 +9,13 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <div id="rc-loading-overlay" class="rc-loading-overlay" aria-hidden="true">
+        <div class="rc-loading-card" role="status" aria-live="polite">
+            <div class="spinner-border text-primary rc-loading-spinner" aria-hidden="true"></div>
+            <div class="rc-loading-title">Loading results</div>
+            <div class="rc-loading-text">Fetching the next page from the cache.</div>
+        </div>
+    </div>
     <nav class="navbar navbar-expand-lg bg-body-tertiary">
         <div class="container">
             <a class="navbar-brand" href="/"><span class="brand-dot"></span>Radio Cache</a>
@@ -89,6 +96,72 @@
             });
         });
 
+
+        (function () {
+            const overlay = document.getElementById('rc-loading-overlay');
+            if (!overlay) {
+                return;
+            }
+
+            function showLoadingOverlay(title, text) {
+                const titleEl = overlay.querySelector('.rc-loading-title');
+                const textEl = overlay.querySelector('.rc-loading-text');
+                if (titleEl && title) {
+                    titleEl.textContent = title;
+                }
+                if (textEl && text) {
+                    textEl.textContent = text;
+                }
+                overlay.classList.add('is-visible');
+                overlay.setAttribute('aria-hidden', 'false');
+            }
+
+            function hideLoadingOverlay() {
+                overlay.classList.remove('is-visible');
+                overlay.setAttribute('aria-hidden', 'true');
+            }
+
+            window.rcShowLoadingOverlay = showLoadingOverlay;
+            window.rcHideLoadingOverlay = hideLoadingOverlay;
+
+            function isSearchActionUrl(url) {
+                try {
+                    const parsed = new URL(url, window.location.origin);
+                    return parsed.origin === window.location.origin && parsed.pathname === '/search';
+                } catch {
+                    return false;
+                }
+            }
+
+            document.addEventListener('submit', event => {
+                const form = event.target;
+                if (!(form instanceof HTMLFormElement)) {
+                    return;
+                }
+                if (!isSearchActionUrl(form.action || window.location.href)) {
+                    return;
+                }
+                showLoadingOverlay('Loading results', 'Fetching the next page from the cache.');
+            });
+
+            document.addEventListener('click', event => {
+                const link = event.target.closest('a');
+                if (!link || !link.href || event.defaultPrevented) {
+                    return;
+                }
+                if (link.target && link.target !== '_self') {
+                    return;
+                }
+                if (!isSearchActionUrl(link.href)) {
+                    return;
+                }
+                showLoadingOverlay('Loading results', 'Fetching the next page from the cache.');
+            });
+
+            window.addEventListener('pageshow', () => {
+                hideLoadingOverlay();
+            });
+        }());
         // Shared handler for all .record-btn buttons (programme catch-up).
         document.addEventListener('click', async e => {
             const btn = e.target.closest('.record-btn');
