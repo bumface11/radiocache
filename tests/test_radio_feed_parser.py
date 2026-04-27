@@ -151,6 +151,63 @@ class TestParseProgrammeItem:
         assert prog is not None
         assert prog.synopsis == "Long description only"
 
+    def test_nested_anthology_maps_brand_and_miniseries_via_ancestors(
+        self,
+    ) -> None:
+        """Per-episode API: maps brand and miniseries PIDs from ancestors."""
+        item = {
+            "urn": "urn:bbc:radio:episode:m002rkpl",
+            "titles": {
+                "primary": "Drama on 4",
+                "secondary": "Good People",
+                "tertiary": "4. The Miracle",
+                "entity_title": "4. The Miracle",
+            },
+            "ancestors": [
+                {"id": "b04xxp0g", "title": "Drama on 4"},
+                {"id": "m002rkph", "title": "Good People"},
+            ],
+            "position": {"position": 4, "total": 0},
+            "type": "episode",
+        }
+        prog = _parse_programme_item(item)
+        assert prog is not None
+        assert prog.title == "4. The Miracle"
+        assert prog.series_pid == "m002rkph"
+        assert prog.series_title == "Good People"
+        assert prog.brand_pid == "b04xxp0g"
+        assert prog.brand_title == "Drama on 4"
+        assert prog.episode_number == 4
+
+    def test_nested_anthology_maps_brand_and_miniseries_via_listing(
+        self,
+    ) -> None:
+        """Playable listing: derives miniseries from container brand + titles."""
+        item = {
+            "urn": "urn:bbc:radio:episode:m002rkpl",
+            "titles": {
+                "primary": "Drama on 4",
+                "secondary": "Good People",
+                "tertiary": "4. The Miracle",
+                "entity_title": "4. The Miracle",
+            },
+            "container": {
+                "type": "brand",
+                "id": "b04xxp0g",
+                "title": "Drama on 4",
+            },
+            "position": {"position": 4, "total": 0},
+            "type": "episode",
+        }
+        prog = _parse_programme_item(item)
+        assert prog is not None
+        assert prog.title == "4. The Miracle"
+        assert prog.series_title == "Good People"
+        assert prog.series_pid == "b04xxp0g::Good People"
+        assert prog.brand_pid == "b04xxp0g"
+        assert prog.brand_title == "Drama on 4"
+        assert prog.episode_number == 4
+
 
 class TestFetchDramaProgrammes:
     """Tests for fetch_drama_programmes."""

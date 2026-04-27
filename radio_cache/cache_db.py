@@ -357,6 +357,7 @@ class CacheDB:
         self,
         query: str,
         category: str = "",
+        brand_pid: str = "",
     ) -> int:
         """Count distinct series groups matching a FTS query.
 
@@ -374,25 +375,25 @@ class CacheDB:
         if not safe_query:
             return 0
 
+        cat_filter = (
+            "AND ',' || LOWER(p.categories) || ',' LIKE '%,' || LOWER(:category) || ',%'"
+            if category else ""
+        )
+        brand_filter = "AND p.brand_pid = :brand_pid" if brand_pid else ""
+        sql = f"""
+            SELECT COUNT(DISTINCT COALESCE(NULLIF(p.series_pid, ''), p.pid))
+            FROM programmes p
+            JOIN programmes_fts fts ON p.rowid = fts.rowid
+            WHERE programmes_fts MATCH :query
+            {cat_filter}
+            {brand_filter}
+        """
+        params: dict[str, object] = {"query": safe_query}
         if category:
-            sql = """
-                SELECT COUNT(DISTINCT COALESCE(NULLIF(p.series_pid, ''), p.pid))
-                FROM programmes p
-                JOIN programmes_fts fts ON p.rowid = fts.rowid
-                WHERE programmes_fts MATCH :query
-                AND ',' || LOWER(p.categories) || ',' LIKE '%,' || LOWER(:category) || ',%'
-            """
-            row = self._conn.execute(
-                sql, {"query": safe_query, "category": category}
-            ).fetchone()
-        else:
-            sql = """
-                SELECT COUNT(DISTINCT COALESCE(NULLIF(p.series_pid, ''), p.pid))
-                FROM programmes p
-                JOIN programmes_fts fts ON p.rowid = fts.rowid
-                WHERE programmes_fts MATCH :query
-            """
-            row = self._conn.execute(sql, {"query": safe_query}).fetchone()
+            params["category"] = category
+        if brand_pid:
+            params["brand_pid"] = brand_pid
+        row = self._conn.execute(sql, params).fetchone()
         return int(row[0]) if row else 0
 
     def search_by_groups(
@@ -402,6 +403,7 @@ class CacheDB:
         offset: int = 0,
         category: str = "",
         sort: str = "relevance",
+        brand_pid: str = "",
     ) -> list[Programme]:
         """Fetch all matching programmes for a page of series groups.
 
@@ -445,17 +447,21 @@ class CacheDB:
             )
             params["category"] = category
 
+        brand_filter = ""
+        if brand_pid:
+            brand_filter = "AND p.brand_pid = :brand_pid"
+            params["brand_pid"] = brand_pid
+
         sql = f"""
-            WITH matched AS (
-                SELECT p.pid,
+            WITH matched AS MATERIALIZED (
+                SELECT p.*, 
                        COALESCE(NULLIF(p.series_pid, ''), p.pid) AS grp,
-                       COALESCE(NULLIF(p.series_title, ''), p.title) AS group_title,
-                       p.first_broadcast,
-                      p.duration_secs
+                       COALESCE(NULLIF(p.series_title, ''), p.title) AS group_title
                 FROM programmes p
                 JOIN programmes_fts fts ON p.rowid = fts.rowid
                 WHERE programmes_fts MATCH :query
                 {cat_filter}
+                {brand_filter}
             ),
             grouped AS (
                 SELECT grp,
@@ -478,14 +484,13 @@ class CacheDB:
                 ORDER BY {order_by}
                 LIMIT :limit OFFSET :offset
             )
-            SELECT p.*
-            FROM programmes p
-            INNER JOIN matched m ON m.pid = p.pid
+            SELECT m.*
+            FROM matched m
             INNER JOIN paged_groups pg ON pg.grp = m.grp
             ORDER BY {order_by.replace('max_broadcast', 'pg.max_broadcast').replace('min_broadcast', 'pg.min_broadcast').replace('max_duration', 'pg.max_duration').replace('min_duration', 'pg.min_duration').replace('group_title', 'pg.group_title').replace('grp', 'pg.grp')},
-                     p.first_broadcast DESC,
-                     p.title,
-                     p.pid
+                     m.first_broadcast DESC,
+                     m.title,
+                     m.pid
         """
         rows = self._conn.execute(sql, params).fetchall()
         return [_row_to_programme(r) for r in rows]
@@ -573,10 +578,10 @@ class CacheDB:
 
         Returns:
             List of dicts with ``series_pid``, ``series_title``,
-            ``brand_title``, and ``episode_count``.
+            ``brand_pid``, ``brand_title``, and ``episode_count``.
         """
         sql = """
-            SELECT series_pid, series_title, brand_title,
+            SELECT series_pid, series_title, brand_pid, brand_title,
                    COUNT(*) as episode_count
             FROM programmes
             WHERE series_pid != ''
@@ -588,6 +593,7 @@ class CacheDB:
             {
                 "series_pid": r["series_pid"],
                 "series_title": r["series_title"],
+                "brand_pid": r["brand_pid"],
                 "brand_title": r["brand_title"],
                 "episode_count": r["episode_count"],
             }

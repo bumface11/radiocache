@@ -268,11 +268,11 @@ h1,h2,h3,h4,h5,h6 { font-weight: 600; }
 .record-btn:hover::before { opacity: 1; }
 
 /* ── Tables (series list) ───────────────────────────────────── */
-.table-hover > tbody > tr {
+.table-hover.rc-row-accent > tbody > tr {
     transition: all var(--rc-transition-fast);
     position: relative;
 }
-.table-hover > tbody > tr::before {
+.table-hover.rc-row-accent > tbody > tr::before {
     content: '';
     position: absolute;
     left: 0;
@@ -283,22 +283,23 @@ h1,h2,h3,h4,h5,h6 { font-weight: 600; }
     opacity: 0;
     transition: opacity var(--rc-transition-fast);
 }
-.table-hover > tbody > tr:hover {
+.table-hover.rc-row-accent > tbody > tr:hover {
     background: var(--rc-accent-soft) !important;
     transform: translateX(4px);
 }
-.table-hover > tbody > tr:hover::before {
+.table-hover.rc-row-accent > tbody > tr:hover::before {
     opacity: 1;
 }
 
-/* ── Table header dark theme override ────────────────────────── */
-.table-light {
-    background-color: rgba(255, 255, 255, .03) !important;
-    color: rgba(255, 255, 255, .7) !important;
-}
-.table-light th {
-    border-color: rgba(255, 255, 255, .08) !important;
-    color: rgba(255, 255, 255, .7) !important;
+/* ── Series table header ────────────────────────────────────── */
+.rc-series-table-head th {
+    background: rgba(255, 255, 255, .04);
+    color: rgba(255, 255, 255, .92);
+    border-bottom: 1px solid rgba(255, 255, 255, .12);
+    border-top: 1px solid rgba(255, 255, 255, .06);
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: .02em;
 }
 
 /* ── Series filter input ────────────────────────────────────── */
@@ -865,6 +866,31 @@ a:hover {
 
     .series-control-actions .btn {
         flex: 1 1 auto;
+    }
+}
+
+/* ── Compact filter bar ────────────────────────────────────── */
+.rc-filter-bar {
+    padding: .75rem;
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: .5rem;
+    background: var(--rc-surface);
+    box-shadow: var(--rc-shadow-sm);
+    transition: all var(--rc-transition-base);
+}
+.rc-filter-bar:focus-within {
+    border-color: rgba(255,255,255,.15);
+}
+
+@media (max-width: 767.98px) {
+    .rc-filter-bar .d-flex.gap-2 {
+        flex-wrap: wrap;
+    }
+    .rc-filter-bar .series-control-group {
+        flex: 1 1 100%;
+    }
+    .rc-filter-bar .series-control-group select {
+        width: 100%;
     }
 }
 

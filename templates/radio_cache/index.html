@@ -86,6 +86,11 @@
                         {{ prog.series_title }}
                     </a>
                 {% endif %}
+                {% if prog.brand_pid %}
+                    <a href="/series?brand={{ prog.brand_pid }}" class="badge bg-warning text-dark text-decoration-none">
+                        {{ prog.brand_title }}
+                    </a>
+                {% endif %}
                 <span class="d-flex gap-1 flex-shrink-0">
                 {% if prog.duration_secs %}
                     <span class="badge bg-secondary badge-duration">

@@ -138,6 +138,8 @@ def _parse_programme_item(item: dict) -> Programme | None:
     titles = item.get("titles") or {}
     primary_title = titles.get("primary") or item.get("title") or ""
     secondary_title = titles.get("secondary") or ""
+    tertiary_title = titles.get("tertiary") or ""
+    entity_title = titles.get("entity_title") or ""
     full_title = (
         f"{primary_title}: {secondary_title}"
         if secondary_title
@@ -163,12 +165,33 @@ def _parse_programme_item(item: dict) -> Programme | None:
     first_broadcast = release.get("date") or item.get("first_broadcast") or ""
 
     container = item.get("container") or {}
+    container_type = container.get("type") or ""
     series_pid = container.get("id") or ""
-    series_title = (container.get("title") or "")
+    series_title = container.get("title") or ""
 
     brand = item.get("brand") or item.get("master_brand") or {}
     brand_pid = brand.get("id") or ""
     brand_title = brand.get("title") or ""
+
+    ancestors = [a for a in (item.get("ancestors") or []) if isinstance(a, dict)]
+    if len(ancestors) >= 2:
+        # Per-episode API returns a full ancestor list; use that for real PIDs.
+        ancestor_brand = ancestors[0]
+        ancestor_series = ancestors[1]
+        brand_pid = ancestor_brand.get("id") or brand_pid or series_pid
+        brand_title = ancestor_brand.get("title") or brand_title or series_title
+        series_pid = ancestor_series.get("id") or series_pid
+        series_title = ancestor_series.get("title") or series_title
+        full_title = tertiary_title or entity_title or full_title
+    elif container_type == "brand" and secondary_title and (tertiary_title or entity_title):
+        # Playable listing — container is the brand, titles.secondary is the
+        # miniseries name, titles.tertiary/entity_title is the episode title.
+        # No miniseries PID is available so we derive a stable synthetic key.
+        brand_pid = series_pid
+        brand_title = series_title
+        series_title = secondary_title
+        series_pid = f"{brand_pid}::{secondary_title}"
+        full_title = tertiary_title or entity_title or full_title
 
     network = item.get("network") or {}
     channel = network.get("short_title") or network.get("id") or ""
@@ -177,7 +200,8 @@ def _parse_programme_item(item: dict) -> Programme | None:
     if image and "{recipe}" in image:
         image = image.replace("{recipe}", "624x624")
 
-    episode_number = item.get("episode_number") or 0
+    position = item.get("position") or {}
+    episode_number = item.get("episode_number") or position.get("position") or 0
 
     categories_list = item.get("categories") or []
     if isinstance(categories_list, list):
@@ -563,6 +587,9 @@ def fetch_drama_programmes(
             if cpid:
                 container_pids[cpid].update(pid_to_cats.get(pid, set()))
 
+        # Exclude synthetic series keys (e.g. "b04xxp0g::Good People") that
+        # are not real BBC PIDs and cannot be used as container IDs.
+        container_pids = {k: v for k, v in container_pids.items() if "::" not in k}
         logger.info(
             "Container backfill: %d unique containers to expand",
             len(container_pids),

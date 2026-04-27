@@ -309,6 +309,7 @@ async def search_page(
     request: Request,
     q: str = Query(default="", description="Search query"),
     category: str = Query(default="", description="Filter by category display name or slug"),
+    brand: str = Query(default="", description="Filter by brand PID"),
     page: int = Query(default=1, ge=1, description="Page number"),
     sort: Literal[
         "relevance",
@@ -344,8 +345,9 @@ async def search_page(
                 offset=offset,
                 category=category,
                 sort=resolved_sort,
+                brand_pid=brand,
             )
-            total_count = search_groups_count(db, q, category=category)
+            total_count = search_groups_count(db, q, category=category, brand_pid=brand)
         elif category:
             programmes = category_programmes_by_groups(
                 db,
@@ -367,6 +369,7 @@ async def search_page(
         series_counts = db.get_series_episode_counts(
             [prog.series_pid for prog in programmes]
         )
+        brands_list = db.list_brands()
 
     total_pages = max(1, -(-total_count // per_page))  # ceil division
     series_groups = group_by_series(
@@ -394,6 +397,8 @@ async def search_page(
             "total_pages": total_pages,
             "categories": categories_list,
             "series_counts": series_counts,
+            "brand": brand,
+            "brands": brands_list,
         },
     )
 
@@ -411,10 +416,11 @@ async def series_list(request: Request) -> HTMLResponse:
     with _get_db() as db:
         series = db.list_series()
         stats = db.stats()
+        brands_list = db.list_brands()
     return templates.TemplateResponse(
         request,
         "series_list.html",
-        {"request": request, "series": series, "stats": stats},
+        {"request": request, "series": series, "stats": stats, "brands": brands_list},
     )
 
 

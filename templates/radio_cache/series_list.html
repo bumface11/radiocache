@@ -3,44 +3,66 @@
 {% block title %}Series - BBC Radio Drama Cache{% endblock %}
 
 {% block content %}
-<div class="series-list-toolbar mb-3">
-    <div>
-        <h2 class="mb-0">All Series</h2>
-        <p class="text-muted mb-0" id="series-count">{{ series|length }} series in the cache</p>
-    </div>
-    <div class="series-list-controls">
-        <div class="series-control-group series-control-search">
-            <label for="series-filter" class="form-label small text-muted mb-1">Filter</label>
-            <input type="search" class="form-control form-control-sm series-filter"
-                id="series-filter" placeholder="Filter series..."
-                autocomplete="off">
-            <div id="series-filter-count" class="small text-muted mt-1"></div>
+<div class="rc-filter-bar mb-3">
+    <div class="d-flex align-items-start gap-3 mb-2">
+        <div class="flex-grow-1">
+            <h2 class="mb-0">All Series</h2>
+            <p class="text-muted mb-0" id="series-count">{{ series|length }} series in the cache</p>
         </div>
-        <div class="series-control-group series-control-sort">
-            <label for="series-sort" class="form-label small text-muted mb-1">Sort</label>
-            <select class="form-select form-select-sm" id="series-sort">
-                <option value="title-az" selected>Title A&ndash;Z</option>
-                <option value="title-za">Title Z&ndash;A</option>
-                <option value="episodes-desc">Most episodes</option>
-                <option value="episodes-asc">Fewest episodes</option>
-            </select>
+        <button class="btn btn-sm btn-outline-secondary mt-1" type="button"
+                data-bs-toggle="collapse" data-bs-target="#rc-series-filters"
+                aria-expanded="false">
+            Filters <span id="series-filter-badge" class="badge bg-primary d-none">0</span>
+        </button>
+    </div>
+    <div class="d-flex gap-2 mb-2">
+        <input type="search" class="form-control form-control-sm"
+               id="series-filter" placeholder="Filter by title or brand..." autocomplete="off">
+        <div class="small text-muted d-flex align-items-center text-nowrap" id="series-filter-count"></div>
+    </div>
+    <div class="collapse" id="rc-series-filters">
+        <div class="d-flex flex-wrap gap-3 pb-2">
+            <div class="series-control-group">
+                <label for="series-sort" class="form-label small text-muted mb-1">Sort</label>
+                <select class="form-select form-select-sm" id="series-sort" style="min-width:11rem">
+                    <option value="title-az" selected>Title A&ndash;Z</option>
+                    <option value="title-za">Title Z&ndash;A</option>
+                    <option value="episodes-desc">Most episodes</option>
+                    <option value="episodes-asc">Fewest episodes</option>
+                </select>
+            </div>
+            <div class="series-control-group">
+                <label for="series-brand" class="form-label small text-muted mb-1">Brand</label>
+                <select class="form-select form-select-sm" id="series-brand" style="min-width:11rem">
+                    <option value="">All brands</option>
+                    {% for b in brands %}
+                    <option value="{{ b.brand_pid }}">{{ b.brand_title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
     </div>
 </div>
 
 <div class="table-responsive">
     <table class="table table-hover" id="series-table">
-        <thead>
+        <thead class="rc-series-table-head">
             <tr>
-                <th>Series</th>
-                <th class="text-end">Episodes</th>
+                <th scope="col">Series</th>
+                <th scope="col">Brand</th>
+                <th scope="col" class="text-end"><span class="visually-hidden">Episodes</span></th>
             </tr>
         </thead>
         <tbody>
             {% for s in series %}
-            <tr data-filter-item>
+            <tr data-filter-item data-brand="{{ s.brand_pid or '' }}">
                 <td>
                     <a href="/series/{{ s.series_pid }}" data-filter-text>{{ s.series_title or s.series_pid }}</a>
+                </td>
+                <td class="small" data-filter-text>
+                    {% if s.brand_pid %}
+                    <a href="/series?brand={{ s.brand_pid }}" class="badge bg-warning text-dark text-decoration-none series-brand-link" data-brand-link="{{ s.brand_pid }}">{{ s.brand_title }}</a>
+                    {% endif %}
                 </td>
                 <td class="text-end">
                     <span class="badge bg-primary">{{ s.episode_count }}</span>
@@ -57,40 +79,49 @@
 (function () {
     const input  = document.getElementById('series-filter');
     const sort   = document.getElementById('series-sort');
+    const brand  = document.getElementById('series-brand');
     const tbody  = document.querySelector('#series-table tbody');
     const count  = document.getElementById('series-count');
     const filterCount = document.getElementById('series-filter-count');
+    const badge  = document.getElementById('series-filter-badge');
     const total  = tbody.querySelectorAll('tr').length;
+
+    function updateBadge() {
+        const active = (input.value ? 1 : 0) + (brand.value ? 1 : 0) + (sort.value !== 'title-az' ? 1 : 0);
+        badge.textContent = active;
+        badge.classList.toggle('d-none', active === 0);
+    }
 
     function applyFilter() {
         const q = input.value.toLowerCase();
+        const selectedBrand = brand.value;
         let visible = 0;
         tbody.querySelectorAll('tr').forEach(row => {
-            const text = (row.querySelector('[data-filter-text]') || row).textContent.toLowerCase();
-            const match = text.includes(q);
+            const texts = Array.from(row.querySelectorAll('[data-filter-text]'))
+                .map(el => el.textContent.toLowerCase()).join(' ');
+            const textMatch = !q || texts.includes(q);
+            const brandMatch = !selectedBrand || row.dataset.brand === selectedBrand;
+            const match = textMatch && brandMatch;
             row.style.display = match ? '' : 'none';
             if (match) visible++;
         });
         count.textContent = visible === total
+            ? ''
+            : visible + ' of ' + total;
+        document.getElementById('series-count').textContent = visible === total
             ? total + ' series in the cache'
-            : visible + ' of ' + total + ' series';
-        filterCount.textContent = q ? visible + ' matches' : '';
+            : visible + ' of ' + total + ' series shown';
+        updateBadge();
     }
 
     function applySort() {
         const rows = Array.from(tbody.querySelectorAll('tr'));
         const key  = sort.value;
         rows.sort((a, b) => {
-            if (key === 'title-az') {
-                return a.cells[0].textContent.trim()
-                    .localeCompare(b.cells[0].textContent.trim());
-            }
-            if (key === 'title-za') {
-                return b.cells[0].textContent.trim()
-                    .localeCompare(a.cells[0].textContent.trim());
-            }
-            const na = parseInt(a.cells[1].textContent.trim(), 10) || 0;
-            const nb = parseInt(b.cells[1].textContent.trim(), 10) || 0;
+            if (key === 'title-az') return a.cells[0].textContent.trim().localeCompare(b.cells[0].textContent.trim());
+            if (key === 'title-za') return b.cells[0].textContent.trim().localeCompare(a.cells[0].textContent.trim());
+            const na = parseInt(a.cells[2].textContent.trim(), 10) || 0;
+            const nb = parseInt(b.cells[2].textContent.trim(), 10) || 0;
             return key === 'episodes-desc' ? nb - na : na - nb;
         });
         rows.forEach(r => tbody.appendChild(r));
@@ -99,6 +130,36 @@
 
     input.addEventListener('input', applyFilter);
     sort.addEventListener('change', applySort);
+    brand.addEventListener('change', applyFilter);
+    document.querySelectorAll('.series-brand-link').forEach(link => {
+        link.addEventListener('click', function (event) {
+            if (!brand.value) {
+                event.preventDefault();
+                brand.value = link.dataset.brandLink || '';
+                const panel = document.getElementById('rc-series-filters');
+                if (panel) {
+                    panel.classList.add('show');
+                    const btn = document.querySelector('[data-bs-target="#rc-series-filters"]');
+                    if (btn) btn.setAttribute('aria-expanded', 'true');
+                }
+                applyFilter();
+            }
+        });
+    });
+
+    // Pre-filter from URL query param ?brand=<pid>
+    const urlBrand = new URLSearchParams(window.location.search).get('brand');
+    if (urlBrand) {
+        brand.value = urlBrand;
+        // Open the filters panel
+        const panel = document.getElementById('rc-series-filters');
+        if (panel) {
+            panel.classList.add('show');
+            const btn = document.querySelector('[data-bs-target="#rc-series-filters"]');
+            if (btn) btn.setAttribute('aria-expanded', 'true');
+        }
+        applyFilter();
+    }
 }());
 </script>
 {% endblock %}

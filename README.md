@@ -68,6 +68,29 @@ uv sync --group dev
 uv run pytest
 ```
 
+## Benchmarking Search Performance
+
+Use the benchmark helper to compare the classic programme search path with the
+grouped search path used by the UI:
+
+```bash
+# Quick smoke benchmark
+uv run python scripts/benchmark_search.py --query mystery --query drama --iterations 2
+
+# Broader run with defaults (mystery, drama, radio, the)
+uv run python scripts/benchmark_search.py --iterations 5 --warmup 1
+```
+
+Useful options:
+
+- `--db <path>`: benchmark a different SQLite file.
+- `--category <name>`: apply category filtering during the benchmark.
+- `--limit <n>` and `--offset <n>`: mirror page-size behavior.
+- `--sort <order>`: grouped-search ordering (`relevance`, `date-desc`, etc.).
+
+The script prints a table with `avg`, `p50`, `p95`, `min`, and `max` timings in
+milliseconds for each operation/query pair.
+
 ## BBC Programme Identifiers
 
 The BBC API exposes several identifier fields for each programme.  Only the

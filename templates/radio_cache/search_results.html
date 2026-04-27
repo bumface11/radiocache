@@ -3,62 +3,66 @@
 {% block title %}Search: {{ query }} - BBC Radio Drama Cache{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-start mb-3">
-    <div>
-        <h2>
-            {% if query %}
-                Search: "{{ query }}"
-            {% elif category %}
-                Category: {{ category }}
-            {% else %}
-                Recent Programmes
-            {% endif %}
-        </h2>
-        <p class="text-muted mb-0">
-            {{ result_count }} results on this page{% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}
-        </p>
+{% set filter_count = (1 if category else 0) + (1 if brand else 0) + (1 if sort and sort not in ('relevance','date-desc') else 0) %}
+<div class="rc-filter-bar mb-3">
+    <div class="d-flex align-items-start gap-3 mb-2">
+        <div class="flex-grow-1">
+            <h2 class="mb-0">
+                {% if query %}Search: &#8220;{{ query }}&#8221;
+                {% elif category %}Category: {{ category }}
+                {% else %}Recent Programmes{% endif %}
+            </h2>
+            <p class="text-muted mb-0">
+                {{ result_count }} results on this page{% if total_pages > 1 %} &middot; page {{ page }} of {{ total_pages }}{% endif %}
+            </p>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary mt-1" type="button"
+                data-bs-toggle="collapse" data-bs-target="#rc-search-filters"
+                aria-expanded="{{ 'true' if filter_count > 0 else 'false' }}">
+            Filters{% if filter_count > 0 %}&ensp;<span class="badge bg-primary">{{ filter_count }}</span>{% endif %}
+        </button>
     </div>
-    <form action="/search" method="get" class="d-flex gap-2 align-items-end flex-shrink-0">
-        <input type="hidden" name="q" value="{{ query }}">
-        <input type="hidden" name="sort" value="{{ sort }}">
-        <select name="category" class="form-select form-select-sm" onchange="this.form.submit()">
-            <option value="">All categories</option>
-            {% for cat in categories %}
-            <option value="{{ cat.category }}" {% if cat.category == category %}selected{% endif %}>{{ cat.category }} ({{ cat.programme_count }})</option>
-            {% endfor %}
-        </select>
-    </form>
-</div>
-
-<div class="series-list-toolbar mb-3">
-    <div class="series-list-controls">
-        <form action="/search" method="get" class="series-control-group series-control-search">
-            <input type="hidden" name="category" value="{{ category }}">
-            <input type="hidden" name="sort" value="{{ sort }}">
-            <label for="results-search" class="form-label small mb-1">Search</label>
-            <div class="d-flex gap-2 align-items-end">
-                <input type="search" id="results-search" name="q" value="{{ query }}" class="form-control form-control-sm"
-                       placeholder="Search by title or synopsis...">
-                <button type="submit" class="btn btn-sm btn-primary">Search</button>
+    <form id="rc-search-form" action="/search" method="get">
+        <div class="d-flex gap-2 mb-2">
+            <input type="search" name="q" value="{{ query }}" class="form-control form-control-sm"
+                   placeholder="Search by title or synopsis..." aria-label="Search">
+            <button type="submit" class="btn btn-sm btn-primary">Search</button>
+        </div>
+        <div class="collapse {% if filter_count > 0 %}show{% endif %}" id="rc-search-filters">
+            <div class="d-flex flex-wrap gap-3 pb-1">
+                <div class="series-control-group">
+                    <label class="form-label small text-muted mb-1">Sort</label>
+                    <select name="sort" class="form-select form-select-sm rc-auto-submit" style="min-width:11rem">
+                        {% if query %}<option value="relevance" {% if sort == 'relevance' %}selected{% endif %}>Relevance</option>{% endif %}
+                        <option value="title-asc" {% if sort == 'title-asc' %}selected{% endif %}>Title (A&ndash;Z)</option>
+                        <option value="title-desc" {% if sort == 'title-desc' %}selected{% endif %}>Title (Z&ndash;A)</option>
+                        <option value="date-desc" {% if sort == 'date-desc' %}selected{% endif %}>Newest first</option>
+                        <option value="date-asc" {% if sort == 'date-asc' %}selected{% endif %}>Oldest first</option>
+                        <option value="duration-desc" {% if sort == 'duration-desc' %}selected{% endif %}>Longest first</option>
+                        <option value="duration-asc" {% if sort == 'duration-asc' %}selected{% endif %}>Shortest first</option>
+                    </select>
+                </div>
+                <div class="series-control-group">
+                    <label class="form-label small text-muted mb-1">Category</label>
+                    <select name="category" class="form-select form-select-sm rc-auto-submit" style="min-width:11rem">
+                        <option value="">All categories</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.category }}" {% if cat.category == category %}selected{% endif %}>{{ cat.category }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="series-control-group">
+                    <label class="form-label small text-muted mb-1">Brand</label>
+                    <select name="brand" class="form-select form-select-sm rc-auto-submit" style="min-width:11rem">
+                        <option value="">All brands</option>
+                        {% for b in brands %}
+                        <option value="{{ b.brand_pid }}" {% if b.brand_pid == brand %}selected{% endif %}>{{ b.brand_title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
             </div>
-        </form>
-        <form action="/search" method="get" class="series-control-group series-control-sort">
-            <input type="hidden" name="q" value="{{ query }}">
-            <input type="hidden" name="category" value="{{ category }}">
-            <label for="results-sort" class="form-label small mb-1">Sort by</label>
-            <select id="results-sort" name="sort" class="form-select form-select-sm" onchange="this.form.submit()">
-                {% if query %}
-                <option value="relevance" {% if sort == 'relevance' %}selected{% endif %}>Relevance</option>
-                {% endif %}
-                <option value="title-asc" {% if sort == 'title-asc' %}selected{% endif %}>Title (A-Z)</option>
-                <option value="title-desc" {% if sort == 'title-desc' %}selected{% endif %}>Title (Z-A)</option>
-                <option value="date-desc" {% if sort == 'date-desc' %}selected{% endif %}>Newest first</option>
-                <option value="date-asc" {% if sort == 'date-asc' %}selected{% endif %}>Oldest first</option>
-                <option value="duration-desc" {% if sort == 'duration-desc' %}selected{% endif %}>Longest first</option>
-                <option value="duration-asc" {% if sort == 'duration-asc' %}selected{% endif %}>Shortest first</option>
-            </select>
-        </form>
-    </div>
+        </div>
+    </form>
 </div>
 
 {% if series_groups|length > 1 or (series_groups|length == 1 and series_groups[0].series_pid != 'standalone') %}
@@ -77,6 +81,12 @@
                     {% endif %}
                     <span class="badge bg-primary ms-2">{{ series_counts.get(group.series_pid, group.episode_count) }}</span>
                 </button>
+                {% if group.brand_pid %}
+                    <a href="/series?brand={{ group.brand_pid }}"
+                       class="btn btn-sm btn-warning d-flex align-items-center rounded-0 border-start-0 px-3">
+                        {{ group.brand_title }}
+                    </a>
+                {% endif %}
                 {% if group.series_pid != 'standalone' %}
                     <a href="/series/{{ group.series_pid }}"
                        class="btn btn-sm btn-outline-primary d-flex align-items-center rounded-0 rounded-end border-start-0 px-3">
@@ -177,10 +187,15 @@
                             aria-controls="info-search-card-{{ prog.pid }}"
                             title="Show more details">i</button>
                 </div>
-                <div class="d-flex align-items-center gap-1 mb-1 badge-row">
+                <div class="d-flex align-items-center gap-1 mb-1 badge-row flex-wrap">
                 {% if prog.series_title %}
                     <a href="/series/{{ prog.series_pid }}" class="badge bg-info series-badge text-decoration-none">
                         {{ prog.series_title }}
+                    </a>
+                {% endif %}
+                {% if prog.brand_pid %}
+                    <a href="/series?brand={{ prog.brand_pid }}" class="badge bg-warning text-dark text-decoration-none">
+                        {{ prog.brand_title }}
                     </a>
                 {% endif %}
                 <span class="d-flex gap-1 flex-shrink-0">
@@ -255,6 +270,11 @@
 
 {% block scripts %}
 <script>
+    document.querySelectorAll('.rc-auto-submit').forEach(function (el) {
+        el.addEventListener('change', function () {
+            document.getElementById('rc-search-form').submit();
+        });
+    });
     (function () {
         const accordion = document.getElementById('seriesAccordion');
         const showOverlay = window.rcShowLoadingOverlay;
@@ -298,7 +318,8 @@
         });
 
         accordion.querySelectorAll('.accordion-collapse').forEach(collapse => {
-            collapse.addEventListener('show.bs.collapse', function () {
+            collapse.addEventListener('show.bs.collapse', function (event) {
+                if (event.target !== collapse) return;
                 const item = collapse.closest('.accordion-item');
                 const episodeCount = parseInt(item?.dataset.episodeCount || '0', 10);
                 if (episodeCount < LARGE_GROUP_THRESHOLD) {
@@ -307,7 +328,8 @@
                 showOverlay('Opening series', `Rendering ${episodeCount} episodes...`);
             });
 
-            collapse.addEventListener('shown.bs.collapse', function () {
+            collapse.addEventListener('shown.bs.collapse', function (event) {
+                if (event.target !== collapse) return;
                 // Yield to the browser so the massive UI repaints can finish
                 // and become responsive before the overlay is dismissed.
                 requestAnimationFrame(() => {
@@ -317,7 +339,8 @@
                 });
             });
 
-            collapse.addEventListener('hide.bs.collapse', function () {
+            collapse.addEventListener('hide.bs.collapse', function (event) {
+                if (event.target !== collapse) return;
                 hideOverlay();
             });
         });

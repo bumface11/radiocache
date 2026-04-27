@@ -143,6 +143,7 @@ def search_groups_count(
     db: CacheDB,
     query: str,
     category: str = "",
+    brand_pid: str = "",
 ) -> int:
     """Count distinct series groups matching a search query.
 
@@ -162,7 +163,7 @@ def search_groups_count(
     if not stripped:
         return 0
 
-    fts_count = db.search_groups_count(stripped, category=category)
+    fts_count = db.search_groups_count(stripped, category=category, brand_pid=brand_pid)
     if fts_count:
         return fts_count
 
@@ -174,12 +175,16 @@ def search_groups_count(
             " AND ',' || LOWER(categories) || ',' LIKE '%,' || LOWER(?) || ',%'"
         )
         params.append(category)
+    brand_clause = ""
+    if brand_pid:
+        brand_clause = " AND brand_pid = ?"
+        params.append(brand_pid)
     rows = db.query(
         "SELECT COUNT(DISTINCT COALESCE(NULLIF(series_pid, ''), pid)) "
         "FROM programmes "
         "WHERE (title LIKE ? OR synopsis LIKE ? OR series_title LIKE ? "
         "OR brand_title LIKE ? OR categories LIKE ?)"
-        f"{cat_clause}",
+        f"{cat_clause}{brand_clause}",
         tuple(params),
     )
     return int(rows[0][0]) if rows else 0
@@ -192,6 +197,7 @@ def search_by_groups(
     offset: int = 0,
     category: str = "",
     sort: SearchSortOption = "relevance",
+    brand_pid: str = "",
 ) -> list[Programme]:
     """Return matching programmes for a page of series groups.
 
@@ -214,7 +220,7 @@ def search_by_groups(
         return []
 
     results = db.search_by_groups(
-        stripped, limit=limit, offset=offset, category=category, sort=sort
+        stripped, limit=limit, offset=offset, category=category, sort=sort, brand_pid=brand_pid
     )
     if results:
         return results
@@ -228,6 +234,10 @@ def search_by_groups(
             " AND ',' || LOWER(categories) || ',' LIKE '%,' || LOWER(?) || ',%'"
         )
         params.append(category)
+    brand_clause = ""
+    if brand_pid:
+        brand_clause = " AND brand_pid = ?"
+        params.append(brand_pid)
 
     group_order = {
         "relevance": "MAX(first_broadcast) DESC, LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) ASC, grp ASC",
@@ -245,7 +255,7 @@ def search_by_groups(
         "FROM programmes "
         "WHERE (title LIKE ? OR synopsis LIKE ? OR series_title LIKE ? "
         "OR brand_title LIKE ? OR categories LIKE ?)"
-        f"{cat_clause} "
+        f"{cat_clause}{brand_clause} "
         "GROUP BY grp "
         f"ORDER BY {group_order} "
         "LIMIT ? OFFSET ?",
@@ -261,7 +271,7 @@ def search_by_groups(
         "SELECT * FROM programmes "
         "WHERE (title LIKE ? OR synopsis LIKE ? OR series_title LIKE ? "
         "OR brand_title LIKE ? OR categories LIKE ?)"
-        f"{cat_clause} "
+        f"{cat_clause}{brand_clause} "
         f"AND COALESCE(NULLIF(series_pid, ''), pid) IN ({placeholders}) "
         "ORDER BY first_broadcast DESC",
         tuple(episode_params),

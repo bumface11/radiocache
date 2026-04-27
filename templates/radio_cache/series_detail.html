@@ -14,19 +14,17 @@
 </nav>
 
 <h2>{{ series_title }}</h2>
-<p class="text-muted">
+<p class="text-muted mb-1">
     <span id="series-count-label">{{ total_episode_count }} episodes</span>
 </p>
+{% if episodes and episodes[0].brand_pid %}
+<p class="mb-3">
+    <a href="/series?brand={{ episodes[0].brand_pid }}" class="badge bg-warning text-dark text-decoration-none">{{ episodes[0].brand_title }}</a>
+</p>
+{% endif %}
 
-<div class="series-toolbar mb-3">
-    <a href="{{ previous_url }}" class="btn btn-sm btn-outline-secondary">Back</a>
-    <a href="/series" class="btn btn-sm btn-outline-primary">All Series</a>
-    {% if episodes %}
-    <button id="record-all-btn" class="btn btn-sm btn-outline-danger" type="button"
-            data-pids='[{% for ep in episodes %}"{{ ep.pid }}"{% if not loop.last %},{% endif %}{% endfor %}]'
-            title="Queue all episodes in this series for recording">Record series</button>
-    {% endif %}
-    <div class="series-controls ms-auto">
+<div class="series-list-toolbar mb-3">
+    <div class="series-list-controls">
         <div class="series-control-group series-control-search">
             <label for="series-query" class="form-label small text-muted mb-1">Search</label>
             <input id="series-query"
@@ -34,21 +32,27 @@
                    class="form-control form-control-sm"
                    placeholder="Filter this series...">
         </div>
+        <form method="get" action="/series/{{ series_pid }}" id="series-sort-form">
+            <input type="hidden" name="prev" value="{{ previous_url }}">
+            <div class="series-control-group series-control-sort">
+                <label for="sort-select" class="form-label small text-muted mb-1">Sort</label>
+                <select id="sort-select" name="sort" class="form-select form-select-sm">
+                    {% for option in sort_options %}
+                        <option value="{{ option.value }}" {% if sort == option.value %}selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
     </div>
-    <form method="get" action="/series/{{ series_pid }}" class="series-controls">
-        <input type="hidden" name="prev" value="{{ previous_url }}">
-        <div class="series-control-group series-control-sort">
-            <label for="sort-select" class="form-label small text-muted mb-1">Sort</label>
-            <select id="sort-select" name="sort" class="form-select form-select-sm">
-                {% for option in sort_options %}
-                    <option value="{{ option.value }}" {% if sort == option.value %}selected{% endif %}>{{ option.label }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        <div class="series-control-actions">
-            <button type="submit" class="btn btn-sm btn-primary">Apply</button>
-        </div>
-    </form>
+    <div class="d-flex flex-wrap gap-2 mt-2">
+        <a href="{{ previous_url }}" class="btn btn-sm btn-outline-secondary">Back</a>
+        <a href="/series" class="btn btn-sm btn-outline-primary">All Series</a>
+        {% if episodes %}
+        <button id="record-all-btn" class="btn btn-sm btn-outline-danger" type="button"
+                data-pids='[{% for ep in episodes %}"{{ ep.pid }}"{% if not loop.last %},{% endif %}{% endfor %}]'
+                title="Queue all episodes in this series for recording">Record series</button>
+        {% endif %}
+    </div>
 </div>
 
 {% if episodes %}
@@ -142,7 +146,7 @@
         const searchInput = document.getElementById('series-query');
         const seriesCountLabel = document.getElementById('series-count-label');
         const episodeItems = Array.from(document.querySelectorAll('#series-episodes-list .list-group-item'));
-        const sortForm = document.querySelector('form.series-controls');
+        const sortForm = document.getElementById('series-sort-form');
         const sortSelect = document.getElementById('sort-select');
         if (!searchInput || !sortSelect) {
             return;
