@@ -243,10 +243,31 @@ class TestCacheDB:
         assert episodes[0].pid == "has_date"
         assert episodes[1].pid == "no_date"
 
-    def test_list_brands(self, populated_db: CacheDB) -> None:
-        """List brands returns distinct brands."""
-        brands = populated_db.list_brands()
-        assert len(brands) >= 2
+    def test_list_brands(self, db: CacheDB) -> None:
+        """List brands returns only brands with 2+ series each having 2+ episodes."""
+        db.upsert_programmes([
+            # brand_a: two series, each with 2 episodes → qualifies
+            Programme(pid="ba1", title="A", series_pid="sa1", brand_pid="brand_a", brand_title="Brand A"),
+            Programme(pid="ba2", title="A", series_pid="sa1", brand_pid="brand_a", brand_title="Brand A"),
+            Programme(pid="ba3", title="A", series_pid="sa2", brand_pid="brand_a", brand_title="Brand A"),
+            Programme(pid="ba4", title="A", series_pid="sa2", brand_pid="brand_a", brand_title="Brand A"),
+            # brand_b: one series with 2 episodes → excluded (only 1 real series)
+            Programme(pid="bb1", title="B", series_pid="sb1", brand_pid="brand_b", brand_title="Brand B"),
+            Programme(pid="bb2", title="B", series_pid="sb1", brand_pid="brand_b", brand_title="Brand B"),
+            # brand_c: many single-episode series → excluded (no real series)
+            Programme(pid="bc1", title="C", series_pid="sc1", brand_pid="brand_c", brand_title="Brand C"),
+            Programme(pid="bc2", title="C", series_pid="sc2", brand_pid="brand_c", brand_title="Brand C"),
+        ])
+        brands = db.list_brands()
+        assert len(brands) == 1
+        assert brands[0]["brand_pid"] == "brand_a"
+
+    def test_list_all_brands(self, populated_db: CacheDB) -> None:
+        """List all brands returns every brand with a non-empty brand_pid."""
+        brands = populated_db.list_all_brands()
+        pids = {b["brand_pid"] for b in brands}
+        assert "b_archers" in pids
+        assert "b_dracula" in pids
 
     def test_get_brand_series(self, populated_db: CacheDB) -> None:
         """Get brand series returns series within a brand."""

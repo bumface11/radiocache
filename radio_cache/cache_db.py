@@ -650,7 +650,7 @@ class CacheDB:
         ).fetchall()
         return {r["series_pid"]: int(r["episode_count"]) for r in rows}
 
-    def list_brands(self) -> list[dict[str, str | int]]:
+    def list_all_brands(self) -> list[dict[str, str | int]]:
         """List all distinct brands with series and episode counts.
 
         Returns:
@@ -665,6 +665,48 @@ class CacheDB:
             WHERE brand_pid != ''
             GROUP BY brand_pid
             ORDER BY brand_title
+        """
+        rows = self._conn.execute(sql).fetchall()
+        return [
+            {
+                "brand_pid": r["brand_pid"],
+                "brand_title": r["brand_title"],
+                "series_count": r["series_count"],
+                "total_episodes": r["total_episodes"],
+            }
+            for r in rows
+        ]
+
+    def list_brands(self) -> list[dict[str, str | int]]:
+        """List all distinct brands with series and episode counts.
+
+        Returns:
+            List of dicts with ``brand_pid``, ``brand_title``,
+            ``series_count``, and ``total_episodes``.
+        """
+        sql = """
+            WITH real_series AS (
+                SELECT brand_pid, series_pid
+                FROM programmes
+                WHERE brand_pid != '' AND series_pid != ''
+                --and series_pid != brand_pid||'::'||series_title
+                GROUP BY brand_pid, series_pid
+                HAVING COUNT(*) > 1
+            ),
+            qualifying_brands AS (
+                SELECT brand_pid
+                FROM real_series
+                GROUP BY brand_pid
+                HAVING COUNT(*) > 1
+            )
+            SELECT p.brand_pid, p.brand_title,
+                   COUNT(DISTINCT p.series_pid) as series_count,
+                   COUNT(*) as total_episodes
+            FROM programmes p
+            WHERE p.brand_pid != ''
+              AND p.brand_pid IN (SELECT brand_pid FROM qualifying_brands)
+            GROUP BY p.brand_pid
+            ORDER BY p.brand_title
         """
         rows = self._conn.execute(sql).fetchall()
         return [

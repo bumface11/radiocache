@@ -208,6 +208,77 @@ class TestParseProgrammeItem:
         assert prog.brand_title == "Drama on 4"
         assert prog.episode_number == 4
 
+    def test_archers_secondary_title_collapses_to_canonical_series(self) -> None:
+        """Archers brand listings collapse synthetic series to one canonical series."""
+        item = {
+            "urn": "urn:bbc:radio:episode:m002vm56",
+            "titles": {
+                "primary": "The Archers",
+                "secondary": "26/04/2026",
+                "entity_title": "The Archers",
+            },
+            "container": {
+                "type": "brand",
+                "id": "b006qpgr",
+                "title": "The Archers",
+            },
+            "type": "episode",
+        }
+        prog = _parse_programme_item(item)
+        assert prog is not None
+        assert prog.brand_pid == "b006qpgr"
+        assert prog.brand_title == "The Archers"
+        assert prog.series_pid == "b006qpgr"
+        assert prog.series_title == "The Archers"
+
+    def test_date_secondary_title_non_archers_clears_series(self) -> None:
+        """Date-only synthetic labels still clear series for other brands."""
+        item = {
+            "urn": "urn:bbc:radio:episode:m0000001",
+            "titles": {
+                "primary": "Other Brand",
+                "secondary": "26/04/2026",
+                "entity_title": "Other Brand",
+            },
+            "container": {
+                "type": "brand",
+                "id": "b000other",
+                "title": "Other Brand",
+            },
+            "type": "episode",
+        }
+        prog = _parse_programme_item(item)
+        assert prog is not None
+        assert prog.brand_pid == "b000other"
+        assert prog.brand_title == "Other Brand"
+        assert prog.series_pid == ""
+        assert prog.series_title == ""
+
+    def test_self_titled_synthetic_series_collapses_to_brand_series(self) -> None:
+        """Synthetic brand::series rows where title == series_title collapse."""
+        item = {
+            "urn": "urn:bbc:radio:episode:m0000002",
+            "titles": {
+                "primary": "Generic Brand",
+                "secondary": "One-off Headline",
+                "tertiary": "One-off Headline",
+                "entity_title": "One-off Headline",
+            },
+            "container": {
+                "type": "brand",
+                "id": "b000generic",
+                "title": "Generic Brand",
+            },
+            "type": "episode",
+        }
+        prog = _parse_programme_item(item)
+        assert prog is not None
+        assert prog.brand_pid == "b000generic"
+        assert prog.brand_title == "Generic Brand"
+        assert prog.title == "One-off Headline"
+        assert prog.series_pid == "b000generic"
+        assert prog.series_title == "Generic Brand"
+
 
 class TestFetchDramaProgrammes:
     """Tests for fetch_drama_programmes."""

@@ -369,8 +369,9 @@ async def search_page(
         series_counts = db.get_series_episode_counts(
             [prog.series_pid for prog in programmes]
         )
-        brands_list = db.list_brands()
+        brands_list = db.list_all_brands()
 
+    valid_brand_pids = {b["brand_pid"] for b in brands_list}
     total_pages = max(1, -(-total_count // per_page))  # ceil division
     series_groups = group_by_series(
         programmes,
@@ -399,6 +400,7 @@ async def search_page(
             "series_counts": series_counts,
             "brand": brand,
             "brands": brands_list,
+            "valid_brand_pids": valid_brand_pids,
         },
     )
 
@@ -416,11 +418,18 @@ async def series_list(request: Request) -> HTMLResponse:
     with _get_db() as db:
         series = db.list_series()
         stats = db.stats()
-        brands_list = db.list_brands()
+        brands_list = db.list_all_brands()
+    valid_brand_pids = {b["brand_pid"] for b in brands_list}
     return templates.TemplateResponse(
         request,
         "series_list.html",
-        {"request": request, "series": series, "stats": stats, "brands": brands_list},
+        {
+            "request": request,
+            "series": series,
+            "stats": stats,
+            "brands": brands_list,
+            "valid_brand_pids": valid_brand_pids,
+        },
     )
 
 
@@ -447,6 +456,8 @@ async def series_detail(
         total_episode_count = db.get_series_episode_counts([series_pid]).get(
             series_pid, len(all_episodes)
         )
+        brands_list = db.list_all_brands()
+    valid_brand_pids = {b["brand_pid"] for b in brands_list}
     series_title = all_episodes[0].series_title if all_episodes else series_pid
     episodes = all_episodes
     episodes = _sort_episodes(episodes, sort)
@@ -485,6 +496,7 @@ async def series_detail(
             "sort_options": sort_options,
             "previous_url": previous_url,
             "stats": stats,
+            "valid_brand_pids": valid_brand_pids,
         },
     )
 
@@ -500,7 +512,7 @@ async def brand_list(request: Request) -> HTMLResponse:
         Rendered HTML page listing all brands.
     """
     with _get_db() as db:
-        brands = db.list_brands()
+        brands = db.list_all_brands()
         stats = db.stats()
     return templates.TemplateResponse(
         request,

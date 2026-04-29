@@ -60,7 +60,7 @@
                     <a href="/series/{{ s.series_pid }}" data-filter-text>{{ s.series_title or s.series_pid }}</a>
                 </td>
                 <td class="small" data-filter-text>
-                    {% if s.brand_pid %}
+                    {% if s.brand_pid and s.brand_pid in valid_brand_pids %}
                     <a href="/series?brand={{ s.brand_pid }}" class="badge bg-warning text-dark text-decoration-none series-brand-link" data-brand-link="{{ s.brand_pid }}">{{ s.brand_title }}</a>
                     {% endif %}
                 </td>

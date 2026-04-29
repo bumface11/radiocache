@@ -81,7 +81,7 @@
                     {% endif %}
                     <span class="badge bg-primary ms-2">{{ series_counts.get(group.series_pid, group.episode_count) }}</span>
                 </button>
-                {% if group.brand_pid %}
+                {% if group.brand_pid and group.brand_pid in valid_brand_pids %}
                     <a href="/series?brand={{ group.brand_pid }}"
                        class="btn btn-sm btn-warning d-flex align-items-center rounded-0 border-start-0 px-3">
                         {{ group.brand_title }}

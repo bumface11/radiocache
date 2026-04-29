@@ -30,6 +30,7 @@ from __future__ import annotations
 import dataclasses
 import json
 import logging
+import re
 import time
 import urllib.error
 import urllib.request
@@ -38,6 +39,20 @@ from typing import Final
 from radio_cache.models import Programme, programme_sounds_url
 
 logger = logging.getLogger(__name__)
+
+# Matches BBC date-only secondary titles such as "26/04/2026" that the BBC
+# uses as episode labels on daily-episode programmes (e.g. The Archers).
+# These are not real series names and must not be used as synthetic series keys.
+_DATE_SECONDARY_TITLE_RE: re.Pattern[str] = re.compile(
+    r"^\d{1,2}/\d{1,2}/\d{4}$"
+)
+
+# For these brands, playable-listing synthetic brand::... series should be
+# collapsed into one canonical series (series_pid == brand_pid).
+_COLLAPSE_SYNTHETIC_SERIES_BRAND_PIDS: Final[set[str]] = {
+    "b006qpgr",  # The Archers
+    "b006qnkc",  # The Archers Omnibus
+}
 
 _BBC_PLAYABLE_API: Final[str] = (
     "https://rms.api.bbc.co.uk/v2/programmes/playable"
@@ -189,9 +204,33 @@ def _parse_programme_item(item: dict) -> Programme | None:
         # No miniseries PID is available so we derive a stable synthetic key.
         brand_pid = series_pid
         brand_title = series_title
-        series_title = secondary_title
-        series_pid = f"{brand_pid}::{secondary_title}"
         full_title = tertiary_title or entity_title or full_title
+        if brand_pid in _COLLAPSE_SYNTHETIC_SERIES_BRAND_PIDS:
+            # Known daily-episode brands should remain as one canonical series
+            # rather than one synthetic series per listing headline.
+            series_pid = brand_pid
+            series_title = brand_title
+        elif _DATE_SECONDARY_TITLE_RE.match(secondary_title):
+            # Date-only label (e.g. "26/04/2026" on The Archers daily episodes).
+            # There is no real series here; keep the episode directly under the
+            # brand with no series assignment.
+            series_pid = ""
+            series_title = ""
+        else:
+            series_title = secondary_title
+            series_pid = f"{brand_pid}::{secondary_title}"
+
+    if (
+        brand_pid
+        and series_title
+        and series_pid == f"{brand_pid}::{series_title}"
+        and full_title == series_title
+    ):
+        # Synthetic brand::series rows where episode title equals the synthetic
+        # series title represent one-off brand episodes, not true series.
+        # Canonicalize to one brand-level series.
+        series_pid = brand_pid
+        series_title = brand_title or series_title
 
     network = item.get("network") or {}
     channel = network.get("short_title") or network.get("id") or ""

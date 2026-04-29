@@ -17,7 +17,7 @@
 <p class="text-muted mb-1">
     <span id="series-count-label">{{ total_episode_count }} episodes</span>
 </p>
-{% if episodes and episodes[0].brand_pid %}
+{% if episodes and episodes[0].brand_pid and episodes[0].brand_pid in valid_brand_pids %}
 <p class="mb-3">
     <a href="/series?brand={{ episodes[0].brand_pid }}" class="badge bg-warning text-dark text-decoration-none">{{ episodes[0].brand_title }}</a>
 </p>
