@@ -11,3 +11,6 @@ radio_cache_export.json
 radio_cache_export.json.zip
 *.db-journal
 recordings/
+radio_cache.db-shm
+radio_cache.db-wal
+radio_cache.db.bak
