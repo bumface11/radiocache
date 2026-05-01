@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=82.0.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,17 +8,17 @@ version = "0.1.0"
 description = "Cloud-hostable cache of BBC Radio drama programme metadata with search"
 requires-python = ">=3.11"
 dependencies = [
-    "fastapi>=0.115",
+    "fastapi>=0.136.1",
     "jinja2>=3.1",
-    "uvicorn[standard]>=0.34",
+    "uvicorn[standard]>=0.46.0",
 ]
 
 [dependency-groups]
 dev = [
     "httpx>=0.27",
-    "mypy>=1.11",
-    "pytest>=8.0",
-    "ruff>=0.11",
+    "mypy>=1.20.2",
+    "pytest>=9.0.3",
+    "ruff>=0.15.12",
 ]
 
 [tool.setuptools.packages.find]
