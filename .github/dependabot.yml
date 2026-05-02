@@ -10,17 +10,8 @@ updates:
         patterns:
           - "*"
 
-  # Keeps pyproject.toml version constraints current.
-  # The update-dependencies workflow handles uv.lock upgrades;
-  # this catches cases where a minimum version bound itself needs raising.
-  - package-ecosystem: "uv"
-    directory: "/"
-    schedule:
-      interval: "monthly"
-    groups:
-      python-deps:
-        patterns:
-          - "*"
+  # Python (uv) dependencies are managed by the Renovate GitHub App.
+  # See renovate.json and .github/RENOVATE.md for configuration details.
 
   - package-ecosystem: docker
     directory: /

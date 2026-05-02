@@ -107,6 +107,21 @@ This project extracts the episode PID from the `urn` field, following the same
 approach used by other BBC Sounds clients such as
 [auntie-sounds](https://github.com/kieranhogg/auntie-sounds).
 
+## Dependency Updates
+
+Python dependencies (`pyproject.toml` + `uv.lock`) are kept current by the
+[Renovate GitHub App](https://github.com/apps/renovate).  Renovate opens a
+single grouped PR on the first of each month, running `uv lock --upgrade` and
+committing the updated lock file.  Packages released within the last 14 days are
+excluded to avoid cutting-edge instability.
+
+> **Note for maintainers:** the Renovate App must be installed and granted access
+> to this repository.  See [`.github/RENOVATE.md`](.github/RENOVATE.md) for full
+> setup instructions and configuration details.
+
+GitHub Actions and Docker base-image versions continue to be managed by
+**Dependabot** (see [`.github/dependabot.yml`](.github/dependabot.yml)).
+
 ## Project Structure
 
 - `radio_cache/` -- core Python package (models, database, parser, search)
@@ -115,6 +130,8 @@ approach used by other BBC Sounds clients such as
 - `static/radio_cache/` -- CSS styles
 - `tests/` -- unit tests (61 tests)
 - `.github/workflows/refresh-radio-cache.yml` -- daily cache refresh and SQLite snapshot publishing
+- `renovate.json` -- Renovate configuration for monthly Python dependency update PRs
+- `.github/RENOVATE.md` -- Renovate setup and configuration documentation
 
 ## Deployment Bootstrap
 
