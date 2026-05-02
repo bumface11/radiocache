@@ -1,147 +1,61 @@
-name: Update Python Dependencies
+name: Update Python Dependencies (RETIRED)
 
-# Runs on the first Monday of each month and upgrades all locked packages,
-# excluding anything released in the last 14 days (matching the spirit of
-# the VS Code "Update Dependencies" task).  Opens a PR when uv.lock changes.
+# ⚠️  This workflow has been retired in favour of the Renovate GitHub App.
+#
+# Renovate is now responsible for opening monthly dependency-update PRs.
+# It runs `uv lock --upgrade`, commits uv.lock, and opens a single grouped PR
+# on the first of each month — matching the intent of the original workflow.
+#
+# See renovate.json at the repo root and .github/RENOVATE.md for details.
+# To re-enable Renovate, install the app at https://github.com/apps/renovate
+# and ensure it has access to this repository.
+#
+# This workflow is intentionally disabled (no schedule trigger).
+# The workflow_dispatch trigger is retained so the lock-file upgrade step
+# can still be run manually on demand without creating a PR.
 
 on:
-  schedule:
-    - cron: "0 9 1-7 * 1"  # First Monday of each month at 09:00 UTC
+  # schedule deliberately removed — Renovate handles the periodic PR
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — upgrade lock file locally but do not commit or push"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
 
 permissions:
-  contents: write
-  pull-requests: write
+  contents: read
 
 jobs:
   update:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v8.1.0
+        uses: astral-sh/setup-uv@v5
 
       - name: Upgrade locked dependencies
         # Excludes packages released in the last 14 days to avoid
-        # cutting-edge instability — mirrors the local VS Code task.
+        # cutting-edge instability — mirrors the original workflow intent.
         run: |
           CUTOFF=$(date -d '14 days ago' --utc +'%Y-%m-%dT%H:%M:%SZ')
           uv lock --upgrade --exclude-newer "$CUTOFF"
 
-      - name: Check for changes
-        id: changes
+      - name: Show changed packages (dry run)
         run: |
           if git diff --quiet uv.lock; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No package changes found — skipping PR."
+            echo "No package changes found."
           else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "### Changed packages (uv.lock diff summary):"
+            git diff uv.lock | grep '^[+-].*version' | head -60
           fi
 
-      - name: Summarise changed packages
-        if: steps.changes.outputs.changed == 'true'
-        id: diff
+      - name: Note about PR creation
         run: |
-          python3 - <<'PYEOF'
-          import re, subprocess, os
-
-          before = subprocess.run(
-              ['git', 'show', 'HEAD:uv.lock'], capture_output=True, text=True
-          ).stdout
-          with open('uv.lock') as f:
-              after = f.read()
-
-          def parse_packages(text):
-              packages = {}
-              for block in re.split(r'\n\[\[package\]\]', text):
-                  name_m = re.search(r'name = "([^"]+)"', block)
-                  ver_m  = re.search(r'version = "([^"]+)"', block)
-                  if name_m and ver_m:
-                      packages[name_m.group(1)] = ver_m.group(1)
-              return packages
-
-          old = parse_packages(before)
-          new = parse_packages(after)
-
-          rows = []
-          for pkg in sorted(set(old) | set(new)):
-              ov = old.get(pkg, '*(new)*')
-              nv = new.get(pkg, '*(removed)*')
-              if ov != nv:
-                  rows.append(f'| `{pkg}` | {ov} | {nv} |')
-
-          if rows:
-              table = (
-                  '| Package | Old version | New version |\n'
-                  '| --- | --- | --- |\n'
-              ) + '\n'.join(rows)
-          else:
-              table = '*(Lock file metadata updated — no package version changes)*'
-
-          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
-              fh.write('table<<EOF\n')
-              fh.write(table + '\n')
-              fh.write('EOF\n')
-          PYEOF
-
-      - name: Create pull request
-        if: steps.changes.outputs.changed == 'true'
-        uses: peter-evans/create-pull-request@v7
-        with:
-          commit-message: "chore: upgrade Python dependencies"
-          branch: chore/update-dependencies
-          delete-branch: true
-          title: "chore: update Python dependencies"
-          labels: dependencies
-          body: |
-            ## Python dependency update
-
-            `uv lock --upgrade` found newer package versions (packages released within the
-            last 14 days are excluded to avoid cutting-edge instability).
-
-            Merging this PR will trigger the **Deploy to Cloud Run** workflow, which runs
-            the test suite and then builds a fresh Docker image and redeploys the service.
-
-            ### Changed packages
-
-            ${{ steps.diff.outputs.table }}
-
-            ---
-
-            ### Architecture reminder
-
-            This is a **FastAPI web application** that caches BBC Radio Drama programme
-            metadata from BBC Sounds and serves it via a search UI and REST API.
-
-            ```
-            BBC Sounds API
-                │  fetched daily by GitHub Actions (refresh-radio-cache.yml)
-                ▼
-            SQLite database  ──►  compressed snapshot  ──►  GitHub Release (cache-latest)
-                │                                                    │
-                │  (downloaded on container startup)  ◄──────────────┘
-                ▼
-            FastAPI app  (radio_cache_api.py)
-                │  Docker image built by Cloud Build
-                ▼
-            Google Cloud Run  (radiodrama project, europe-west2)
-            ```
-
-            | Dependency group | What it affects |
-            | --- | --- |
-            | `fastapi`, `uvicorn` | HTTP routing, middleware, OpenAPI schema, ASGI server. Breaking changes may affect route signatures or response-model serialisation. |
-            | `jinja2` | Server-rendered HTML templates (`templates/radio_cache/*.html`). Rare breaking changes, but check the template API if this bumps a major version. |
-            | `pytest`, `httpx` | Test suite (`tests/`). `httpx` is used by FastAPI's `TestClient` for integration tests. |
-            | `ruff` | Linter/formatter — a new version may flag additional style issues and fail CI. |
-            | `mypy` | Static type checker — new versions may surface previously-undetected type errors. |
-
-            The Docker image (`Dockerfile`) installs exactly the versions pinned in
-            `uv.lock` via `uv sync --frozen`, so updating the lock file is all that is
-            needed to change what ships to production.
-
-            ### Before merging
-
-            - [ ] CI tests pass (runs automatically on this PR)
-            - [ ] Review any major-version bumps against their changelogs for breaking changes
-            - [ ] If `fastapi` or `jinja2` bumped a major version, verify template rendering and API responses still work locally
+          echo "ℹ️  PR creation is handled by the Renovate GitHub App, not this workflow."
+          echo "   See renovate.json and .github/RENOVATE.md for configuration details."

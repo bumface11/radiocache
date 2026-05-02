@@ -1,0 +1,16 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "assignees": ["bumface11"],
+  "postUpdateOptions": ["uvLockfile"],
+  "packageRules": [
+    {
+      "description": "Group all Python (uv) dependency updates into a single monthly PR, mirroring the retired update-dependencies workflow. Packages released within the last 14 days are excluded to avoid cutting-edge instability.",
+      "matchManagers": ["uv"],
+      "groupName": "Python dependencies",
+      "schedule": ["on the first day of the month"],
+      "minimumReleaseAge": "14 days"
+    }
+  ]
+}
