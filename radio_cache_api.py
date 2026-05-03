@@ -44,6 +44,7 @@ from radio_cache.search import (
     search_by_groups,
     search_groups_count,
     search_programmes,
+    search_programmes_count,
     sort_programmes,
 )
 
@@ -332,22 +333,20 @@ async def search_page(
     Returns:
         Rendered HTML with search results.
     """
-    per_page = 10
+    per_page = 50
     offset = (page - 1) * per_page
     resolved_sort = normalise_search_sort(sort, has_query=bool(q))
 
     with _get_db() as db:
         if q:
-            programmes = search_by_groups(
+            programmes = search_programmes(
                 db,
                 q,
                 limit=per_page,
                 offset=offset,
                 category=category,
-                sort=resolved_sort,
-                brand_pid=brand,
             )
-            total_count = search_groups_count(db, q, category=category, brand_pid=brand)
+            total_count = search_programmes_count(db, q, category=category)
         elif category:
             programmes = category_programmes_by_groups(
                 db,
@@ -380,7 +379,7 @@ async def search_page(
     )
     if not (q or category):
         programmes = sort_programmes(programmes, resolved_sort)
-    result_count = len(series_groups) if (q or category) else len(programmes)
+    result_count = len(programmes)
     return templates.TemplateResponse(
         request,
         "search_results.html",
@@ -461,6 +460,12 @@ async def series_detail(
     series_title = all_episodes[0].series_title if all_episodes else series_pid
     episodes = all_episodes
     episodes = _sort_episodes(episodes, sort)
+    if q:
+        q_lower = q.lower()
+        episodes = [
+            ep for ep in episodes
+            if q_lower in ep.title.lower() or q_lower in ep.synopsis.lower()
+        ]
     if prev.startswith("/") and not prev.startswith("//"):
         previous_url = prev
     else:
@@ -492,6 +497,7 @@ async def series_detail(
             "series_title": series_title,
             "episodes": episodes,
             "total_episode_count": total_episode_count,
+            "q": q,
             "sort": sort,
             "sort_options": sort_options,
             "previous_url": previous_url,
