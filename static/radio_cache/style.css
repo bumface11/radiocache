@@ -239,6 +239,26 @@ h1,h2,h3,h4,h5,h6 { font-weight: 600; }
     min-width: 0;    /* allow the flex container itself to shrink */
     overflow: hidden;
 }
+.title-badge {
+    font-size: .68rem;
+    display: inline-block;
+    min-width: 0;
+    flex: 1 1 0%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.title-badge {
+    font-size: .68rem;
+    display: inline-block;
+    min-width: 0;
+    flex: 1 1 0%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
 .series-badge {
     font-size: .68rem;
     display: inline-block;
@@ -725,6 +745,26 @@ a:hover {
 .programme-card .badge-row {
     min-width: 0;    /* allow the flex container itself to shrink */
     overflow: hidden;
+}
+.title-badge {
+    font-size: .68rem;
+    display: inline-block;
+    min-width: 0;
+    flex: 1 1 0%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+.title-badge {
+    font-size: .68rem;
+    display: inline-block;
+    min-width: 0;
+    flex: 1 1 0%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
 }
 .series-badge {
     font-size: .68rem;
