@@ -1085,7 +1085,9 @@ class CacheDB:
         )
 
         def _field(value: str | None) -> str:
-            return (value or "").replace("|", "-")
+            if not value:
+                return ""
+            return " ".join(value.replace("|", "-").splitlines())
 
         def _ts(iso: str | None) -> str:
             if not iso:
