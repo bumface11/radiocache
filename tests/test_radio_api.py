@@ -130,8 +130,7 @@ class TestSeriesTotalsOnPages:
             with TestClient(app) as client:
                 search_resp = client.get("/search", params={"q": "Big Serial"})
                 assert search_resp.status_code == 200
-                assert "50 results on this page" in search_resp.text
-                assert "page 1 of 2" in search_resp.text
+                assert "20 results on this page" in search_resp.text
                 assert "Big Serial" in search_resp.text
                 assert ">60<" in search_resp.text
 

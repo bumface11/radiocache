@@ -96,7 +96,7 @@
             </div>
         </h2>
         <div id="series-{{ loop.index }}"
-             class="accordion-collapse collapse {% if group.episodes|length >= 40 %}rc-collapse-fast{% endif %}">
+             class="accordion-collapse collapse">
             <div class="accordion-body p-0">
                 <div class="list-group list-group-flush">
                     {% for ep in group.episodes[:20] %}
@@ -155,12 +155,14 @@
                         </div>
                     </div>
                     {% endfor %}
-                    {% if group.episodes|length > 20 %}
+                    {% set true_count = series_counts.get(group.series_pid, group.episode_count) %}
+                    {% if true_count > 20 %}
                     <div class="list-group-item text-center py-3 bg-light border-top-0" style="background: rgba(255,255,255,.01) !important;">
                         <span class="text-muted small">Showing first 20 episodes.</span>
                         {% if group.series_pid != 'standalone' %}
-                        <a href="/series/{{ group.series_pid }}" class="btn btn-sm btn-outline-primary mt-1 ms-2">
-                            View all {{ group.episodes|length }} episodes
+                        {% set qs = ('?q=' ~ query|urlencode) if query else ('?category=' ~ category|urlencode if category else '') %}
+                        <a href="/series/{{ group.series_pid }}{{ qs }}" class="btn btn-sm btn-outline-primary mt-1 ms-2">
+                            View all {{ true_count }} episodes
                         </a>
                         {% endif %}
                     </div>
@@ -275,75 +277,5 @@
             document.getElementById('rc-search-form').submit();
         });
     });
-    (function () {
-        const accordion = document.getElementById('seriesAccordion');
-        const showOverlay = window.rcShowLoadingOverlay;
-        const hideOverlay = window.rcHideLoadingOverlay;
-        if (!accordion || typeof showOverlay !== 'function' || typeof hideOverlay !== 'function') {
-            return;
-        }
-
-        const LARGE_GROUP_THRESHOLD = 40;
-
-        accordion.querySelectorAll('.accordion-button').forEach(button => {
-            button.addEventListener('click', function (event) {
-                if (!button.classList.contains('collapsed')) {
-                    return;
-                }
-
-                const item = button.closest('.accordion-item');
-                const episodeCount = parseInt(item?.dataset.episodeCount || '0', 10);
-                if (episodeCount < LARGE_GROUP_THRESHOLD || button.dataset.loadingIntercepted === '1') {
-                    return;
-                }
-
-                const targetSelector = button.getAttribute('data-bs-target');
-                const collapse = targetSelector ? document.querySelector(targetSelector) : null;
-                if (!(collapse instanceof HTMLElement)) {
-                    return;
-                }
-
-                event.preventDefault();
-                event.stopPropagation();
-                button.dataset.loadingIntercepted = '1';
-                showOverlay('Opening series', `Rendering ${episodeCount} episodes...`);
-
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        bootstrap.Collapse.getOrCreateInstance(collapse, {toggle: false}).show();
-                        delete button.dataset.loadingIntercepted;
-                    });
-                });
-            }, true);
-        });
-
-        accordion.querySelectorAll('.accordion-collapse').forEach(collapse => {
-            collapse.addEventListener('show.bs.collapse', function (event) {
-                if (event.target !== collapse) return;
-                const item = collapse.closest('.accordion-item');
-                const episodeCount = parseInt(item?.dataset.episodeCount || '0', 10);
-                if (episodeCount < LARGE_GROUP_THRESHOLD) {
-                    return;
-                }
-                showOverlay('Opening series', `Rendering ${episodeCount} episodes...`);
-            });
-
-            collapse.addEventListener('shown.bs.collapse', function (event) {
-                if (event.target !== collapse) return;
-                // Yield to the browser so the massive UI repaints can finish
-                // and become responsive before the overlay is dismissed.
-                requestAnimationFrame(() => {
-                    setTimeout(() => {
-                        hideOverlay();
-                    }, 50);
-                });
-            });
-
-            collapse.addEventListener('hide.bs.collapse', function (event) {
-                if (event.target !== collapse) return;
-                hideOverlay();
-            });
-        });
-    }());
 </script>
 {% endblock %}

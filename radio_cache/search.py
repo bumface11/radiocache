@@ -11,7 +11,7 @@ from collections import defaultdict
 from datetime import UTC
 from typing import Literal
 
-from radio_cache.cache_db import CacheDB
+from radio_cache.cache_db import CacheDB, _sanitise_fts_query
 from radio_cache.models import BrandGroup, Programme, SeriesGroup
 
 SearchSortOption = Literal[
@@ -41,6 +41,72 @@ def normalise_search_sort(sort: str, *, has_query: bool) -> SearchSortOption:
         return "date-desc"
     return chosen  # type: ignore[return-value]
 
+
+def search_programmes_series_counts(
+    db: CacheDB,
+    query: str,
+    category: str = "",
+) -> dict[str, int]:
+    """Get the matching episode counts for each series for a search.
+    
+    Args:
+        db: Open cache database.
+        query: User search string.
+        category: Optional category tag to filter results.
+        
+    Returns:
+        Dictionary mapping series_pid to matching episode count.
+    """
+    stripped = query.strip()
+    if not stripped:
+        return {}
+
+    safe_query = _sanitise_fts_query(stripped)
+    
+    if safe_query:
+        if category:
+            sql = """
+                SELECT p.series_pid, COUNT(*) as count 
+                FROM programmes p
+                JOIN programmes_fts fts ON p.rowid = fts.rowid
+                WHERE programmes_fts MATCH :query
+                AND ',' || LOWER(p.categories) || ',' LIKE '%,' || LOWER(:category) || ',%'
+                GROUP BY p.series_pid
+            """
+            rows = db._conn.execute(
+                sql,
+                {"query": safe_query, "category": category},
+            ).fetchall()
+        else:
+            sql = """
+                SELECT p.series_pid, COUNT(*) as count 
+                FROM programmes p
+                JOIN programmes_fts fts ON p.rowid = fts.rowid
+                WHERE programmes_fts MATCH :query
+                GROUP BY p.series_pid
+            """
+            rows = db._conn.execute(sql, {"query": safe_query}).fetchall()
+        
+        if rows:
+            return {r["series_pid"] or "standalone": r["count"] for r in rows}
+
+    # Fallback for likes
+    pattern = f"%{stripped}%"
+    cat_clause = ""
+    params: list[object] = [pattern, pattern, pattern, pattern, pattern]
+    if category:
+        cat_clause = " AND ',' || LOWER(categories) || ',' LIKE '%,' || LOWER(?) || ',%'"
+        params.append(category)
+        
+    rows = db.query(
+        "SELECT series_pid, COUNT(*) as count FROM programmes "
+        "WHERE (title LIKE ? OR synopsis LIKE ? OR series_title LIKE ? "
+        "OR brand_title LIKE ? OR categories LIKE ?)"
+        f"{cat_clause} "
+        "GROUP BY series_pid",
+        tuple(params),
+    )
+    return {r["series_pid"] or "standalone": r["count"] for r in rows}
 
 def search_programmes_count(
     db: CacheDB,
@@ -203,7 +269,7 @@ def search_by_groups(
 
     Uses the same FTS-first, LIKE-fallback strategy as
     :func:`search_programmes`.  The caller receives all matching episodes
-    belonging to the *limit* groups at the requested *offset*.
+    belonging to the *limit* groups at the requested *offset*, capped at 20.
 
     Args:
         db: Open cache database.
@@ -223,7 +289,16 @@ def search_by_groups(
         stripped, limit=limit, offset=offset, category=category, sort=sort, brand_pid=brand_pid
     )
     if results:
-        return results
+        # Cap to 20 per group to match visual display logic and improve memory use
+        capped: list[Programme] = []
+        from collections import defaultdict
+        group_counts = defaultdict(int)
+        for p in results:
+            grp = p.series_pid or p.pid
+            if group_counts[grp] < 20:
+                capped.append(p)
+                group_counts[grp] += 1
+        return capped
 
     # LIKE fallback ──────────────────────────────────────────────────
     pattern = f"%{stripped}%"
@@ -278,7 +353,16 @@ def search_by_groups(
     )
     from radio_cache.cache_db import _row_to_programme
 
-    return [_row_to_programme(r) for r in rows]
+    programmes = [_row_to_programme(r) for r in rows]
+    capped: list[Programme] = []
+    from collections import defaultdict
+    group_counts = defaultdict(int)
+    for p in programmes:
+        grp = p.series_pid or p.pid
+        if group_counts[grp] < 20:
+            capped.append(p)
+            group_counts[grp] += 1
+    return capped
 
 
 def category_groups_count(db: CacheDB, category: str) -> int:
@@ -318,9 +402,18 @@ def category_programmes_by_groups(
     stripped = category.strip()
     if not stripped:
         return []
-    return db.programme_groups_by_category(
+    results = db.programme_groups_by_category(
         stripped, limit=limit, offset=offset, sort=sort
     )
+    from collections import defaultdict
+    group_counts = defaultdict(int)
+    capped: list[Programme] = []
+    for p in results:
+        grp = p.series_pid or p.pid
+        if group_counts[grp] < 20:
+            capped.append(p)
+            group_counts[grp] += 1
+    return capped
 
 
 def sort_programmes(

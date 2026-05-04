@@ -45,6 +45,7 @@ from radio_cache.search import (
     search_groups_count,
     search_programmes,
     search_programmes_count,
+    search_programmes_series_counts,
     sort_programmes,
 )
 
@@ -339,14 +340,16 @@ async def search_page(
 
     with _get_db() as db:
         if q:
-            programmes = search_programmes(
+            programmes = search_by_groups(
                 db,
                 q,
                 limit=per_page,
                 offset=offset,
                 category=category,
+                sort=resolved_sort,
             )
-            total_count = search_programmes_count(db, q, category=category)
+            total_count = search_groups_count(db, q, category=category)
+            series_counts = search_programmes_series_counts(db, q, category=category)
         elif category:
             programmes = category_programmes_by_groups(
                 db,
@@ -356,6 +359,8 @@ async def search_page(
                 sort=resolved_sort,
             )
             total_count = category_groups_count(db, category)
+            # Find the total matches per series in the category
+            series_counts = search_programmes_series_counts(db, "", category=category)
         else:
             programmes = db.programmes_page(
                 limit=per_page,
@@ -363,11 +368,11 @@ async def search_page(
                 sort=resolved_sort,
             )
             total_count = db.programme_count()
+            series_counts = db.get_series_episode_counts(
+                [prog.series_pid for prog in programmes]
+            )
         stats = db.stats()
         categories_list = db.list_categories()
-        series_counts = db.get_series_episode_counts(
-            [prog.series_pid for prog in programmes]
-        )
         brands_list = db.list_all_brands()
 
     valid_brand_pids = {b["brand_pid"] for b in brands_list}
