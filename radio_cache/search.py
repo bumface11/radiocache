@@ -19,6 +19,7 @@ SearchSortOption = Literal[
     "title-asc",
     "title-desc",
     "date-desc",
+    "published-desc",
     "date-asc",
     "duration-desc",
     "duration-asc",
@@ -32,6 +33,7 @@ def normalise_search_sort(sort: str, *, has_query: bool) -> SearchSortOption:
         "title-asc",
         "title-desc",
         "date-desc",
+        "published-desc",
         "date-asc",
         "duration-desc",
         "duration-asc",
@@ -319,6 +321,7 @@ def search_by_groups(
         "title-asc": "LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) ASC, grp ASC",
         "title-desc": "LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) DESC, grp DESC",
         "date-desc": "MAX(first_broadcast) DESC, LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) ASC, grp ASC",
+        "published-desc": "MAX(first_broadcast) DESC, LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) ASC, grp ASC",
         "date-asc": "COALESCE(MIN(NULLIF(first_broadcast, '')), '9999-99-99T99:99:99Z') ASC, LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) ASC, grp ASC",
         "duration-desc": "MAX(duration_secs) DESC, LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) ASC, grp ASC",
         "duration-asc": "MIN(duration_secs) ASC, LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) ASC, grp ASC",
@@ -439,6 +442,8 @@ def sort_programmes(
                 p.pid,
             ),
         )
+    if sort in {"relevance", "date-desc", "published-desc"}:
+        return _sort_newest_first_with_title_ties(programmes)
     if sort == "duration-desc":
         return sorted(
             programmes,
@@ -449,11 +454,19 @@ def sort_programmes(
             programmes,
             key=lambda p: (p.duration_secs, p.title.casefold(), p.pid),
         )
-    return sorted(
-        programmes,
-        key=lambda p: (p.first_broadcast or "", p.title.casefold(), p.pid),
-        reverse=True,
-    )
+    return _sort_newest_first_with_title_ties(programmes)
+
+
+def _sort_newest_first_with_title_ties(
+    programmes: list[Programme],
+) -> list[Programme]:
+    """Sort newest-first while keeping title/pid tie-breakers ascending.
+
+    ``relevance``, ``date-desc``, and ``published-desc`` intentionally share
+    this order for server-side sorting.
+    """
+    tie_sorted = sorted(programmes, key=lambda p: (p.title.casefold(), p.pid))
+    return sorted(tie_sorted, key=lambda p: p.first_broadcast or "", reverse=True)
 
 
 def group_by_series(
@@ -503,12 +516,8 @@ def group_by_series(
                 key=lambda p: (p.title.casefold(), p.pid),
                 reverse=True,
             )
-        elif sort == "date-desc":
-            eps_sorted = sorted(
-                eps,
-                key=lambda p: (p.first_broadcast or "", p.title.casefold(), p.pid),
-                reverse=True,
-            )
+        elif sort in {"date-desc", "published-desc"}:
+            eps_sorted = _sort_newest_first_with_title_ties(eps)
         elif sort == "date-asc":
             eps_sorted = sorted(
                 eps,
