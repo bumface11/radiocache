@@ -443,8 +443,7 @@ def sort_programmes(
             ),
         )
     if sort in {"date-desc", "published-desc"}:
-        tie_sorted = sorted(programmes, key=lambda p: (p.title.casefold(), p.pid))
-        return sorted(tie_sorted, key=lambda p: p.first_broadcast or "", reverse=True)
+        return _sort_newest_first_with_title_ties(programmes)
     if sort == "duration-desc":
         return sorted(
             programmes,
@@ -460,6 +459,14 @@ def sort_programmes(
         key=lambda p: (p.first_broadcast or "", p.title.casefold(), p.pid),
         reverse=True,
     )
+
+
+def _sort_newest_first_with_title_ties(
+    programmes: list[Programme],
+) -> list[Programme]:
+    """Sort newest-first while keeping title/pid tie-breakers ascending."""
+    tie_sorted = sorted(programmes, key=lambda p: (p.title.casefold(), p.pid))
+    return sorted(tie_sorted, key=lambda p: p.first_broadcast or "", reverse=True)
 
 
 def group_by_series(
@@ -510,12 +517,7 @@ def group_by_series(
                 reverse=True,
             )
         elif sort in {"date-desc", "published-desc"}:
-            tie_sorted = sorted(eps, key=lambda p: (p.title.casefold(), p.pid))
-            eps_sorted = sorted(
-                tie_sorted,
-                key=lambda p: p.first_broadcast or "",
-                reverse=True,
-            )
+            eps_sorted = _sort_newest_first_with_title_ties(eps)
         elif sort == "date-asc":
             eps_sorted = sorted(
                 eps,
