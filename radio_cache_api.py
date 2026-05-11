@@ -318,6 +318,7 @@ async def search_page(
         "title-asc",
         "title-desc",
         "date-desc",
+        "published-desc",
         "date-asc",
         "duration-desc",
         "duration-asc",

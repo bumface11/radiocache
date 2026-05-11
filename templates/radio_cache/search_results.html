@@ -3,7 +3,7 @@
 {% block title %}Search: {{ query }} - BBC Radio Drama Cache{% endblock %}
 
 {% block content %}
-{% set filter_count = (1 if category else 0) + (1 if brand else 0) + (1 if sort and sort not in ('relevance','date-desc') else 0) %}
+{% set filter_count = (1 if category else 0) + (1 if brand else 0) + (1 if sort and sort not in ('relevance','date-desc','published-desc') else 0) %}
 <div class="rc-filter-bar mb-3">
     <div class="d-flex align-items-start gap-3 mb-2">
         <div class="flex-grow-1">
@@ -36,6 +36,7 @@
                         {% if query %}<option value="relevance" {% if sort == 'relevance' %}selected{% endif %}>Relevance</option>{% endif %}
                         <option value="title-asc" {% if sort == 'title-asc' %}selected{% endif %}>Title (A&ndash;Z)</option>
                         <option value="title-desc" {% if sort == 'title-desc' %}selected{% endif %}>Title (Z&ndash;A)</option>
+                        <option value="published-desc" {% if sort == 'published-desc' %}selected{% endif %}>Most recently published episode</option>
                         <option value="date-desc" {% if sort == 'date-desc' %}selected{% endif %}>Newest first</option>
                         <option value="date-asc" {% if sort == 'date-asc' %}selected{% endif %}>Oldest first</option>
                         <option value="duration-desc" {% if sort == 'duration-desc' %}selected{% endif %}>Longest first</option>
