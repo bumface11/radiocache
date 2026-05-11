@@ -442,7 +442,7 @@ def sort_programmes(
                 p.pid,
             ),
         )
-    if sort == "published-desc":
+    if sort in {"date-desc", "published-desc"}:
         return sorted(
             programmes,
             key=lambda p: (p.first_broadcast or "", p.title.casefold(), p.pid),
@@ -512,13 +512,7 @@ def group_by_series(
                 key=lambda p: (p.title.casefold(), p.pid),
                 reverse=True,
             )
-        elif sort == "date-desc":
-            eps_sorted = sorted(
-                eps,
-                key=lambda p: (p.first_broadcast or "", p.title.casefold(), p.pid),
-                reverse=True,
-            )
-        elif sort == "published-desc":
+        elif sort in {"date-desc", "published-desc"}:
             eps_sorted = sorted(
                 eps,
                 key=lambda p: (p.first_broadcast or "", p.title.casefold(), p.pid),
