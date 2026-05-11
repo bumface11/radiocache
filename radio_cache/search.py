@@ -443,11 +443,8 @@ def sort_programmes(
             ),
         )
     if sort in {"date-desc", "published-desc"}:
-        return sorted(
-            programmes,
-            key=lambda p: (p.first_broadcast or "", p.title.casefold(), p.pid),
-            reverse=True,
-        )
+        tie_sorted = sorted(programmes, key=lambda p: (p.title.casefold(), p.pid))
+        return sorted(tie_sorted, key=lambda p: p.first_broadcast or "", reverse=True)
     if sort == "duration-desc":
         return sorted(
             programmes,
@@ -513,9 +510,10 @@ def group_by_series(
                 reverse=True,
             )
         elif sort in {"date-desc", "published-desc"}:
+            tie_sorted = sorted(eps, key=lambda p: (p.title.casefold(), p.pid))
             eps_sorted = sorted(
-                eps,
-                key=lambda p: (p.first_broadcast or "", p.title.casefold(), p.pid),
+                tie_sorted,
+                key=lambda p: p.first_broadcast or "",
                 reverse=True,
             )
         elif sort == "date-asc":

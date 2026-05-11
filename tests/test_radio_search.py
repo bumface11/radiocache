@@ -255,6 +255,49 @@ class TestServerSideSorting:
         sorted_programmes = sort_programmes(progs, "published-desc")
         assert [programme.pid for programme in sorted_programmes] == ["new", "old"]
 
+    def test_sort_programmes_published_desc_tie_breaks_ascending(self) -> None:
+        """Published-desc keeps title/pid tie-breakers ascending for equal dates."""
+        progs = [
+            Programme(
+                pid="z",
+                title="Zulu",
+                first_broadcast="2024-02-01T00:00:00+00:00",
+            ),
+            Programme(
+                pid="a",
+                title="Alpha",
+                first_broadcast="2024-02-01T00:00:00+00:00",
+            ),
+            Programme(
+                pid="newer",
+                title="Newest",
+                first_broadcast="2024-03-01T00:00:00+00:00",
+            ),
+        ]
+        sorted_programmes = sort_programmes(progs, "published-desc")
+        assert [programme.pid for programme in sorted_programmes] == ["newer", "a", "z"]
+
+    def test_group_by_series_published_desc_orders_episodes(self) -> None:
+        """Published-desc orders episodes newest-first in series groups."""
+        progs = [
+            Programme(
+                pid="old",
+                title="Old",
+                series_pid="s1",
+                series_title="Series",
+                first_broadcast="2024-01-01T00:00:00+00:00",
+            ),
+            Programme(
+                pid="new",
+                title="New",
+                series_pid="s1",
+                series_title="Series",
+                first_broadcast="2024-02-01T00:00:00+00:00",
+            ),
+        ]
+        groups = group_by_series(progs, sort="published-desc", preserve_group_order=True)
+        assert [episode.pid for episode in groups[0].episodes] == ["new", "old"]
+
 
 class TestGroupBySeries:
     """Tests for group_by_series."""
