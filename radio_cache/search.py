@@ -19,6 +19,7 @@ SearchSortOption = Literal[
     "title-asc",
     "title-desc",
     "date-desc",
+    "published-desc",
     "date-asc",
     "duration-desc",
     "duration-asc",
@@ -32,6 +33,7 @@ def normalise_search_sort(sort: str, *, has_query: bool) -> SearchSortOption:
         "title-asc",
         "title-desc",
         "date-desc",
+        "published-desc",
         "date-asc",
         "duration-desc",
         "duration-asc",
@@ -319,6 +321,7 @@ def search_by_groups(
         "title-asc": "LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) ASC, grp ASC",
         "title-desc": "LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) DESC, grp DESC",
         "date-desc": "MAX(first_broadcast) DESC, LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) ASC, grp ASC",
+        "published-desc": "MAX(first_broadcast) DESC, LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) ASC, grp ASC",
         "date-asc": "COALESCE(MIN(NULLIF(first_broadcast, '')), '9999-99-99T99:99:99Z') ASC, LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) ASC, grp ASC",
         "duration-desc": "MAX(duration_secs) DESC, LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) ASC, grp ASC",
         "duration-asc": "MIN(duration_secs) ASC, LOWER(MIN(COALESCE(NULLIF(series_title, ''), title))) ASC, grp ASC",
@@ -439,6 +442,12 @@ def sort_programmes(
                 p.pid,
             ),
         )
+    if sort == "published-desc":
+        return sorted(
+            programmes,
+            key=lambda p: (p.first_broadcast or "", p.title.casefold(), p.pid),
+            reverse=True,
+        )
     if sort == "duration-desc":
         return sorted(
             programmes,
@@ -504,6 +513,12 @@ def group_by_series(
                 reverse=True,
             )
         elif sort == "date-desc":
+            eps_sorted = sorted(
+                eps,
+                key=lambda p: (p.first_broadcast or "", p.title.casefold(), p.pid),
+                reverse=True,
+            )
+        elif sort == "published-desc":
             eps_sorted = sorted(
                 eps,
                 key=lambda p: (p.first_broadcast or "", p.title.casefold(), p.pid),
