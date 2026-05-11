@@ -442,7 +442,7 @@ def sort_programmes(
                 p.pid,
             ),
         )
-    if sort in {"date-desc", "published-desc"}:
+    if sort in {"relevance", "date-desc", "published-desc"}:
         return _sort_newest_first_with_title_ties(programmes)
     if sort == "duration-desc":
         return sorted(
@@ -454,17 +454,17 @@ def sort_programmes(
             programmes,
             key=lambda p: (p.duration_secs, p.title.casefold(), p.pid),
         )
-    return sorted(
-        programmes,
-        key=lambda p: (p.first_broadcast or "", p.title.casefold(), p.pid),
-        reverse=True,
-    )
+    return _sort_newest_first_with_title_ties(programmes)
 
 
 def _sort_newest_first_with_title_ties(
     programmes: list[Programme],
 ) -> list[Programme]:
-    """Sort newest-first while keeping title/pid tie-breakers ascending."""
+    """Sort newest-first while keeping title/pid tie-breakers ascending.
+
+    ``relevance``, ``date-desc``, and ``published-desc`` intentionally share
+    this order for server-side sorting.
+    """
     tie_sorted = sorted(programmes, key=lambda p: (p.title.casefold(), p.pid))
     return sorted(tie_sorted, key=lambda p: p.first_broadcast or "", reverse=True)
 
