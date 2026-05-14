@@ -146,3 +146,62 @@ class TestSeriesTotalsOnPages:
                 assert 'showing 1 matches for "Episode 17"' in filtered_series_resp.text
                 assert "Big Serial Episode 17" in filtered_series_resp.text
                 assert "Big Serial Episode 18" not in filtered_series_resp.text
+
+
+class TestBrandBadgesOnPages:
+    """Page responses expose brand badges where brand pages exist."""
+
+    def test_home_page_and_search_results_show_brand_badges(
+        self, tmp_path: Path
+    ) -> None:
+        db_path = str(tmp_path / "brand-badges.db")
+        brand_pid = "b_long_brand"
+        brand_title = "The Extremely Long Brand Name Used For Badge Layout Checks"
+        series_title = (
+            "The Surprisingly Long Series Title Used To Check Badge Wrapping"
+        )
+
+        with CacheDB(db_path) as db:
+            db.upsert_programmes(
+                [
+                    Programme(
+                        pid="badge-001",
+                        title="Episode One",
+                        synopsis="Long-form drama search result",
+                        series_pid="s_long_brand_a",
+                        series_title=series_title,
+                        brand_pid=brand_pid,
+                        brand_title=brand_title,
+                    ),
+                    Programme(
+                        pid="badge-002",
+                        title="Episode Two",
+                        synopsis="Second series keeps the brand page valid",
+                        series_pid="s_long_brand_b",
+                        series_title="Another Long Series Under The Same Brand",
+                        brand_pid=brand_pid,
+                        brand_title=brand_title,
+                    ),
+                ]
+            )
+
+        with (
+            patch("radio_cache_api._DB_SNAPSHOT_PATH", ""),
+            patch("radio_cache_api._DB_SNAPSHOT_URL", ""),
+            patch("radio_cache_api._JSON_PATH", str(tmp_path / "missing.json")),
+            patch("radio_cache_api._DB_PATH", db_path),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app) as client:
+                home_resp = client.get("/")
+                assert home_resp.status_code == 200
+                assert f'href="/series?brand={brand_pid}"' in home_resp.text
+                assert brand_title in home_resp.text
+                assert "rc-brand-badge" in home_resp.text
+
+                search_resp = client.get("/search", params={"q": series_title})
+                assert search_resp.status_code == 200
+                assert series_title in search_resp.text
+                assert brand_title in search_resp.text
+                assert "search-group-brand" in search_resp.text

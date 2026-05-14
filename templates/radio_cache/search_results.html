@@ -71,26 +71,28 @@
     {% for group in series_groups %}
     <div class="accordion-item" data-series-title="{{ group.series_title }}" data-first-broadcast="{{ group.episodes[0].first_broadcast if group.episodes else '' }}" data-episode-count="{{ group.episodes|length }}">
         <h2 class="accordion-header">
-            <div class="d-flex align-items-stretch">
-                <button class="accordion-button flex-grow-1 collapsed"
+            <div class="d-flex flex-wrap align-items-start gap-2 p-2 search-group-header">
+                <button class="accordion-button flex-grow-1 collapsed search-group-toggle"
                         type="button" data-bs-toggle="collapse"
                         data-bs-target="#series-{{ loop.index }}">
+                    <span class="search-group-title">
                     {% if group.series_pid != 'standalone' %}
                         {{ group.series_title }}
                     {% else %}
                         Standalone Programmes
                     {% endif %}
-                    <span class="badge bg-primary ms-2">{{ series_counts.get(group.series_pid, group.episode_count) }}</span>
+                    </span>
+                    <span class="badge bg-primary ms-2 flex-shrink-0">{{ series_counts.get(group.series_pid, group.episode_count) }}</span>
                 </button>
                 {% if group.brand_pid and group.brand_pid in valid_brand_pids %}
                     <a href="/series?brand={{ group.brand_pid }}"
-                       class="btn btn-sm btn-warning d-flex align-items-center rounded-0 border-start-0 px-3">
+                       class="badge bg-warning text-dark text-decoration-none d-inline-flex align-items-center search-group-brand rc-brand-badge">
                         {{ group.brand_title }}
                     </a>
                 {% endif %}
                 {% if group.series_pid != 'standalone' %}
                     <a href="/series/{{ group.series_pid }}"
-                       class="btn btn-sm btn-outline-primary d-flex align-items-center rounded-0 rounded-end border-start-0 px-3">
+                       class="btn btn-sm btn-outline-primary d-inline-flex align-items-center search-group-series-link">
                         Series page
                     </a>
                 {% endif %}
@@ -190,14 +192,14 @@
                             aria-controls="info-search-card-{{ prog.pid }}"
                             title="Show more details">i</button>
                 </div>
-                <div class="d-flex align-items-center gap-1 mb-1 badge-row flex-wrap">
+                <div class="d-flex align-items-start gap-1 mb-1 badge-row">
                 {% if prog.series_title %}
                     <a href="/series/{{ prog.series_pid }}" class="badge bg-info title-badge text-decoration-none">
                         {{ prog.series_title }}
                     </a>
                 {% endif %}
                 {% if prog.brand_pid and prog.brand_pid in valid_brand_pids %}
-                    <a href="/series?brand={{ prog.brand_pid }}" class="badge bg-warning text-dark text-decoration-none title-badge">
+                    <a href="/series?brand={{ prog.brand_pid }}" class="badge bg-warning text-dark text-decoration-none title-badge rc-brand-badge">
                         {{ prog.brand_title }}
                     </a>
                 {% endif %}

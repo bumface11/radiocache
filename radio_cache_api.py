@@ -62,6 +62,15 @@ _BASE_DIR: Final[Path] = Path(__file__).resolve().parent
 _PODCAST_MAX_AGE_DAYS: Final[int] = int(os.environ.get("PODCAST_MAX_AGE_DAYS", "1"))
 
 
+def _brand_page_pids(brands: list[dict[str, object]]) -> set[str]:
+    """Return brand PIDs that have a browsable brand/series landing page."""
+    return {
+        str(brand["brand_pid"])
+        for brand in brands
+        if brand.get("series_count", 1) > 1
+    }
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Bootstrap an empty cache database on startup.
@@ -299,10 +308,18 @@ async def index(request: Request) -> HTMLResponse:
         stats = db.stats()
         recent = db.recent_programmes(limit=20)
         categories = db.list_categories()
+        brands_list = db.list_all_brands()
+    valid_brand_pids = _brand_page_pids(brands_list)
     return templates.TemplateResponse(
         request,
         "index.html",
-        {"request": request, "stats": stats, "recent": recent, "categories": categories},
+        {
+            "request": request,
+            "stats": stats,
+            "recent": recent,
+            "categories": categories,
+            "valid_brand_pids": valid_brand_pids,
+        },
     )
 
 
@@ -376,7 +393,7 @@ async def search_page(
         categories_list = db.list_categories()
         brands_list = db.list_all_brands()
 
-    valid_brand_pids = {b["brand_pid"] for b in brands_list if b.get("series_count", 1) > 1}
+    valid_brand_pids = _brand_page_pids(brands_list)
     total_pages = max(1, -(-total_count // per_page))  # ceil division
     series_groups = group_by_series(
         programmes,
@@ -424,7 +441,7 @@ async def series_list(request: Request) -> HTMLResponse:
         series = db.list_series()
         stats = db.stats()
         brands_list = db.list_all_brands()
-    valid_brand_pids = {b["brand_pid"] for b in brands_list if b.get("series_count", 1) > 1}
+    valid_brand_pids = _brand_page_pids(brands_list)
     return templates.TemplateResponse(
         request,
         "series_list.html",
@@ -462,7 +479,7 @@ async def series_detail(
             series_pid, len(all_episodes)
         )
         brands_list = db.list_all_brands()
-    valid_brand_pids = {b["brand_pid"] for b in brands_list if b.get("series_count", 1) > 1}
+    valid_brand_pids = _brand_page_pids(brands_list)
     series_title = all_episodes[0].series_title if all_episodes else series_pid
     episodes = all_episodes
     episodes = _sort_episodes(episodes, sort)

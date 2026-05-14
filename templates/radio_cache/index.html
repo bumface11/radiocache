@@ -80,14 +80,14 @@
                             aria-controls="info-recent-{{ prog.pid }}"
                             title="Show more details">i</button>
                 </div>
-                <div class="d-flex align-items-center gap-1 mb-1 badge-row">
+                <div class="d-flex align-items-start gap-1 mb-1 badge-row">
                 {% if prog.series_title %}
                     <a href="/series/{{ prog.series_pid }}" class="badge bg-info title-badge text-decoration-none">
                         {{ prog.series_title }}
                     </a>
                 {% endif %}
                 {% if prog.brand_pid and prog.brand_pid in valid_brand_pids %}
-                    <a href="/series?brand={{ prog.brand_pid }}" class="badge bg-warning text-dark text-decoration-none title-badge">
+                    <a href="/series?brand={{ prog.brand_pid }}" class="badge bg-warning text-dark text-decoration-none title-badge rc-brand-badge">
                         {{ prog.brand_title }}
                     </a>
                 {% endif %}
