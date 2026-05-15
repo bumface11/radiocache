@@ -259,6 +259,10 @@ h1,h2,h3,h4,h5,h6 { font-weight: 600; }
     white-space: nowrap;
     vertical-align: middle;
 }
+.rc-brand-badge {
+font-size: .72rem;
+font-weight: 600;
+}
 .series-badge {
     font-size: .68rem;
     display: inline-block;
@@ -491,6 +495,63 @@ h1,h2,h3,h4,h5,h6 { font-weight: 600; }
 }
 #seriesAccordion .accordion-button::after {
     filter: none;
+}
+
+.programme-card .card-title,
+.search-group-title {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.programme-card .badge-row {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: flex-start !important;
+    gap: .35rem;
+    min-width: 0;
+}
+
+.badge-row .title-badge {
+    flex: 1 1 12rem;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.2;
+    text-align: left;
+}
+
+.badge-row > .flex-shrink-0 {
+    margin-left: auto;
+}
+
+.search-group-header {
+    min-width: 0;
+}
+
+.search-group-toggle {
+    min-width: min(18rem, 100%);
+}
+
+.search-group-brand,
+.search-group-series-link {
+    max-width: 100%;
+    align-self: center;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+.search-group-brand {
+    padding: .55rem .75rem;
+}
+
+@media (max-width: 767.98px) {
+    .search-group-brand,
+    .search-group-series-link {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 /* ── Footer ─────────────────────────────────────────────────── */
