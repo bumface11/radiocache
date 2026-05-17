@@ -14,12 +14,14 @@ from __future__ import annotations
 
 import io
 import logging
+import re
 import sqlite3
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Final
 
 from radio_cache.models import CacheStats, Programme
+from radio_cache.recording.models import CompletedRecording, PodcastFeed
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +56,27 @@ CREATE TABLE IF NOT EXISTS cache_meta (
 CREATE TABLE IF NOT EXISTS categories (
     name             TEXT PRIMARY KEY,
     programme_count  INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS podcast_feeds (
+    slug        TEXT PRIMARY KEY,
+    name        TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    created_at  TEXT NOT NULL DEFAULT '',
+    updated_at  TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS completed_recordings (
+    job_id             TEXT PRIMARY KEY,
+    source_type        TEXT NOT NULL,
+    source_id          TEXT NOT NULL,
+    output_format      TEXT NOT NULL,
+    duration_seconds   INTEGER,
+    output_path        TEXT NOT NULL DEFAULT '',
+    created_at         TEXT NOT NULL DEFAULT '',
+    completed_at       TEXT NOT NULL DEFAULT '',
+    podcast_feed_slug  TEXT NOT NULL DEFAULT '',
+    podcast_feed_name  TEXT NOT NULL DEFAULT '',
+    FOREIGN KEY (podcast_feed_slug) REFERENCES podcast_feeds(slug)
 );
 
 CREATE VIRTUAL TABLE IF NOT EXISTS programmes_fts USING fts5(
@@ -261,6 +284,147 @@ class CacheDB:
             "SELECT * FROM programmes WHERE pid = ?", (pid,)
         ).fetchone()
         return _row_to_programme(row) if row else None
+
+    def ensure_podcast_feed(self, name: str) -> PodcastFeed:
+        """Create or return a saved podcast feed for *name*."""
+        cleaned = " ".join(name.split()).strip()
+        if not cleaned:
+            raise ValueError("Podcast feed name cannot be empty")
+        slug = _slugify_podcast_feed_name(cleaned)
+        now = datetime.now(UTC).isoformat()
+        existing = self.get_podcast_feed(slug)
+        if existing is not None:
+            self._conn.execute(
+                "UPDATE podcast_feeds SET name = ?, updated_at = ? WHERE slug = ?",
+                (cleaned, now, slug),
+            )
+            self._conn.commit()
+            return PodcastFeed(
+                slug=slug,
+                name=cleaned,
+                created_at=existing.created_at,
+                updated_at=now,
+                recording_count=existing.recording_count,
+            )
+        self._conn.execute(
+            "INSERT INTO podcast_feeds (slug, name, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?)",
+            (slug, cleaned, now, now),
+        )
+        self._conn.commit()
+        return PodcastFeed(slug=slug, name=cleaned, created_at=now, updated_at=now)
+
+    def get_podcast_feed(self, slug: str) -> PodcastFeed | None:
+        """Return one saved podcast feed by slug."""
+        row = self._conn.execute(
+            """
+            SELECT f.slug, f.name, f.created_at, f.updated_at,
+                   COUNT(r.job_id) AS recording_count
+            FROM podcast_feeds f
+            LEFT JOIN completed_recordings r
+              ON r.podcast_feed_slug = f.slug
+            WHERE f.slug = ?
+            GROUP BY f.slug, f.name, f.created_at, f.updated_at
+            """,
+            (slug,),
+        ).fetchone()
+        return _row_to_podcast_feed(row) if row else None
+
+    def list_podcast_feeds(self) -> list[PodcastFeed]:
+        """List all saved podcast feeds, newest-updated first."""
+        rows = self._conn.execute(
+            """
+            SELECT f.slug, f.name, f.created_at, f.updated_at,
+                   COUNT(r.job_id) AS recording_count
+            FROM podcast_feeds f
+            LEFT JOIN completed_recordings r
+              ON r.podcast_feed_slug = f.slug
+            GROUP BY f.slug, f.name, f.created_at, f.updated_at
+            ORDER BY f.updated_at DESC, f.name COLLATE NOCASE ASC
+            """
+        ).fetchall()
+        return [_row_to_podcast_feed(row) for row in rows]
+
+    def save_completed_recording(self, recording: CompletedRecording) -> None:
+        """Insert or update a persisted completed recording."""
+        if recording.podcast_feed_name:
+            self.ensure_podcast_feed(recording.podcast_feed_name)
+        self._conn.execute(
+            """
+            INSERT INTO completed_recordings (
+                job_id, source_type, source_id, output_format, duration_seconds,
+                output_path, created_at, completed_at,
+                podcast_feed_slug, podcast_feed_name
+            ) VALUES (
+                :job_id, :source_type, :source_id, :output_format, :duration_seconds,
+                :output_path, :created_at, :completed_at,
+                :podcast_feed_slug, :podcast_feed_name
+            )
+            ON CONFLICT(job_id) DO UPDATE SET
+                source_type=excluded.source_type,
+                source_id=excluded.source_id,
+                output_format=excluded.output_format,
+                duration_seconds=excluded.duration_seconds,
+                output_path=excluded.output_path,
+                created_at=excluded.created_at,
+                completed_at=excluded.completed_at,
+                podcast_feed_slug=excluded.podcast_feed_slug,
+                podcast_feed_name=excluded.podcast_feed_name
+            """,
+            {
+                "job_id": recording.job_id,
+                "source_type": recording.source_type,
+                "source_id": recording.source_id,
+                "output_format": recording.output_format,
+                "duration_seconds": recording.duration_seconds,
+                "output_path": recording.output_path,
+                "created_at": recording.created_at,
+                "completed_at": recording.completed_at,
+                "podcast_feed_slug": recording.podcast_feed_slug,
+                "podcast_feed_name": recording.podcast_feed_name,
+            },
+        )
+        if recording.podcast_feed_slug:
+            updated_at = recording.completed_at or datetime.now(UTC).isoformat()
+            self._conn.execute(
+                "UPDATE podcast_feeds SET updated_at = ? WHERE slug = ?",
+                (updated_at, recording.podcast_feed_slug),
+            )
+        self._conn.commit()
+
+    def get_completed_recording(self, job_id: str) -> CompletedRecording | None:
+        """Return one completed recording by job ID."""
+        row = self._conn.execute(
+            "SELECT * FROM completed_recordings WHERE job_id = ?",
+            (job_id,),
+        ).fetchone()
+        return _row_to_completed_recording(row) if row else None
+
+    def list_completed_recordings(
+        self,
+        *,
+        limit: int = 50,
+        feed_slug: str = "",
+        since: str = "",
+    ) -> list[CompletedRecording]:
+        """List persisted completed recordings newest-first."""
+        clauses = ["output_path != ''"]
+        params: list[str | int] = []
+        if feed_slug:
+            clauses.append("podcast_feed_slug = ?")
+            params.append(feed_slug)
+        if since:
+            clauses.append("completed_at >= ?")
+            params.append(since)
+        params.append(limit)
+        rows = self._conn.execute(
+            "SELECT * FROM completed_recordings "
+            f"WHERE {' AND '.join(clauses)} "
+            "ORDER BY completed_at DESC, created_at DESC "
+            "LIMIT ?",
+            tuple(params),
+        ).fetchall()
+        return [_row_to_completed_recording(row) for row in rows]
 
     def search(
         self,
@@ -1172,6 +1336,39 @@ def _row_to_programme(row: sqlite3.Row) -> Programme:
         categories=row["categories"],
         url=row["url"],
     )
+
+
+def _row_to_completed_recording(row: sqlite3.Row) -> CompletedRecording:
+    """Convert a database row to a :class:`CompletedRecording`."""
+    return CompletedRecording(
+        job_id=row["job_id"],
+        source_type=row["source_type"],
+        source_id=row["source_id"],
+        output_format=row["output_format"],
+        duration_seconds=row["duration_seconds"],
+        output_path=row["output_path"],
+        created_at=row["created_at"],
+        completed_at=row["completed_at"],
+        podcast_feed_slug=row["podcast_feed_slug"],
+        podcast_feed_name=row["podcast_feed_name"],
+    )
+
+
+def _row_to_podcast_feed(row: sqlite3.Row) -> PodcastFeed:
+    """Convert a database row to a :class:`PodcastFeed`."""
+    return PodcastFeed(
+        slug=row["slug"],
+        name=row["name"],
+        created_at=row["created_at"],
+        updated_at=row["updated_at"],
+        recording_count=int(row["recording_count"]),
+    )
+
+
+def _slugify_podcast_feed_name(name: str) -> str:
+    """Normalise a podcast feed name into a stable URL slug."""
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return slug[:80] or "podcast-feed"
 
 
 def _sanitise_fts_query(query: str) -> str:

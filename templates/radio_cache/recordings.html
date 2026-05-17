@@ -79,6 +79,23 @@
     <button class="btn btn-sm btn-outline-primary flex-shrink-0" id="copy-feed-btn" type="button">Copy URL</button>
 </div>
 
+{% if podcast_feeds %}
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <h6 class="card-title mb-3">Saved podcast feeds</h6>
+        <div class="d-flex flex-column gap-2">
+            {% for feed in podcast_feeds %}
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="badge text-bg-warning">{{ feed.name }}</span>
+                <code class="small flex-grow-1">/api/podcast.xml?feed={{ feed.slug }}</code>
+                <a class="btn btn-sm btn-outline-warning" href="/api/podcast.xml?feed={{ feed.slug }}" target="_blank">Open</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Job list -->
 <div id="jobs-summary" class="text-muted small mb-2">Loading&hellip;</div>
 <div id="jobs-container"></div>
@@ -139,6 +156,11 @@
         const sourceLabel = j.source_type === 'live'
             ? '<span class="badge bg-info text-dark me-1">Live</span>' + esc(j.source_id)
             : '<span class="badge bg-secondary me-1">Programme</span>' + esc(j.source_id);
+        const feedBadge = j.podcast_feed_slug
+            ? '<a class="badge text-bg-warning text-decoration-none" href="/api/podcast.xml?feed='
+              + encodeURIComponent(j.podcast_feed_slug) + '" target="_blank">'
+              + esc(j.podcast_feed_name || j.podcast_feed_slug) + '</a>'
+            : '';
 
         const errorHtml = j.error_message
             ? '<p class="text-danger small mt-1 mb-0">' + esc(j.error_message) + '</p>' : '';
@@ -163,7 +185,10 @@
 
         const podcastBtn = j.status === 'completed' && j.output_path
             ? '<a class="btn btn-sm btn-outline-warning flex-shrink-0"'
-              + ' href="/api/podcast.xml" target="_blank">Podcast</a>' : '';
+              + ' href="' + (j.podcast_feed_slug
+                    ? '/api/podcast.xml?feed=' + encodeURIComponent(j.podcast_feed_slug)
+                    : '/api/podcast.xml')
+              + '" target="_blank">Podcast</a>' : '';
 
         return '<div class="card mb-2" id="job-' + esc(j.job_id) + '">'
             + '<div class="card-body py-2">'
@@ -173,6 +198,7 @@
             + '<span class="badge ' + badgeCls + '">' + label + '</span>'
             + '<span class="badge bg-secondary">' + esc(j.output_format) + '</span>'
             + '<span>' + sourceLabel + '</span>'
+            + feedBadge
             + '</div>'
             + progressHtml + errorHtml + pathHtml
             + '<div class="text-muted" style="font-size:0.75rem">' + timing + '</div>'

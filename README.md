@@ -14,6 +14,8 @@ search interface.
   `/api/series`, `/api/programme/{pid}`, and `/api/stats`.
 - **Web UI** for searching and browsing, with one-click `get_iplayer` command
   copying for local downloads.
+- **Named podcast feeds for recordings** so single episodes or whole series can
+  be queued into reusable feeds and revisited later.
 - **Downloadable SQLite snapshot** (`radio_cache.db.zip`) for fast deployment
   bootstrap without replaying a large JSON import.
 - **Optional JSON export** (`radio_cache_export.json`) when a flat data dump is
