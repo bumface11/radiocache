@@ -16,14 +16,19 @@ import logging
 import os
 import threading
 import time
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Final, Literal
 
 from fastapi import FastAPI, Query, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, StreamingResponse
+from fastapi.responses import (
+    HTMLResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -44,7 +49,6 @@ from radio_cache.search import (
     search_by_groups,
     search_groups_count,
     search_programmes,
-    search_programmes_count,
     search_programmes_series_counts,
     sort_programmes,
 )
@@ -62,12 +66,12 @@ _BASE_DIR: Final[Path] = Path(__file__).resolve().parent
 _PODCAST_MAX_AGE_DAYS: Final[int] = int(os.environ.get("PODCAST_MAX_AGE_DAYS", "1"))
 
 
-def _brand_page_pids(brands: list[dict[str, object]]) -> set[str]:
+def _brand_page_pids(brands: list[dict[str, str | int]]) -> set[str]:
     """Return brand PIDs that have a browsable brand/series landing page."""
     return {
         str(brand["brand_pid"])
         for brand in brands
-        if brand.get("series_count", 1) > 1
+        if int(brand.get("series_count", 1)) > 1
     }
 
 
@@ -148,6 +152,12 @@ app.mount(
 )
 templates = Jinja2Templates(directory=str(_BASE_DIR / "templates" / "radio_cache"))
 templates.env.filters["format_duration"] = format_duration
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> RedirectResponse:
+    """Serve a favicon for user agents that still request /favicon.ico."""
+    return RedirectResponse(url="/static/favicon.svg", status_code=307)
 
 
 def format_short_date(value: str) -> str:
@@ -588,10 +598,11 @@ async def recordings_page(request: Request) -> HTMLResponse:
     """
     with _get_db() as db:
         stats = db.stats()
+        podcast_feeds = db.list_podcast_feeds()
     return templates.TemplateResponse(
         request,
         "recordings.html",
-        {"request": request, "stats": stats},
+        {"request": request, "stats": stats, "podcast_feeds": podcast_feeds},
     )
 
 
@@ -715,7 +726,6 @@ from radio_cache.bbc_feed_parser import (  # noqa: E402
     _REQUEST_DELAY_SECS,
     fetch_all_category_slugs,
     fetch_category_count,
-    fetch_category_counts,
 )
 
 
@@ -763,7 +773,7 @@ async def api_refresh_categories(
     slugs: list[str] = fetch_all_category_slugs() if all else list(_CATEGORY_SLUGS)
     total = len(slugs)
 
-    async def _generate():
+    async def _generate() -> AsyncIterator[str]:
         results = []
         for i, slug in enumerate(slugs):
             entry: dict = await asyncio.to_thread(fetch_category_count, slug)
@@ -931,19 +941,101 @@ def _prog_dict(prog: object) -> dict:
 
 # ── Recording endpoints ──────────────────────────────────────────────────
 
+from radio_cache.recording import recorder as _recorder  # noqa: E402
 from radio_cache.recording.job_manager import get_job_manager  # noqa: E402
 from radio_cache.recording.models import (  # noqa: E402
+    CompletedRecording,
     RecordingRequest,
     RecordingStatus,
     job_to_dict,
 )
-from radio_cache.recording import recorder as _recorder  # noqa: E402
 from radio_cache.recording.stream_resolver import (  # noqa: E402
     StreamNotSupportedError,
     StreamUnavailableError,
     resolve_live_stream,
     resolve_programme_stream,
 )
+
+
+def _completed_recording_to_job_dict(recording: CompletedRecording) -> dict:
+    """Convert a persisted recording to the API's job-shaped response."""
+    return {
+        "job_id": recording.job_id,
+        "source_type": recording.source_type,
+        "source_id": recording.source_id,
+        "output_format": recording.output_format,
+        "duration_seconds": recording.duration_seconds,
+        "status": "completed",
+        "output_path": recording.output_path,
+        "error_code": None,
+        "error_message": "",
+        "created_at": recording.created_at,
+        "started_at": "",
+        "completed_at": recording.completed_at,
+        "progress_seconds": recording.duration_seconds or 0,
+        "manifest_url": "",
+        "podcast_feed_slug": recording.podcast_feed_slug,
+        "podcast_feed_name": recording.podcast_feed_name,
+    }
+
+
+def _list_recording_job_dicts(
+    *,
+    status: RecordingStatus | None = None,
+    limit: int = 50,
+) -> list[dict[str, object]]:
+    """Return live jobs plus persisted completed recordings without duplicates."""
+    live_jobs = [job_to_dict(job) for job in get_job_manager().list_jobs(limit=limit)]
+    if status is not None:
+        live_jobs = [job for job in live_jobs if job["status"] == status]
+    seen_ids = {str(job["job_id"]) for job in live_jobs}
+    persisted_jobs: list[dict[str, object]] = []
+    if status in (None, "completed"):
+        with _get_db() as db:
+            persisted_jobs = [
+                _completed_recording_to_job_dict(recording)
+                for recording in db.list_completed_recordings(limit=max(limit, 100))
+                if Path(recording.output_path).is_file()
+                and recording.job_id not in seen_ids
+            ]
+    jobs = sorted(
+        [*live_jobs, *persisted_jobs],
+        key=lambda job: str(job.get("completed_at") or job.get("created_at") or ""),
+        reverse=True,
+    )
+    return jobs[:limit]
+
+
+def _podcast_feed_response(request: Request, slug: str, name: str, count: int) -> dict:
+    """Build a JSON payload for a saved named podcast feed."""
+    return {
+        "slug": slug,
+        "name": name,
+        "recording_count": count,
+        "url": f"{str(request.base_url).rstrip('/')}/api/podcast.xml?feed={slug}",
+    }
+
+
+def _persist_completed_recording(job_id: str) -> None:
+    """Persist a completed recording so feeds survive later sessions."""
+    job = get_job_manager().get_job(job_id)
+    if job is None or job.status != "completed" or not job.output_path:
+        return
+    with _get_db() as db:
+        db.save_completed_recording(
+            CompletedRecording(
+                job_id=job.job_id,
+                source_type=job.source_type,
+                source_id=job.source_id,
+                output_format=job.output_format,
+                duration_seconds=job.duration_seconds,
+                output_path=job.output_path,
+                created_at=job.created_at,
+                completed_at=job.completed_at,
+                podcast_feed_slug=job.podcast_feed_slug,
+                podcast_feed_name=job.podcast_feed_name,
+            )
+        )
 
 
 _recording_worker_lock = threading.Lock()
@@ -1178,6 +1270,7 @@ def _run_recording_job(job_id: str) -> None:
         output_path=str(output_path),
         completed_at=datetime.now(UTC).isoformat(),
     )
+    _persist_completed_recording(job_id)
     logger.info("Job %s: completed -> %s", job_id, output_path)
 
 
@@ -1196,6 +1289,25 @@ async def create_recording(
     Returns:
         Dict with ``job_id`` and initial ``status``.
     """
+    podcast_feed_slug = ""
+    podcast_feed_name = ""
+    if body.podcast_feed_name is not None:
+        podcast_feed_name = " ".join(body.podcast_feed_name.split()).strip()
+        if not podcast_feed_name:
+            from fastapi import HTTPException
+
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "error": "invalid_podcast_feed_name",
+                    "message": "Podcast feed name cannot be blank",
+                },
+            )
+        with _get_db() as db:
+            feed = db.ensure_podcast_feed(podcast_feed_name)
+        podcast_feed_slug = feed.slug
+        podcast_feed_name = feed.name
+
     if body.source_type == "live" and body.duration_seconds is None:
         body.duration_seconds = 1800
 
@@ -1205,6 +1317,8 @@ async def create_recording(
         source_id=body.source_id,
         output_format=body.output_format,
         duration_seconds=body.duration_seconds,
+        podcast_feed_slug=podcast_feed_slug,
+        podcast_feed_name=podcast_feed_name,
     )
     _ensure_recording_worker()
     logger.info(
@@ -1213,7 +1327,13 @@ async def create_recording(
         body.source_type,
         body.source_id,
     )
-    return {"job_id": job.job_id, "status": "queued", "created_at": job.created_at}
+    return {
+        "job_id": job.job_id,
+        "status": "queued",
+        "created_at": job.created_at,
+        "podcast_feed_slug": podcast_feed_slug,
+        "podcast_feed_name": podcast_feed_name,
+    }
 
 
 @app.get("/api/recordings")
@@ -1231,9 +1351,27 @@ async def list_recordings(
     Returns:
         Dict with ``count`` and ``jobs`` list.
     """
-    manager = get_job_manager()
-    jobs = manager.list_jobs(status=status, limit=limit)
-    return {"count": len(jobs), "jobs": [job_to_dict(j) for j in jobs]}
+    jobs = _list_recording_job_dicts(status=status, limit=limit)
+    return {"count": len(jobs), "jobs": jobs}
+
+
+@app.get("/api/podcast-feeds")
+async def list_podcast_feeds(request: Request) -> dict:
+    """List saved named podcast feeds."""
+    with _get_db() as db:
+        feeds = db.list_podcast_feeds()
+    return {
+        "count": len(feeds),
+        "feeds": [
+            _podcast_feed_response(
+                request,
+                slug=feed.slug,
+                name=feed.name,
+                count=feed.recording_count,
+            )
+            for feed in feeds
+        ],
+    }
 
 
 @app.get("/api/recordings/stream")
@@ -1255,12 +1393,12 @@ async def stream_recordings() -> StreamingResponse:
     import asyncio
     import json as _json
 
-    async def _generate():
+    async def _generate() -> AsyncIterator[str]:
         while True:
-            jobs = get_job_manager().list_jobs(limit=100)
-            payload = {"count": len(jobs), "jobs": [job_to_dict(j) for j in jobs]}
+            jobs = _list_recording_job_dicts(limit=100)
+            payload = {"count": len(jobs), "jobs": jobs}
             yield f"data: {_json.dumps(payload)}\n\n"
-            if not any(j.status in ("queued", "running") for j in jobs):
+            if not any(str(j.get("status")) in ("queued", "running") for j in jobs):
                 yield 'data: {"done": true}\n\n'
                 return
             await asyncio.sleep(2)
@@ -1288,7 +1426,13 @@ async def get_recording(job_id: str) -> dict:
     manager = get_job_manager()
     job = manager.get_job(job_id)
     if job is None:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "job_id": job_id})
+        with _get_db() as db:
+            recording = db.get_completed_recording(job_id)
+        if recording is None or not Path(recording.output_path).is_file():
+            raise HTTPException(
+                status_code=404, detail={"error": "not_found", "job_id": job_id}
+            )
+        return _completed_recording_to_job_dict(recording)
     return job_to_dict(job)
 
 
@@ -1315,29 +1459,56 @@ async def download_recording(job_id: str) -> StreamingResponse:
     manager = get_job_manager()
     job = manager.get_job(job_id)
     if job is None:
-        raise HTTPException(status_code=404, detail={"error": "not_found", "job_id": job_id})
-    if job.status != "completed":
-        raise HTTPException(
-            status_code=409,
-            detail={"error": "not_ready", "job_id": job_id, "status": job.status},
-        )
-    if not job.output_path:
-        raise HTTPException(status_code=404, detail={"error": "no_output_path", "job_id": job_id})
-    path = Path(job.output_path)
-    if not path.is_file():
-        raise HTTPException(status_code=404, detail={"error": "file_not_found", "job_id": job_id})
+        with _get_db() as db:
+            archived = db.get_completed_recording(job_id)
+        if archived is None:
+            raise HTTPException(
+                status_code=404, detail={"error": "not_found", "job_id": job_id}
+            )
+        if not archived.output_path:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "no_output_path", "job_id": job_id},
+            )
+        path = Path(archived.output_path)
+        if not path.is_file():
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "file_not_found", "job_id": job_id},
+            )
+        output_format = archived.output_format
+        source_id = archived.source_id
+    else:
+        if job.status != "completed":
+            raise HTTPException(
+                status_code=409,
+                detail={"error": "not_ready", "job_id": job_id, "status": job.status},
+            )
+        if not job.output_path:
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "no_output_path", "job_id": job_id},
+            )
+        path = Path(job.output_path)
+        if not path.is_file():
+            raise HTTPException(
+                status_code=404,
+                detail={"error": "file_not_found", "job_id": job_id},
+            )
+        output_format = job.output_format
+        source_id = job.source_id
     ext = path.suffix or ".m4a"
-    media_type = "audio/mp4" if ext == ".m4a" else "audio/mpeg"
+    media_type = "audio/mp4" if output_format == "m4a" else "audio/mpeg"
     # Use the PID as the download filename to avoid Content-Disposition
     # header issues with long titles or special characters.
-    safe_name = f"{job.source_id}{ext}"
+    safe_name = f"{source_id}{ext}"
     # Do NOT include Content-Length — Cloud Run's managed ingress buffers
     # responses with a known Content-Length and enforces a 32 MiB cap,
     # converting large payloads to 500 errors.  Without Content-Length,
     # HTTP uses chunked transfer encoding which Cloud Run streams
     # through without buffering.
 
-    def _iter():
+    def _iter() -> Iterator[bytes]:
         with path.open("rb") as fh:
             while chunk := fh.read(65536):
                 yield chunk
@@ -1397,38 +1568,68 @@ async def cancel_recording(job_id: str) -> dict:
 
 
 @app.get("/api/podcast.xml")
-async def podcast_feed(request: Request) -> PlainTextResponse:
+async def podcast_feed(
+    request: Request,
+    feed: str = Query(default="", description="Optional saved podcast feed slug"),
+) -> PlainTextResponse:
     """Return an RSS 2.0 podcast feed of all completed recordings."""
     from xml.etree.ElementTree import Element, SubElement, tostring
 
     ITUNES = "http://www.itunes.com/dtds/podcast-1.0.dtd"
 
     base = str(request.base_url).rstrip("/")
-    manager = get_job_manager()
 
     rss = Element("rss", version="2.0", attrib={
         "xmlns:itunes": ITUNES,
     })
     channel = SubElement(rss, "channel")
-    SubElement(channel, "title").text = "Radio Cache Recordings"
+    feed_name = "Radio Cache Recordings"
+    if feed:
+        with _get_db() as db:
+            saved_feed = db.get_podcast_feed(feed)
+        if saved_feed is not None:
+            feed_name = saved_feed.name
+    SubElement(channel, "title").text = feed_name
     SubElement(channel, "link").text = base + "/recordings"
-    SubElement(channel, "description").text = "Recordings captured by Radio Cache"
+    if feed:
+        SubElement(channel, "description").text = (
+            f"Saved Radio Cache podcast feed: {feed_name}"
+        )
+    else:
+        SubElement(channel, "description").text = "Recordings captured by Radio Cache"
     SubElement(channel, f"{{{ITUNES}}}author").text = "BBC"
     SubElement(channel, f"{{{ITUNES}}}image", href=base + "/static/radio_cache/style.css")
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=_PODCAST_MAX_AGE_DAYS)
-    completed = [
-        j for j in manager.list_jobs()
-        if j.status == "completed"
-        and j.output_path
-        and Path(j.output_path).is_file()
-        and j.completed_at
-        and datetime.fromisoformat(j.completed_at) >= cutoff
-    ]
-    completed.sort(key=lambda j: j.completed_at or "", reverse=True)
+    completed: list[dict[str, object]] = []
+    seen_ids: set[str] = set()
+    with _get_db() as db:
+        for recording in db.list_completed_recordings(
+            limit=500,
+            feed_slug=feed,
+            since="" if feed else cutoff.isoformat(),
+        ):
+            if not Path(recording.output_path).is_file():
+                continue
+            completed.append(_completed_recording_to_job_dict(recording))
+            seen_ids.add(recording.job_id)
+    for job in get_job_manager().list_jobs(limit=500):
+        if job.status != "completed" or not job.output_path or not job.completed_at:
+            continue
+        if job.job_id in seen_ids or not Path(job.output_path).is_file():
+            continue
+        if feed and job.podcast_feed_slug != feed:
+            continue
+        if not feed and datetime.fromisoformat(job.completed_at) < cutoff:
+            continue
+        completed.append(job_to_dict(job))
+    completed.sort(
+        key=lambda item: str(item.get("completed_at") or item.get("created_at") or ""),
+        reverse=True,
+    )
 
-    for job in completed:
-        title = job.source_id
+    for recording_item in completed:
+        title = str(recording_item["source_id"])
         station = ""
         synopsis = ""
         thumbnail_url = ""
@@ -1436,10 +1637,10 @@ async def podcast_feed(request: Request) -> PlainTextResponse:
         series_title = ""
         episode_number = 0
         programme_url = ""
-        pub_date_iso = job.completed_at
-        if job.source_type == "programme":
+        pub_date_iso = str(recording_item["completed_at"])
+        if recording_item["source_type"] == "programme":
             with _get_db() as db:
-                prog = db.get_programme(job.source_id)
+                prog = db.get_programme(str(recording_item["source_id"]))
                 if prog:
                     title = prog.title
                     station = prog.channel or ""
@@ -1491,16 +1692,23 @@ async def podcast_feed(request: Request) -> PlainTextResponse:
         if programme_url:
             SubElement(item, "link").text = programme_url
 
-        enc_url = f"{base}/api/recordings/{job.job_id}/download"
-        mime = "audio/mp4" if job.output_format == "m4a" else "audio/mpeg"
-        file_size = str(Path(job.output_path).stat().st_size)
+        enc_url = f"{base}/api/recordings/{recording_item['job_id']}/download"
+        mime = (
+            "audio/mp4"
+            if recording_item["output_format"] == "m4a"
+            else "audio/mpeg"
+        )
+        file_size = str(Path(str(recording_item["output_path"])).stat().st_size)
         SubElement(item, "enclosure", url=enc_url, type=mime, length=file_size)
 
-        SubElement(item, "guid", isPermaLink="false").text = job.job_id
+        SubElement(item, "guid", isPermaLink="false").text = str(
+            recording_item["job_id"]
+        )
         if pub_date_iso:
             SubElement(item, "pubDate").text = _rfc2822(pub_date_iso)
-        if job.duration_seconds:
-            secs = int(job.duration_seconds)
+        duration_value = recording_item["duration_seconds"]
+        if isinstance(duration_value, int) and duration_value > 0:
+            secs = duration_value
             SubElement(item, f"{{{ITUNES}}}duration").text = (
                 f"{secs // 3600}:{(secs % 3600) // 60:02d}:{secs % 60:02d}"
             )

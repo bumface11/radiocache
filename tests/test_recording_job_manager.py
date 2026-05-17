@@ -39,6 +39,17 @@ class TestCreateJob:
         assert job.duration_seconds is None
         assert job.source_type == "programme"
 
+    def test_create_job_with_podcast_feed(self, manager: JobManager) -> None:
+        job = manager.create_job(
+            "programme",
+            "m002snjn",
+            "m4a",
+            podcast_feed_slug="desert-island-discs",
+            podcast_feed_name="Desert Island Discs",
+        )
+        assert job.podcast_feed_slug == "desert-island-discs"
+        assert job.podcast_feed_name == "Desert Island Discs"
+
     def test_each_job_has_unique_id(self, manager: JobManager) -> None:
         j1 = manager.create_job("live", "bbc_radio_one", "m4a", 60)
         j2 = manager.create_job("live", "bbc_radio_one", "m4a", 60)

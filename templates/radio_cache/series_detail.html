@@ -194,20 +194,31 @@
     if (_recordAllBtn) {
         _recordAllBtn.addEventListener('click', async function () {
             const pids = JSON.parse(this.dataset.pids || '[]');
+            if (typeof window.rcPromptForPodcastFeed !== 'function') {
+                return;
+            }
+            const feedName = await window.rcPromptForPodcastFeed(pids.length);
+            if (feedName === null) {
+                return;
+            }
             this.disabled = true;
             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Queuing\u2026';
             let queued = 0;
             for (const pid of pids) {
                 try {
+                    const body = {source_type: 'programme', source_id: pid, output_format: 'm4a'};
+                    if (feedName) {
+                        body.podcast_feed_name = feedName;
+                    }
                     const r = await fetch('/api/recordings', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({source_type: 'programme', source_id: pid, output_format: 'm4a'})
+                        body: JSON.stringify(body)
                     });
                     if (r.ok) queued++;
                 } catch { /* skip */ }
             }
-            this.innerHTML = '&#10003; ' + queued + ' episodes queued';
+            this.innerHTML = '&#10003; ' + queued + (feedName ? ' feed items queued' : ' episodes queued');
             this.classList.replace('btn-outline-danger', 'btn-success');
             setTimeout(() => window.location.href = '/recordings', 1500);
         });

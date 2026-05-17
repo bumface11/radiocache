@@ -14,6 +14,7 @@ Tests:
 
 from __future__ import annotations
 
+from collections.abc import Generator
 from pathlib import Path
 from unittest.mock import patch
 
@@ -21,6 +22,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from radio_cache.recording.job_manager import JobManager
+from radio_cache.recording.models import CompletedRecording
 
 
 @pytest.fixture()
@@ -30,7 +32,7 @@ def fresh_manager() -> JobManager:
 
 
 @pytest.fixture()
-def client(fresh_manager: JobManager) -> TestClient:
+def client(fresh_manager: JobManager) -> Generator[TestClient, None, None]:
     """Return a TestClient wired to a fresh JobManager and CacheDB."""
     with (
         patch("radio_cache_api._DB_PATH", ":memory:"),
@@ -82,6 +84,23 @@ class TestCreateRecording:
             json={"source_type": "live", "source_id": "bbc_radio_one"},
         )
         assert resp.status_code == 201
+
+    def test_recording_can_create_named_podcast_feed(
+        self, client: TestClient
+    ) -> None:
+        resp = client.post(
+            "/api/recordings",
+            json={
+                "source_type": "programme",
+                "source_id": "m002snjn",
+                "output_format": "m4a",
+                "podcast_feed_name": "Late Night Drama",
+            },
+        )
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["podcast_feed_slug"] == "late-night-drama"
+        assert body["podcast_feed_name"] == "Late Night Drama"
 
     def test_invalid_source_type_returns_422(self, client: TestClient) -> None:
         resp = client.post(
@@ -196,6 +215,44 @@ class TestListRecordings:
         assert resp.json()["count"] == 2
 
 
+class TestPodcastFeeds:
+    def test_list_saved_podcast_feeds(self, tmp_path: Path) -> None:
+        from radio_cache.cache_db import CacheDB
+
+        db_path = str(tmp_path / "feeds.db")
+        with CacheDB(db_path) as db:
+            db.save_completed_recording(
+                CompletedRecording(
+                    job_id="job-feed-1",
+                    source_type="programme",
+                    source_id="p00feed1",
+                    output_format="m4a",
+                    output_path=str(tmp_path / "recording.m4a"),
+                    created_at="2026-05-17T10:00:00+00:00",
+                    completed_at="2026-05-17T10:30:00+00:00",
+                    podcast_feed_slug="late-night-drama",
+                    podcast_feed_name="Late Night Drama",
+                )
+            )
+        (tmp_path / "recording.m4a").write_bytes(b"\x00")
+
+        with (
+            patch("radio_cache_api._DB_PATH", db_path),
+            patch("radio_cache_api._JSON_PATH", "/nonexistent/path.json"),
+            patch("radio_cache_api._run_recording_job"),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app) as client:
+                resp = client.get("/api/podcast-feeds")
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["count"] == 1
+        assert body["feeds"][0]["slug"] == "late-night-drama"
+        assert body["feeds"][0]["name"] == "Late Night Drama"
+
+
 # ── DELETE /api/recordings/{job_id} ──────────────────────────────────────
 
 
@@ -302,7 +359,7 @@ class TestPodcastFeed:
     @pytest.fixture()
     def podcast_client(
         self, fresh_manager: JobManager, tmp_path: Path
-    ) -> TestClient:
+    ) -> Generator[TestClient, None, None]:
         """Client with a completed job and matching programme in the DB."""
         from datetime import UTC, datetime
 
@@ -384,7 +441,9 @@ class TestPodcastFeed:
         assert item.findtext("itunes:episode", namespaces=ns) == "3"
         assert item.findtext("itunes:episodeType", namespaces=ns) == "full"
         assert item.findtext("itunes:keywords", namespaces=ns) == "Drama"
-        assert item.find("itunes:image", namespaces=ns).get("href") == "https://example.com/thumb.jpg"
+        image = item.find("itunes:image", namespaces=ns)
+        assert image is not None
+        assert image.get("href") == "https://example.com/thumb.jpg"
 
     def test_podcast_feed_episode_label_no_number(
         self, tmp_path: Path
@@ -441,3 +500,62 @@ class TestPodcastFeed:
         assert item.findtext("itunes:subtitle", namespaces=ns) == "Loose Ends"
         # No <itunes:episode> when episode_number is 0
         assert item.find("itunes:episode", namespaces=ns) is None
+
+    def test_podcast_feed_filters_to_named_feed(self, tmp_path: Path) -> None:
+        import xml.etree.ElementTree as ET
+
+        from radio_cache.cache_db import CacheDB
+        from radio_cache.models import Programme
+
+        db_path = str(tmp_path / "named-feed.db")
+        out_a = tmp_path / "a.m4a"
+        out_b = tmp_path / "b.m4a"
+        out_a.write_bytes(b"\x00")
+        out_b.write_bytes(b"\x00")
+
+        with CacheDB(db_path) as db:
+            db.upsert_programmes([
+                Programme(pid="feed-a", title="Feed A Episode"),
+                Programme(pid="feed-b", title="Feed B Episode"),
+            ])
+            db.save_completed_recording(
+                CompletedRecording(
+                    job_id="job-a",
+                    source_type="programme",
+                    source_id="feed-a",
+                    output_format="m4a",
+                    output_path=str(out_a),
+                    created_at="2026-05-17T10:00:00+00:00",
+                    completed_at="2026-05-17T10:30:00+00:00",
+                    podcast_feed_slug="late-night-drama",
+                    podcast_feed_name="Late Night Drama",
+                )
+            )
+            db.save_completed_recording(
+                CompletedRecording(
+                    job_id="job-b",
+                    source_type="programme",
+                    source_id="feed-b",
+                    output_format="m4a",
+                    output_path=str(out_b),
+                    created_at="2026-05-17T11:00:00+00:00",
+                    completed_at="2026-05-17T11:30:00+00:00",
+                    podcast_feed_slug="other-feed",
+                    podcast_feed_name="Other Feed",
+                )
+            )
+
+        with (
+            patch("radio_cache_api._DB_PATH", db_path),
+            patch("radio_cache_api._JSON_PATH", "/nonexistent/path.json"),
+            patch("radio_cache_api._run_recording_job"),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app) as client:
+                resp = client.get("/api/podcast.xml?feed=late-night-drama")
+
+        root = ET.fromstring(resp.content)
+        items = root.findall(".//item")
+        assert len(items) == 1
+        assert items[0].findtext("title") == "Feed A Episode"

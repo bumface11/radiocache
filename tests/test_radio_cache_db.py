@@ -9,6 +9,7 @@ import pytest
 
 from radio_cache.cache_db import CacheDB, _sanitise_fts_query
 from radio_cache.models import Programme
+from radio_cache.recording.models import CompletedRecording
 
 
 @pytest.fixture()
@@ -98,6 +99,70 @@ class TestCacheDB:
     def test_get_missing(self, db: CacheDB) -> None:
         """Getting a non-existent PID returns None."""
         assert db.get_programme("nonexistent") is None
+
+    def test_ensure_and_list_podcast_feeds(self, db: CacheDB) -> None:
+        """Named podcast feeds are normalised and listed with counts."""
+        feed = db.ensure_podcast_feed("  My Favourite Dramas  ")
+        assert feed.slug == "my-favourite-dramas"
+        assert feed.name == "My Favourite Dramas"
+        feeds = db.list_podcast_feeds()
+        assert len(feeds) == 1
+        assert feeds[0].slug == "my-favourite-dramas"
+        assert feeds[0].recording_count == 0
+
+    def test_save_and_get_completed_recording(self, db: CacheDB) -> None:
+        """Completed recordings persist optional feed metadata."""
+        db.save_completed_recording(
+            CompletedRecording(
+                job_id="job-1",
+                source_type="programme",
+                source_id="p001",
+                output_format="m4a",
+                duration_seconds=1800,
+                output_path="/tmp/job-1.m4a",
+                created_at="2026-05-17T10:00:00+00:00",
+                completed_at="2026-05-17T10:30:00+00:00",
+                podcast_feed_slug="my-favourite-dramas",
+                podcast_feed_name="My Favourite Dramas",
+            )
+        )
+        recording = db.get_completed_recording("job-1")
+        assert recording is not None
+        assert recording.podcast_feed_slug == "my-favourite-dramas"
+        assert recording.podcast_feed_name == "My Favourite Dramas"
+        feeds = db.list_podcast_feeds()
+        assert feeds[0].recording_count == 1
+
+    def test_list_completed_recordings_by_feed(self, db: CacheDB) -> None:
+        """Completed recordings can be filtered to a named feed."""
+        db.save_completed_recording(
+            CompletedRecording(
+                job_id="job-a",
+                source_type="programme",
+                source_id="p001",
+                output_format="m4a",
+                output_path="/tmp/job-a.m4a",
+                created_at="2026-05-17T10:00:00+00:00",
+                completed_at="2026-05-17T10:30:00+00:00",
+                podcast_feed_slug="feed-a",
+                podcast_feed_name="Feed A",
+            )
+        )
+        db.save_completed_recording(
+            CompletedRecording(
+                job_id="job-b",
+                source_type="programme",
+                source_id="p002",
+                output_format="mp3",
+                output_path="/tmp/job-b.mp3",
+                created_at="2026-05-17T11:00:00+00:00",
+                completed_at="2026-05-17T11:30:00+00:00",
+                podcast_feed_slug="feed-b",
+                podcast_feed_name="Feed B",
+            )
+        )
+        recordings = db.list_completed_recordings(feed_slug="feed-a")
+        assert [recording.job_id for recording in recordings] == ["job-a"]
 
     def test_bulk_upsert(self, db: CacheDB) -> None:
         """Bulk upsert inserts multiple programmes."""

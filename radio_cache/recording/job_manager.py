@@ -36,6 +36,8 @@ class JobManager:
         source_id: str,
         output_format: OutputFormat,
         duration_seconds: int | None = None,
+        podcast_feed_slug: str = "",
+        podcast_feed_name: str = "",
     ) -> RecordingJob:
         """Create a new ``queued`` job and register it.
 
@@ -57,6 +59,8 @@ class JobManager:
             duration_seconds=duration_seconds,
             status="queued",
             created_at=datetime.now(UTC).isoformat(),
+            podcast_feed_slug=podcast_feed_slug,
+            podcast_feed_name=podcast_feed_name,
         )
         with self._lock:
             self._jobs[job.job_id] = job

@@ -6,7 +6,6 @@ used by the FastAPI recording endpoints.
 
 from __future__ import annotations
 
-import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Literal
@@ -68,6 +67,35 @@ class RecordingJob:
     completed_at: str = ""
     progress_seconds: int = 0
     manifest_url: str = ""
+    podcast_feed_slug: str = ""
+    podcast_feed_name: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class CompletedRecording:
+    """Persisted metadata for a completed recording."""
+
+    job_id: str
+    source_type: SourceType
+    source_id: str
+    output_format: OutputFormat
+    duration_seconds: int | None = None
+    output_path: str = ""
+    created_at: str = ""
+    completed_at: str = ""
+    podcast_feed_slug: str = ""
+    podcast_feed_name: str = ""
+
+
+@dataclass(frozen=True, slots=True)
+class PodcastFeed:
+    """A saved named podcast feed."""
+
+    slug: str
+    name: str
+    created_at: str = ""
+    updated_at: str = ""
+    recording_count: int = 0
 
 
 # ── Pydantic API schemas ────────────────────────────────────────────────
@@ -97,6 +125,14 @@ class RecordingRequest(BaseModel):
         default="m4a",
         description="Output audio container.  'm4a' (default) or 'mp3'.",
     )
+    podcast_feed_name: str | None = Field(
+        default=None,
+        max_length=80,
+        description=(
+            "Optional saved podcast feed name. Existing names append to the same "
+            "feed; new names create a new feed."
+        ),
+    )
 
 
 def job_to_dict(job: RecordingJob) -> dict:
@@ -116,4 +152,6 @@ def job_to_dict(job: RecordingJob) -> dict:
         "completed_at": job.completed_at,
         "progress_seconds": job.progress_seconds,
         "manifest_url": job.manifest_url,
+        "podcast_feed_slug": job.podcast_feed_slug,
+        "podcast_feed_name": job.podcast_feed_name,
     }
