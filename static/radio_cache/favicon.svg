@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Radio Cache favicon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#331cf9"/>
+      <stop offset="100%" stop-color="#2977f5"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#bg)"/>
+  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-width="4">
+    <circle cx="32" cy="34" r="4" fill="#ffffff" stroke="none"/>
+    <path d="M32 20v8"/>
+    <path d="M22 34h6"/>
+    <path d="M36 34h6"/>
+    <path d="M24 26a11 11 0 0 1 16 0"/>
+    <path d="M20 22a17 17 0 0 1 24 0"/>
+  </g>
+</svg>

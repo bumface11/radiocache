@@ -23,7 +23,12 @@ from pathlib import Path
 from typing import Final, Literal
 
 from fastapi import FastAPI, Query, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, StreamingResponse
+from fastapi.responses import (
+    HTMLResponse,
+    PlainTextResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
@@ -147,6 +152,12 @@ app.mount(
 )
 templates = Jinja2Templates(directory=str(_BASE_DIR / "templates" / "radio_cache"))
 templates.env.filters["format_duration"] = format_duration
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> RedirectResponse:
+    """Serve a favicon for user agents that still request /favicon.ico."""
+    return RedirectResponse(url="/static/favicon.svg", status_code=307)
 
 
 def format_short_date(value: str) -> str:
