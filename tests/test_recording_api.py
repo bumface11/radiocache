@@ -252,6 +252,208 @@ class TestPodcastFeeds:
         assert body["feeds"][0]["slug"] == "late-night-drama"
         assert body["feeds"][0]["name"] == "Late Night Drama"
 
+    def test_get_podcast_feed_thumbnails(self, tmp_path: Path) -> None:
+        from radio_cache.cache_db import CacheDB
+
+        db_path = str(tmp_path / "thumbnails.db")
+        with CacheDB(db_path) as db:
+            # Create a feed with a cover image.
+            db.ensure_podcast_feed("Late Night Drama", "https://example.com/cover.jpg")
+            # Insert a programme with a thumbnail.
+            db._conn.execute(
+                """
+                INSERT INTO programmes (
+                    pid, title, synopsis, duration_secs,
+                    series_pid, series_title, brand_pid, brand_title,
+                    episode_number, channel, thumbnail_url, categories,
+                    url, updated_at
+                ) VALUES (
+                    'p00feed1', 'Episode 1', '', 3600, '', '', '', '',
+                    1, 'BBC Radio 4', 'https://example.com/ep1.jpg', '',
+                    '', ''
+                )
+                """
+            )
+            db._conn.commit()
+            db.save_completed_recording(
+                CompletedRecording(
+                    job_id="job-thumb-1",
+                    source_type="programme",
+                    source_id="p00feed1",
+                    output_format="m4a",
+                    output_path=str(tmp_path / "recording.m4a"),
+                    created_at="2026-05-17T10:00:00+00:00",
+                    completed_at="2026-05-17T10:30:00+00:00",
+                    podcast_feed_slug="late-night-drama",
+                    podcast_feed_name="Late Night Drama",
+                )
+            )
+        (tmp_path / "recording.m4a").write_bytes(b"\x00")
+
+        with (
+            patch("radio_cache_api._DB_PATH", db_path),
+            patch("radio_cache_api._JSON_PATH", "/nonexistent/path.json"),
+            patch("radio_cache_api._run_recording_job"),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app) as client:
+                resp = client.get("/api/podcast-feeds/late-night-drama/thumbnails")
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["cover_image_url"] == "https://example.com/cover.jpg"
+        assert body["episode_thumbnails"] == ["https://example.com/ep1.jpg"]
+
+    def test_get_podcast_feed_thumbnails_returns_404_for_missing_feed(
+        self, tmp_path: Path
+    ) -> None:
+        with (
+            patch("radio_cache_api._DB_PATH", str(tmp_path / "empty.db")),
+            patch("radio_cache_api._JSON_PATH", "/nonexistent/path.json"),
+            patch("radio_cache_api._run_recording_job"),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app) as client:
+                resp = client.get("/api/podcast-feeds/no-such-feed/thumbnails")
+
+        assert resp.status_code == 404
+
+    def test_patch_podcast_feed_cover(self, tmp_path: Path) -> None:
+        from radio_cache.cache_db import CacheDB
+
+        db_path = str(tmp_path / "patch_cover.db")
+        with CacheDB(db_path) as db:
+            db.ensure_podcast_feed("Late Night Drama", "https://example.com/old.jpg")
+
+        with (
+            patch("radio_cache_api._DB_PATH", db_path),
+            patch("radio_cache_api._JSON_PATH", "/nonexistent/path.json"),
+            patch("radio_cache_api._run_recording_job"),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app) as client:
+                resp = client.patch(
+                    "/api/podcast-feeds/late-night-drama",
+                    json={"cover_image_url": "https://example.com/new.jpg"},
+                )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["cover_image_url"] == "https://example.com/new.jpg"
+
+        with CacheDB(db_path) as db:
+            feed = db.get_podcast_feed("late-night-drama")
+        assert feed is not None
+        assert feed.cover_image_url == "https://example.com/new.jpg"
+
+    def test_patch_podcast_feed_cover_returns_404_for_missing_feed(
+        self, tmp_path: Path
+    ) -> None:
+        with (
+            patch("radio_cache_api._DB_PATH", str(tmp_path / "empty.db")),
+            patch("radio_cache_api._JSON_PATH", "/nonexistent/path.json"),
+            patch("radio_cache_api._run_recording_job"),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app) as client:
+                resp = client.patch(
+                    "/api/podcast-feeds/no-such-feed",
+                    json={"cover_image_url": "https://example.com/x.jpg"},
+                )
+
+        assert resp.status_code == 404
+
+    def test_save_default_feed_recording_does_not_raise(
+        self, tmp_path: Path
+    ) -> None:
+        """Saving a completed recording with no named feed (empty slug) must not fail.
+
+        Regression test: the FK constraint on podcast_feed_slug was rejecting
+        empty strings (the sentinel used when no named feed is selected),
+        causing ``_persist_completed_recording`` to raise and the worker to
+        mark the job as failed.
+        """
+        from radio_cache.cache_db import CacheDB
+
+        db_path = str(tmp_path / "default_feed.db")
+        with CacheDB(db_path) as db:
+            # Should not raise — no named feed, slug is empty string
+            db.save_completed_recording(
+                CompletedRecording(
+                    job_id="job-default-1",
+                    source_type="programme",
+                    source_id="p00abc1",
+                    output_format="m4a",
+                    output_path=str(tmp_path / "recording.m4a"),
+                    created_at="2026-05-17T10:00:00+00:00",
+                    completed_at="2026-05-17T10:30:00+00:00",
+                    podcast_feed_slug="",
+                    podcast_feed_name="",
+                )
+            )
+            recordings = db.list_completed_recordings()
+        assert len(recordings) == 1
+        assert recordings[0].podcast_feed_slug == ""
+
+    def test_migrate_removes_fk_from_legacy_database(
+        self, tmp_path: Path
+    ) -> None:
+        """Migration recreates completed_recordings without FK for old DBs."""
+        import sqlite3
+
+        from radio_cache.cache_db import CacheDB
+
+        db_path = str(tmp_path / "legacy.db")
+        # Build a minimal legacy database that has the FK constraint.
+        conn = sqlite3.connect(db_path)
+        conn.executescript("""
+            CREATE TABLE podcast_feeds (
+                slug TEXT PRIMARY KEY,
+                name TEXT NOT NULL
+            );
+            CREATE TABLE completed_recordings (
+                job_id TEXT PRIMARY KEY,
+                source_type TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                output_format TEXT NOT NULL,
+                duration_seconds INTEGER,
+                output_path TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT '',
+                completed_at TEXT NOT NULL DEFAULT '',
+                podcast_feed_slug TEXT NOT NULL DEFAULT '',
+                podcast_feed_name TEXT NOT NULL DEFAULT '',
+                FOREIGN KEY (podcast_feed_slug) REFERENCES podcast_feeds(slug)
+            );
+            INSERT INTO podcast_feeds VALUES ('my-feed', 'My Feed');
+            INSERT INTO completed_recordings VALUES
+                ('j1','programme','pid1','m4a',NULL,'','','','my-feed','My Feed');
+        """)
+        conn.close()
+
+        # Opening via CacheDB must trigger the migration.
+        with CacheDB(db_path) as db:
+            # After migration, saving a default-feed recording must succeed.
+            db.save_completed_recording(
+                CompletedRecording(
+                    job_id="j2",
+                    source_type="programme",
+                    source_id="pid2",
+                    output_format="m4a",
+                    output_path="",
+                    created_at="",
+                    completed_at="",
+                    podcast_feed_slug="",
+                    podcast_feed_name="",
+                )
+            )
+            # Both rows (original + new) must survive — check via direct lookup
+            assert db.get_completed_recording("j1") is not None
+            assert db.get_completed_recording("j2") is not None
+
 
 # ── DELETE /api/recordings/{job_id} ──────────────────────────────────────
 

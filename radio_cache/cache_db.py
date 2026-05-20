@@ -59,10 +59,11 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 
 CREATE TABLE IF NOT EXISTS podcast_feeds (
-    slug        TEXT PRIMARY KEY,
-    name        TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    created_at  TEXT NOT NULL DEFAULT '',
-    updated_at  TEXT NOT NULL DEFAULT ''
+    slug             TEXT PRIMARY KEY,
+    name             TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    created_at       TEXT NOT NULL DEFAULT '',
+    updated_at       TEXT NOT NULL DEFAULT '',
+    cover_image_url  TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS completed_recordings (
@@ -75,8 +76,7 @@ CREATE TABLE IF NOT EXISTS completed_recordings (
     created_at         TEXT NOT NULL DEFAULT '',
     completed_at       TEXT NOT NULL DEFAULT '',
     podcast_feed_slug  TEXT NOT NULL DEFAULT '',
-    podcast_feed_name  TEXT NOT NULL DEFAULT '',
-    FOREIGN KEY (podcast_feed_slug) REFERENCES podcast_feeds(slug)
+    podcast_feed_name  TEXT NOT NULL DEFAULT ''
 );
 
 CREATE VIRTUAL TABLE IF NOT EXISTS programmes_fts USING fts5(
@@ -178,10 +178,67 @@ class CacheDB:
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA foreign_keys=ON")
         self._conn.executescript(_CREATE_TABLES_SQL)
+        self._migrate()
 
     def close(self) -> None:
         """Close the database connection."""
         self._conn.close()
+
+    def _migrate(self) -> None:
+        """Apply incremental schema migrations for existing databases."""
+        # Migration 1: Add cover_image_url to podcast_feeds.
+        # Use a nullable column (no NOT NULL) to support SQLite < 3.37 where
+        # ALTER TABLE ADD COLUMN with NOT NULL is not permitted.
+        existing_cols = {
+            row[1]
+            for row in self._conn.execute(
+                "PRAGMA table_info(podcast_feeds)"
+            ).fetchall()
+        }
+        if "cover_image_url" not in existing_cols:
+            try:
+                self._conn.execute(
+                    "ALTER TABLE podcast_feeds ADD COLUMN "
+                    "cover_image_url TEXT DEFAULT ''"
+                )
+                self._conn.commit()
+            except Exception:
+                # Another connection may have already added the column.
+                pass
+
+        # Migration 2: Remove the FK constraint from completed_recordings.
+        # The FK (podcast_feed_slug → podcast_feeds.slug) rejects the empty
+        # string used as the "default feed" sentinel, causing every
+        # default-feed recording to fail at persist time.  We recreate the
+        # table without the constraint so empty slugs are stored freely.
+        schema_row = self._conn.execute(
+            "SELECT sql FROM sqlite_master "
+            "WHERE type='table' AND name='completed_recordings'"
+        ).fetchone()
+        if schema_row and "FOREIGN KEY" in (schema_row[0] or ""):
+            self._conn.executescript(
+                """
+                BEGIN;
+                CREATE TABLE completed_recordings_new (
+                    job_id             TEXT PRIMARY KEY,
+                    source_type        TEXT NOT NULL,
+                    source_id          TEXT NOT NULL,
+                    output_format      TEXT NOT NULL,
+                    duration_seconds   INTEGER,
+                    output_path        TEXT NOT NULL DEFAULT '',
+                    created_at         TEXT NOT NULL DEFAULT '',
+                    completed_at       TEXT NOT NULL DEFAULT '',
+                    podcast_feed_slug  TEXT NOT NULL DEFAULT '',
+                    podcast_feed_name  TEXT NOT NULL DEFAULT ''
+                );
+                INSERT INTO completed_recordings_new
+                    SELECT * FROM completed_recordings;
+                DROP TABLE completed_recordings;
+                ALTER TABLE completed_recordings_new
+                    RENAME TO completed_recordings;
+                COMMIT;
+                """
+            )
 
     def __enter__(self) -> CacheDB:
         return self
@@ -285,8 +342,16 @@ class CacheDB:
         ).fetchone()
         return _row_to_programme(row) if row else None
 
-    def ensure_podcast_feed(self, name: str) -> PodcastFeed:
-        """Create or return a saved podcast feed for *name*."""
+    def ensure_podcast_feed(
+        self, name: str, cover_image_url: str = ""
+    ) -> PodcastFeed:
+        """Create or return a saved podcast feed for *name*.
+
+        When *cover_image_url* is non-empty and the feed already exists the
+        stored cover image is replaced.  Passing an empty string leaves the
+        existing image unchanged — empty string means "no update", not
+        "clear the image".
+        """
         cleaned = " ".join(name.split()).strip()
         if not cleaned:
             raise ValueError("Podcast feed name cannot be empty")
@@ -294,9 +359,12 @@ class CacheDB:
         now = datetime.now(UTC).isoformat()
         existing = self.get_podcast_feed(slug)
         if existing is not None:
+            new_cover = cover_image_url if cover_image_url else existing.cover_image_url
             self._conn.execute(
-                "UPDATE podcast_feeds SET name = ?, updated_at = ? WHERE slug = ?",
-                (cleaned, now, slug),
+                "UPDATE podcast_feeds "
+                "SET name = ?, updated_at = ?, cover_image_url = ? "
+                "WHERE slug = ?",
+                (cleaned, now, new_cover, slug),
             )
             self._conn.commit()
             return PodcastFeed(
@@ -305,41 +373,89 @@ class CacheDB:
                 created_at=existing.created_at,
                 updated_at=now,
                 recording_count=existing.recording_count,
+                cover_image_url=new_cover,
             )
         self._conn.execute(
-            "INSERT INTO podcast_feeds (slug, name, created_at, updated_at) "
-            "VALUES (?, ?, ?, ?)",
-            (slug, cleaned, now, now),
+            "INSERT INTO podcast_feeds "
+            "(slug, name, created_at, updated_at, cover_image_url) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (slug, cleaned, now, now, cover_image_url),
         )
         self._conn.commit()
-        return PodcastFeed(slug=slug, name=cleaned, created_at=now, updated_at=now)
+        return PodcastFeed(
+            slug=slug,
+            name=cleaned,
+            created_at=now,
+            updated_at=now,
+            cover_image_url=cover_image_url,
+        )
 
     def get_podcast_feed(self, slug: str) -> PodcastFeed | None:
         """Return one saved podcast feed by slug."""
         row = self._conn.execute(
             """
-            SELECT f.slug, f.name, f.created_at, f.updated_at,
+            SELECT f.slug, f.name, f.created_at, f.updated_at, f.cover_image_url,
                    COUNT(r.job_id) AS recording_count
             FROM podcast_feeds f
             LEFT JOIN completed_recordings r
               ON r.podcast_feed_slug = f.slug
             WHERE f.slug = ?
-            GROUP BY f.slug, f.name, f.created_at, f.updated_at
+            GROUP BY f.slug, f.name, f.created_at, f.updated_at, f.cover_image_url
             """,
             (slug,),
         ).fetchone()
         return _row_to_podcast_feed(row) if row else None
 
+    def set_podcast_feed_cover(self, slug: str, cover_image_url: str) -> None:
+        """Set the cover image URL for an existing podcast feed.
+
+        Args:
+            slug: Feed slug to update.
+            cover_image_url: New cover image URL (may be empty to clear).
+        """
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC).isoformat()
+        self._conn.execute(
+            "UPDATE podcast_feeds SET cover_image_url = ?, updated_at = ? WHERE slug = ?",
+            (cover_image_url, now, slug),
+        )
+        self._conn.commit()
+
+    def get_feed_episode_thumbnails(
+        self, slug: str, limit: int = 10
+    ) -> list[str]:
+        """Return distinct non-empty episode thumbnail URLs for a feed.
+
+        Results are ordered by the most recent ``completed_at`` for each
+        thumbnail URL, newest first, and capped at *limit*.  Only completed
+        recordings whose source is a known programme entry are included.
+        """
+        rows = self._conn.execute(
+            """
+            SELECT p.thumbnail_url
+            FROM completed_recordings r
+            JOIN programmes p ON p.pid = r.source_id
+            WHERE r.podcast_feed_slug = ?
+              AND p.thumbnail_url != ''
+            GROUP BY p.thumbnail_url
+            ORDER BY MAX(r.completed_at) DESC
+            LIMIT ?
+            """,
+            (slug, limit),
+        ).fetchall()
+        return [row["thumbnail_url"] for row in rows]
+
     def list_podcast_feeds(self) -> list[PodcastFeed]:
         """List all saved podcast feeds, newest-updated first."""
         rows = self._conn.execute(
             """
-            SELECT f.slug, f.name, f.created_at, f.updated_at,
+            SELECT f.slug, f.name, f.created_at, f.updated_at, f.cover_image_url,
                    COUNT(r.job_id) AS recording_count
             FROM podcast_feeds f
             LEFT JOIN completed_recordings r
               ON r.podcast_feed_slug = f.slug
-            GROUP BY f.slug, f.name, f.created_at, f.updated_at
+            GROUP BY f.slug, f.name, f.created_at, f.updated_at, f.cover_image_url
             ORDER BY f.updated_at DESC, f.name COLLATE NOCASE ASC
             """
         ).fetchall()
@@ -1362,6 +1478,7 @@ def _row_to_podcast_feed(row: sqlite3.Row) -> PodcastFeed:
         created_at=row["created_at"],
         updated_at=row["updated_at"],
         recording_count=int(row["recording_count"]),
+        cover_image_url=row["cover_image_url"] if row["cover_image_url"] else "",
     )
 
 

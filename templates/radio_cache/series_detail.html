@@ -197,10 +197,11 @@
             if (typeof window.rcPromptForPodcastFeed !== 'function') {
                 return;
             }
-            const feedName = await window.rcPromptForPodcastFeed(pids.length);
-            if (feedName === null) {
+            const result = await window.rcPromptForPodcastFeed(pids.length);
+            if (result === null) {
                 return;
             }
+            const {feedName, coverImageUrl} = result;
             this.disabled = true;
             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Queuing\u2026';
             let queued = 0;
@@ -209,6 +210,9 @@
                     const body = {source_type: 'programme', source_id: pid, output_format: 'm4a'};
                     if (feedName) {
                         body.podcast_feed_name = feedName;
+                        if (coverImageUrl) {
+                            body.podcast_feed_cover_image_url = coverImageUrl;
+                        }
                     }
                     const r = await fetch('/api/recordings', {
                         method: 'POST',
