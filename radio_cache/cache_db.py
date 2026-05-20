@@ -76,8 +76,7 @@ CREATE TABLE IF NOT EXISTS completed_recordings (
     created_at         TEXT NOT NULL DEFAULT '',
     completed_at       TEXT NOT NULL DEFAULT '',
     podcast_feed_slug  TEXT NOT NULL DEFAULT '',
-    podcast_feed_name  TEXT NOT NULL DEFAULT '',
-    FOREIGN KEY (podcast_feed_slug) REFERENCES podcast_feeds(slug)
+    podcast_feed_name  TEXT NOT NULL DEFAULT ''
 );
 
 CREATE VIRTUAL TABLE IF NOT EXISTS programmes_fts USING fts5(
@@ -187,6 +186,9 @@ class CacheDB:
 
     def _migrate(self) -> None:
         """Apply incremental schema migrations for existing databases."""
+        # Migration 1: Add cover_image_url to podcast_feeds.
+        # Use a nullable column (no NOT NULL) to support SQLite < 3.37 where
+        # ALTER TABLE ADD COLUMN with NOT NULL is not permitted.
         existing_cols = {
             row[1]
             for row in self._conn.execute(
@@ -194,11 +196,49 @@ class CacheDB:
             ).fetchall()
         }
         if "cover_image_url" not in existing_cols:
-            self._conn.execute(
-                "ALTER TABLE podcast_feeds ADD COLUMN "
-                "cover_image_url TEXT NOT NULL DEFAULT ''"
+            try:
+                self._conn.execute(
+                    "ALTER TABLE podcast_feeds ADD COLUMN "
+                    "cover_image_url TEXT DEFAULT ''"
+                )
+                self._conn.commit()
+            except Exception:
+                # Another connection may have already added the column.
+                pass
+
+        # Migration 2: Remove the FK constraint from completed_recordings.
+        # The FK (podcast_feed_slug → podcast_feeds.slug) rejects the empty
+        # string used as the "default feed" sentinel, causing every
+        # default-feed recording to fail at persist time.  We recreate the
+        # table without the constraint so empty slugs are stored freely.
+        schema_row = self._conn.execute(
+            "SELECT sql FROM sqlite_master "
+            "WHERE type='table' AND name='completed_recordings'"
+        ).fetchone()
+        if schema_row and "FOREIGN KEY" in (schema_row[0] or ""):
+            self._conn.executescript(
+                """
+                BEGIN;
+                CREATE TABLE completed_recordings_new (
+                    job_id             TEXT PRIMARY KEY,
+                    source_type        TEXT NOT NULL,
+                    source_id          TEXT NOT NULL,
+                    output_format      TEXT NOT NULL,
+                    duration_seconds   INTEGER,
+                    output_path        TEXT NOT NULL DEFAULT '',
+                    created_at         TEXT NOT NULL DEFAULT '',
+                    completed_at       TEXT NOT NULL DEFAULT '',
+                    podcast_feed_slug  TEXT NOT NULL DEFAULT '',
+                    podcast_feed_name  TEXT NOT NULL DEFAULT ''
+                );
+                INSERT INTO completed_recordings_new
+                    SELECT * FROM completed_recordings;
+                DROP TABLE completed_recordings;
+                ALTER TABLE completed_recordings_new
+                    RENAME TO completed_recordings;
+                COMMIT;
+                """
             )
-            self._conn.commit()
 
     def __enter__(self) -> CacheDB:
         return self

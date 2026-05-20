@@ -252,6 +252,93 @@ class TestPodcastFeeds:
         assert body["feeds"][0]["slug"] == "late-night-drama"
         assert body["feeds"][0]["name"] == "Late Night Drama"
 
+    def test_save_default_feed_recording_does_not_raise(
+        self, tmp_path: Path
+    ) -> None:
+        """Saving a completed recording with no named feed (empty slug) must not fail.
+
+        Regression test: the FK constraint on podcast_feed_slug was rejecting
+        empty strings (the sentinel used when no named feed is selected),
+        causing ``_persist_completed_recording`` to raise and the worker to
+        mark the job as failed.
+        """
+        from radio_cache.cache_db import CacheDB
+
+        db_path = str(tmp_path / "default_feed.db")
+        with CacheDB(db_path) as db:
+            # Should not raise — no named feed, slug is empty string
+            db.save_completed_recording(
+                CompletedRecording(
+                    job_id="job-default-1",
+                    source_type="programme",
+                    source_id="p00abc1",
+                    output_format="m4a",
+                    output_path=str(tmp_path / "recording.m4a"),
+                    created_at="2026-05-17T10:00:00+00:00",
+                    completed_at="2026-05-17T10:30:00+00:00",
+                    podcast_feed_slug="",
+                    podcast_feed_name="",
+                )
+            )
+            recordings = db.list_completed_recordings()
+        assert len(recordings) == 1
+        assert recordings[0].podcast_feed_slug == ""
+
+    def test_migrate_removes_fk_from_legacy_database(
+        self, tmp_path: Path
+    ) -> None:
+        """Migration recreates completed_recordings without FK for old DBs."""
+        import sqlite3
+
+        from radio_cache.cache_db import CacheDB
+
+        db_path = str(tmp_path / "legacy.db")
+        # Build a minimal legacy database that has the FK constraint.
+        conn = sqlite3.connect(db_path)
+        conn.executescript("""
+            CREATE TABLE podcast_feeds (
+                slug TEXT PRIMARY KEY,
+                name TEXT NOT NULL
+            );
+            CREATE TABLE completed_recordings (
+                job_id TEXT PRIMARY KEY,
+                source_type TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                output_format TEXT NOT NULL,
+                duration_seconds INTEGER,
+                output_path TEXT NOT NULL DEFAULT '',
+                created_at TEXT NOT NULL DEFAULT '',
+                completed_at TEXT NOT NULL DEFAULT '',
+                podcast_feed_slug TEXT NOT NULL DEFAULT '',
+                podcast_feed_name TEXT NOT NULL DEFAULT '',
+                FOREIGN KEY (podcast_feed_slug) REFERENCES podcast_feeds(slug)
+            );
+            INSERT INTO podcast_feeds VALUES ('my-feed', 'My Feed');
+            INSERT INTO completed_recordings VALUES
+                ('j1','programme','pid1','m4a',NULL,'','','','my-feed','My Feed');
+        """)
+        conn.close()
+
+        # Opening via CacheDB must trigger the migration.
+        with CacheDB(db_path) as db:
+            # After migration, saving a default-feed recording must succeed.
+            db.save_completed_recording(
+                CompletedRecording(
+                    job_id="j2",
+                    source_type="programme",
+                    source_id="pid2",
+                    output_format="m4a",
+                    output_path="",
+                    created_at="",
+                    completed_at="",
+                    podcast_feed_slug="",
+                    podcast_feed_name="",
+                )
+            )
+            # Both rows (original + new) must survive — check via direct lookup
+            assert db.get_completed_recording("j1") is not None
+            assert db.get_completed_recording("j2") is not None
+
 
 # ── DELETE /api/recordings/{job_id} ──────────────────────────────────────
 
