@@ -320,6 +320,53 @@ class TestPodcastFeeds:
 
         assert resp.status_code == 404
 
+    def test_patch_podcast_feed_cover(self, tmp_path: Path) -> None:
+        from radio_cache.cache_db import CacheDB
+
+        db_path = str(tmp_path / "patch_cover.db")
+        with CacheDB(db_path) as db:
+            db.ensure_podcast_feed("Late Night Drama", "https://example.com/old.jpg")
+
+        with (
+            patch("radio_cache_api._DB_PATH", db_path),
+            patch("radio_cache_api._JSON_PATH", "/nonexistent/path.json"),
+            patch("radio_cache_api._run_recording_job"),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app) as client:
+                resp = client.patch(
+                    "/api/podcast-feeds/late-night-drama",
+                    json={"cover_image_url": "https://example.com/new.jpg"},
+                )
+
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["cover_image_url"] == "https://example.com/new.jpg"
+
+        with CacheDB(db_path) as db:
+            feed = db.get_podcast_feed("late-night-drama")
+        assert feed is not None
+        assert feed.cover_image_url == "https://example.com/new.jpg"
+
+    def test_patch_podcast_feed_cover_returns_404_for_missing_feed(
+        self, tmp_path: Path
+    ) -> None:
+        with (
+            patch("radio_cache_api._DB_PATH", str(tmp_path / "empty.db")),
+            patch("radio_cache_api._JSON_PATH", "/nonexistent/path.json"),
+            patch("radio_cache_api._run_recording_job"),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app) as client:
+                resp = client.patch(
+                    "/api/podcast-feeds/no-such-feed",
+                    json={"cover_image_url": "https://example.com/x.jpg"},
+                )
+
+        assert resp.status_code == 404
+
     def test_save_default_feed_recording_does_not_raise(
         self, tmp_path: Path
     ) -> None:

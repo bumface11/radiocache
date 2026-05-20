@@ -945,6 +945,7 @@ from radio_cache.recording import recorder as _recorder  # noqa: E402
 from radio_cache.recording.job_manager import get_job_manager  # noqa: E402
 from radio_cache.recording.models import (  # noqa: E402
     CompletedRecording,
+    PodcastFeedCoverUpdate,
     RecordingRequest,
     RecordingStatus,
     job_to_dict,
@@ -1405,6 +1406,32 @@ async def get_podcast_feed_thumbnails(slug: str) -> dict:
     return {
         "cover_image_url": feed.cover_image_url,
         "episode_thumbnails": thumbnails,
+    }
+
+
+@app.patch("/api/podcast-feeds/{slug}")
+async def update_podcast_feed_cover(slug: str, body: PodcastFeedCoverUpdate) -> dict:
+    """Update the cover image URL for a named podcast feed.
+
+    Args:
+        slug: The feed slug (URL-safe identifier).
+        body: JSON body containing the new ``cover_image_url``.
+
+    Returns:
+        Updated feed dict with ``slug``, ``name``, and ``cover_image_url``.
+    """
+    with _get_db() as db:
+        feed = db.get_podcast_feed(slug)
+        if feed is None:
+            from fastapi import HTTPException
+
+            raise HTTPException(status_code=404, detail="Feed not found")
+        db.set_podcast_feed_cover(slug, body.cover_image_url)
+        updated = db.get_podcast_feed(slug)
+    return {
+        "slug": slug,
+        "name": updated.name if updated else feed.name,
+        "cover_image_url": body.cover_image_url,
     }
 
 

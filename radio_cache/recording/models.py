@@ -144,6 +144,15 @@ class RecordingRequest(BaseModel):
     )
 
 
+class PodcastFeedCoverUpdate(BaseModel):
+    """Request body for ``PATCH /api/podcast-feeds/{slug}``."""
+
+    cover_image_url: str = Field(
+        max_length=500,
+        description="New cover image URL for the podcast feed.",
+    )
+
+
 def job_to_dict(job: RecordingJob) -> dict:
     """Serialise a :class:`RecordingJob` to a JSON-compatible dict."""
     return {

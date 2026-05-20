@@ -406,6 +406,22 @@ class CacheDB:
         ).fetchone()
         return _row_to_podcast_feed(row) if row else None
 
+    def set_podcast_feed_cover(self, slug: str, cover_image_url: str) -> None:
+        """Set the cover image URL for an existing podcast feed.
+
+        Args:
+            slug: Feed slug to update.
+            cover_image_url: New cover image URL (may be empty to clear).
+        """
+        from datetime import UTC, datetime
+
+        now = datetime.now(UTC).isoformat()
+        self._conn.execute(
+            "UPDATE podcast_feeds SET cover_image_url = ?, updated_at = ? WHERE slug = ?",
+            (cover_image_url, now, slug),
+        )
+        self._conn.commit()
+
     def get_feed_episode_thumbnails(
         self, slug: str, limit: int = 10
     ) -> list[str]:
