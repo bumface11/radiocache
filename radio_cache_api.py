@@ -1383,6 +1383,31 @@ async def list_podcast_feeds(request: Request) -> dict:
     }
 
 
+@app.get("/api/podcast-feeds/{slug}/thumbnails")
+async def get_podcast_feed_thumbnails(slug: str) -> dict:
+    """Return the cover image and episode thumbnail URLs for a named feed.
+
+    Args:
+        slug: The feed slug (URL-safe identifier).
+
+    Returns:
+        Dict with ``cover_image_url`` (the current feed cover, may be empty)
+        and ``episode_thumbnails`` (list of distinct non-empty thumbnail URLs
+        from recorded episodes, newest first).
+    """
+    with _get_db() as db:
+        feed = db.get_podcast_feed(slug)
+        if feed is None:
+            from fastapi import HTTPException
+
+            raise HTTPException(status_code=404, detail="Feed not found")
+        thumbnails = db.get_feed_episode_thumbnails(slug)
+    return {
+        "cover_image_url": feed.cover_image_url,
+        "episode_thumbnails": thumbnails,
+    }
+
+
 @app.get("/api/recordings/stream")
 async def stream_recordings() -> StreamingResponse:
     """Server-sent events stream of recording job state.

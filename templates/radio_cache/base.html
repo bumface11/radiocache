@@ -90,11 +90,10 @@
                             <div class="form-text">Enter a new name to create a feed, or type an existing name.</div>
                         </div>
                         <div id="rc-feed-cover-section" class="mb-2" style="display:none">
-                            <label class="form-label small" for="rc-feed-cover-image">Cover image URL <span class="text-muted">(optional)</span></label>
-                            <input class="form-control form-control-sm" id="rc-feed-cover-image"
-                                   name="podcast_feed_cover_image_url" maxlength="500"
-                                   placeholder="https://example.com/cover.jpg"
-                                   type="url">
+                            <label class="form-label small">Cover image</label>
+                            <div id="rc-cover-picker" class="d-flex flex-wrap gap-2 align-items-start"></div>
+                            <input type="hidden" id="rc-feed-cover-image"
+                                   name="podcast_feed_cover_image_url">
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -222,6 +221,7 @@
             const feedOptionsEl = document.getElementById('rc-feed-options');
             const otherSectionEl = document.getElementById('rc-feed-other-section');
             const coverSectionEl = document.getElementById('rc-feed-cover-section');
+            const coverPickerEl = document.getElementById('rc-cover-picker');
             const otherInputEl = document.getElementById('rc-podcast-feed-name');
             const coverInputEl = document.getElementById('rc-feed-cover-image');
             if (!modalEl || !formEl || !feedOptionsEl) {
@@ -230,6 +230,9 @@
 
             const modal = new bootstrap.Modal(modalEl);
             let pendingResolve = null;
+
+            // Map of feed slug -> thumbnails data already loaded.
+            const _feedThumbnailCache = {};
 
             function _buildFeedOptions(feeds) {
                 // Rebuild the feed radio options (default + last 5 named + other).
@@ -260,11 +263,11 @@
                     _makeRadio('rc-feed-default', '', 'Default feed', true)
                 );
 
-                // Last 5 named feeds.
+                // Last 5 named feeds (store slug in dataset for thumbnail lookup).
                 feeds.slice(0, 5).forEach(function (feed, i) {
-                    feedOptionsEl.appendChild(
-                        _makeRadio('rc-feed-named-' + i, feed.name, feed.name, false)
-                    );
+                    const row = _makeRadio('rc-feed-named-' + i, feed.name, feed.name, false);
+                    row.querySelector('input').dataset.feedSlug = feed.slug || '';
+                    feedOptionsEl.appendChild(row);
                 });
 
                 // "Other…" option for free-text entry.
@@ -278,6 +281,104 @@
                 });
             }
 
+            function _buildCoverPicker(coverImageUrl, episodeThumbnails) {
+                if (!coverPickerEl) { return; }
+                coverPickerEl.innerHTML = '';
+                if (coverInputEl) { coverInputEl.value = ''; }
+
+                // Collect unique image URLs: current cover first, then episodes.
+                const seen = new Set();
+                const items = [];
+                if (coverImageUrl) {
+                    seen.add(coverImageUrl);
+                    items.push({url: coverImageUrl, label: 'Current'});
+                }
+                (episodeThumbnails || []).forEach(function (url) {
+                    if (url && !seen.has(url)) {
+                        seen.add(url);
+                        items.push({url: url, label: ''});
+                    }
+                });
+
+                if (!items.length) {
+                    coverSectionEl.style.display = 'none';
+                    return;
+                }
+
+                coverSectionEl.style.display = '';
+
+                // Pick the default: existing cover if present, else first episode thumbnail.
+                const defaultUrl = items[0].url;
+                if (coverInputEl) { coverInputEl.value = defaultUrl; }
+
+                items.forEach(function (item, idx) {
+                    const wrapper = document.createElement('div');
+                    wrapper.style.cursor = 'pointer';
+                    wrapper.style.position = 'relative';
+
+                    const img = document.createElement('img');
+                    img.src = item.url;
+                    img.alt = item.label || ('Episode ' + (idx + 1));
+                    img.style.width = '80px';
+                    img.style.height = '80px';
+                    img.style.objectFit = 'cover';
+                    img.style.borderRadius = '4px';
+                    img.style.border = '2px solid transparent';
+                    img.style.transition = 'border-color 0.15s';
+
+                    if (item.label) {
+                        const badge = document.createElement('span');
+                        badge.textContent = item.label;
+                        badge.style.cssText = 'position:absolute;bottom:2px;left:2px;'
+                            + 'font-size:0.6rem;background:rgba(0,0,0,0.7);color:#fff;'
+                            + 'padding:1px 3px;border-radius:2px;pointer-events:none';
+                        wrapper.appendChild(badge);
+                    }
+
+                    function _select() {
+                        coverPickerEl.querySelectorAll('img').forEach(function (i) {
+                            i.style.borderColor = 'transparent';
+                        });
+                        img.style.borderColor = '#0d6efd';
+                        if (coverInputEl) { coverInputEl.value = item.url; }
+                    }
+
+                    if (idx === 0) {
+                        img.style.borderColor = '#0d6efd';
+                    }
+
+                    wrapper.addEventListener('click', _select);
+                    wrapper.appendChild(img);
+                    coverPickerEl.appendChild(wrapper);
+                });
+            }
+
+            function _loadCoverPicker(slug) {
+                if (!slug) {
+                    coverSectionEl.style.display = 'none';
+                    if (coverPickerEl) { coverPickerEl.innerHTML = ''; }
+                    if (coverInputEl) { coverInputEl.value = ''; }
+                    return;
+                }
+                if (_feedThumbnailCache[slug]) {
+                    const d = _feedThumbnailCache[slug];
+                    _buildCoverPicker(d.cover_image_url, d.episode_thumbnails);
+                    return;
+                }
+                fetch('/api/podcast-feeds/' + encodeURIComponent(slug) + '/thumbnails')
+                    .then(function (r) { return r.ok ? r.json() : null; })
+                    .then(function (data) {
+                        if (data) { _feedThumbnailCache[slug] = data; }
+                        _buildCoverPicker(
+                            data ? data.cover_image_url : '',
+                            data ? data.episode_thumbnails : []
+                        );
+                    })
+                    .catch(function () {
+                        _buildCoverPicker('', []);
+                    });
+            }
+
             function _onFeedChoiceChange() {
                 const selected = feedOptionsEl.querySelector('input[type=radio]:checked');
                 const value = selected ? selected.value : '';
@@ -285,8 +386,15 @@
                 const isNamed = value !== '' && !isOther;
 
                 otherSectionEl.style.display = isOther ? '' : 'none';
-                // Show cover image section for any named/other choice.
-                coverSectionEl.style.display = (isNamed || isOther) ? '' : 'none';
+                // Cover picker: shown for named feeds that have images; hidden otherwise.
+                if (!isNamed) {
+                    coverSectionEl.style.display = 'none';
+                    if (coverPickerEl) { coverPickerEl.innerHTML = ''; }
+                    if (coverInputEl) { coverInputEl.value = ''; }
+                } else {
+                    const slug = selected.dataset.feedSlug || '';
+                    _loadCoverPicker(slug);
+                }
 
                 if (isOther) {
                     setTimeout(function () { otherInputEl.focus(); }, 50);
@@ -307,7 +415,8 @@
             }
 
             window.rcPromptForPodcastFeed = function (count) {
-                // Reset cover image field.
+                // Reset cover image picker.
+                if (coverPickerEl) { coverPickerEl.innerHTML = ''; }
                 if (coverInputEl) { coverInputEl.value = ''; }
                 if (otherInputEl) { otherInputEl.value = ''; }
                 otherSectionEl.style.display = 'none';

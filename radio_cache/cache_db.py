@@ -406,6 +406,29 @@ class CacheDB:
         ).fetchone()
         return _row_to_podcast_feed(row) if row else None
 
+    def get_feed_episode_thumbnails(
+        self, slug: str, limit: int = 10
+    ) -> list[str]:
+        """Return distinct non-empty episode thumbnail URLs for a feed.
+
+        Results are ordered by ``completed_at`` descending (newest first) and
+        de-duplicated, capped at *limit*.  Only completed recordings whose
+        source is a known programme entry are included.
+        """
+        rows = self._conn.execute(
+            """
+            SELECT DISTINCT p.thumbnail_url
+            FROM completed_recordings r
+            JOIN programmes p ON p.pid = r.source_id
+            WHERE r.podcast_feed_slug = ?
+              AND p.thumbnail_url != ''
+            ORDER BY r.completed_at DESC
+            LIMIT ?
+            """,
+            (slug, limit),
+        ).fetchall()
+        return [row["thumbnail_url"] for row in rows]
+
     def list_podcast_feeds(self) -> list[PodcastFeed]:
         """List all saved podcast feeds, newest-updated first."""
         rows = self._conn.execute(
