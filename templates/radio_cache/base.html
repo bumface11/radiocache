@@ -70,15 +70,31 @@
                     </div>
                     <div class="modal-body">
                         <p class="text-muted small mb-3" id="rc-podcast-feed-help">
-                            Leave the feed name blank to record without creating a named podcast feed.
+                            Choose a podcast feed for this recording.
                         </p>
-                        <label class="form-label" for="rc-podcast-feed-name">Podcast feed name (optional)</label>
-                        <input class="form-control" id="rc-podcast-feed-name" name="podcast_feed_name"
-                               list="rc-podcast-feed-suggestions" maxlength="80"
-                               placeholder="e.g. Desert Island Discs Archive">
-                        <datalist id="rc-podcast-feed-suggestions"></datalist>
-                        <div class="form-text">
-                            Use an existing name to add to that feed, or enter a new name to create one.
+                        <div id="rc-feed-options" class="mb-3">
+                            <!-- Feed options inserted by JS -->
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="rc-feed-choice"
+                                       id="rc-feed-default" value="" checked>
+                                <label class="form-check-label" for="rc-feed-default">
+                                    Default feed
+                                </label>
+                            </div>
+                        </div>
+                        <div id="rc-feed-other-section" class="mb-2" style="display:none">
+                            <label class="form-label small" for="rc-podcast-feed-name">Feed name</label>
+                            <input class="form-control form-control-sm" id="rc-podcast-feed-name"
+                                   name="podcast_feed_name" maxlength="80"
+                                   placeholder="e.g. Desert Island Discs Archive">
+                            <div class="form-text">Enter a new name to create a feed, or type an existing name.</div>
+                        </div>
+                        <div id="rc-feed-cover-section" class="mb-2" style="display:none">
+                            <label class="form-label small" for="rc-feed-cover-image">Cover image URL <span class="text-muted">(optional)</span></label>
+                            <input class="form-control form-control-sm" id="rc-feed-cover-image"
+                                   name="podcast_feed_cover_image_url" maxlength="500"
+                                   placeholder="https://example.com/cover.jpg"
+                                   type="url">
                         </div>
                     </div>
                     <div class="modal-footer">
@@ -202,62 +218,124 @@
         (function () {
             const modalEl = document.getElementById('rc-podcast-feed-modal');
             const formEl = document.getElementById('rc-podcast-feed-form');
-            const inputEl = document.getElementById('rc-podcast-feed-name');
             const helpEl = document.getElementById('rc-podcast-feed-help');
-            const suggestionEl = document.getElementById('rc-podcast-feed-suggestions');
-            if (!modalEl || !formEl || !inputEl || !helpEl || !suggestionEl) {
+            const feedOptionsEl = document.getElementById('rc-feed-options');
+            const otherSectionEl = document.getElementById('rc-feed-other-section');
+            const coverSectionEl = document.getElementById('rc-feed-cover-section');
+            const otherInputEl = document.getElementById('rc-podcast-feed-name');
+            const coverInputEl = document.getElementById('rc-feed-cover-image');
+            if (!modalEl || !formEl || !feedOptionsEl) {
                 return;
             }
 
             const modal = new bootstrap.Modal(modalEl);
             let pendingResolve = null;
-            let feedSuggestionsPromise = null;
+
+            function _buildFeedOptions(feeds) {
+                // Keep just the "Default feed" option and rebuild the named feed options.
+                feedOptionsEl.innerHTML = '';
+
+                // Default feed option (always first, pre-selected).
+                const defaultDiv = document.createElement('div');
+                defaultDiv.className = 'form-check';
+                defaultDiv.innerHTML =
+                    '<input class="form-check-input" type="radio" name="rc-feed-choice" id="rc-feed-default" value="" checked>'
+                    + '<label class="form-check-label" for="rc-feed-default">Default feed</label>';
+                feedOptionsEl.appendChild(defaultDiv);
+
+                // Last 5 named feeds.
+                feeds.slice(0, 5).forEach(function (feed, i) {
+                    const id = 'rc-feed-named-' + i;
+                    const div = document.createElement('div');
+                    div.className = 'form-check';
+                    div.innerHTML =
+                        '<input class="form-check-input" type="radio" name="rc-feed-choice" id="' + id + '" value="' + feed.name.replace(/"/g, '&quot;') + '">'
+                        + '<label class="form-check-label" for="' + id + '">' + feed.name.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</label>';
+                    feedOptionsEl.appendChild(div);
+                });
+
+                // "Other…" option for free-text entry.
+                const otherId = 'rc-feed-other';
+                const otherDiv = document.createElement('div');
+                otherDiv.className = 'form-check';
+                otherDiv.innerHTML =
+                    '<input class="form-check-input" type="radio" name="rc-feed-choice" id="' + otherId + '" value="__other__">'
+                    + '<label class="form-check-label" for="' + otherId + '">Other&hellip;</label>';
+                feedOptionsEl.appendChild(otherDiv);
+
+                // Wire up change events.
+                feedOptionsEl.querySelectorAll('input[type=radio]').forEach(function (radio) {
+                    radio.addEventListener('change', _onFeedChoiceChange);
+                });
+            }
+
+            function _onFeedChoiceChange() {
+                const selected = feedOptionsEl.querySelector('input[type=radio]:checked');
+                const value = selected ? selected.value : '';
+                const isOther = value === '__other__';
+                const isNamed = value !== '' && !isOther;
+
+                otherSectionEl.style.display = isOther ? '' : 'none';
+                // Show cover image section for any named/other choice.
+                coverSectionEl.style.display = (isNamed || isOther) ? '' : 'none';
+
+                if (isOther) {
+                    setTimeout(function () { otherInputEl.focus(); }, 50);
+                }
+            }
 
             function loadPodcastFeedSuggestions() {
-                if (feedSuggestionsPromise) {
-                    return feedSuggestionsPromise;
-                }
-                feedSuggestionsPromise = fetch('/api/podcast-feeds')
-                    .then(resp => resp.ok ? resp.json() : {feeds: []})
-                    .then(data => {
-                        suggestionEl.innerHTML = '';
-                        (data.feeds || []).forEach(feed => {
-                            const option = document.createElement('option');
-                            option.value = feed.name;
-                            suggestionEl.appendChild(option);
-                        });
+                return fetch('/api/podcast-feeds')
+                    .then(function (resp) { return resp.ok ? resp.json() : {feeds: []}; })
+                    .then(function (data) {
+                        _buildFeedOptions(data.feeds || []);
+                        // Re-wire change handler after rebuild.
+                        _onFeedChoiceChange();
                     })
-                    .catch(() => {
-                        suggestionEl.innerHTML = '';
+                    .catch(function () {
+                        _buildFeedOptions([]);
                     });
-                return feedSuggestionsPromise;
             }
 
             window.rcPromptForPodcastFeed = function (count) {
-                void loadPodcastFeedSuggestions();
-                inputEl.value = '';
-                helpEl.textContent = count > 1
-                    ? `Leave the feed name blank to just queue these ${count} recordings.`
-                    : 'Leave the feed name blank to record without creating a named podcast feed.';
+                // Reset cover image field.
+                if (coverInputEl) { coverInputEl.value = ''; }
+                if (otherInputEl) { otherInputEl.value = ''; }
+                otherSectionEl.style.display = 'none';
+                coverSectionEl.style.display = 'none';
+                if (helpEl) {
+                    helpEl.textContent = count > 1
+                        ? 'Choose a podcast feed for these ' + count + ' recordings.'
+                        : 'Choose a podcast feed for this recording.';
+                }
                 modal.show();
-                return new Promise(resolve => {
+                // Load feeds after showing (non-blocking).
+                void loadPodcastFeedSuggestions();
+                return new Promise(function (resolve) {
                     pendingResolve = resolve;
-                    setTimeout(() => inputEl.focus(), 100);
                 });
             };
 
-            formEl.addEventListener('submit', event => {
+            formEl.addEventListener('submit', function (event) {
                 event.preventDefault();
-                const value = inputEl.value.trim();
+                const selected = feedOptionsEl.querySelector('input[type=radio]:checked');
+                const choiceValue = selected ? selected.value : '';
+                let feedName;
+                if (choiceValue === '__other__') {
+                    feedName = otherInputEl ? otherInputEl.value.trim() : '';
+                } else {
+                    feedName = choiceValue; // '' for default, or named feed name
+                }
+                const coverImageUrl = (coverInputEl && coverInputEl.value.trim()) || '';
                 const resolve = pendingResolve;
                 pendingResolve = null;
                 modal.hide();
                 if (resolve) {
-                    resolve(value);
+                    resolve({feedName: feedName, coverImageUrl: coverImageUrl});
                 }
             });
 
-            modalEl.addEventListener('hidden.bs.modal', () => {
+            modalEl.addEventListener('hidden.bs.modal', function () {
                 if (pendingResolve) {
                     const resolve = pendingResolve;
                     pendingResolve = null;
@@ -266,7 +344,7 @@
             });
         }());
 
-        async function rcCreateRecording(pid, feedName) {
+        async function rcCreateRecording(pid, feedName, coverImageUrl) {
             const body = {
                 source_type: 'programme',
                 source_id: pid,
@@ -274,6 +352,9 @@
             };
             if (feedName) {
                 body.podcast_feed_name = feedName;
+                if (coverImageUrl) {
+                    body.podcast_feed_cover_image_url = coverImageUrl;
+                }
             }
             return fetch('/api/recordings', {
                 method: 'POST',
@@ -288,14 +369,15 @@
             if (!btn || btn.dataset.recording) return;
             const pid = btn.dataset.pid;
             if (!pid || typeof window.rcPromptForPodcastFeed !== 'function') return;
-            const feedName = await window.rcPromptForPodcastFeed(1);
-            if (feedName === null) return;
+            const result = await window.rcPromptForPodcastFeed(1);
+            if (result === null) return;
+            const {feedName, coverImageUrl} = result;
             btn.dataset.recording = '1';
             const origHtml = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
             try {
-                const resp = await rcCreateRecording(pid, feedName);
+                const resp = await rcCreateRecording(pid, feedName, coverImageUrl);
                 if (resp.ok) {
                     btn.innerHTML = feedName ? '&#10003; Feed queued' : '&#10003; Queued';
                     btn.classList.replace('btn-outline-danger', 'btn-success');

@@ -66,6 +66,17 @@
                 <div class="col-sm-2 d-flex align-items-end">
                     <button type="submit" class="btn btn-danger btn-sm w-100">Record</button>
                 </div>
+                <div class="col-12">
+                    <label class="form-label" for="live-feed-select">Podcast feed <span class="text-muted">(optional)</span></label>
+                    <select class="form-select form-select-sm" id="live-feed-select" name="feed_select">
+                        <option value="">Default feed</option>
+                        <!-- Recent named feeds inserted by JS -->
+                    </select>
+                    <div id="live-feed-other-row" class="mt-2" style="display:none">
+                        <input class="form-control form-control-sm" id="live-feed-name" name="feed_name"
+                               maxlength="80" placeholder="New feed name">
+                    </div>
+                </div>
             </form>
             <div id="live-record-result" class="mt-2"></div>
         </div>
@@ -268,6 +279,38 @@
         openStream();
     });
 
+    // Populate live feed selector with last 5 named feeds
+    (function () {
+        const sel = document.getElementById('live-feed-select');
+        const otherRow = document.getElementById('live-feed-other-row');
+        if (!sel) return;
+        fetch('/api/podcast-feeds')
+            .then(r => r.ok ? r.json() : {feeds: []})
+            .then(data => {
+                (data.feeds || []).slice(0, 5).forEach(feed => {
+                    const opt = document.createElement('option');
+                    opt.value = feed.name;
+                    opt.textContent = feed.name;
+                    sel.appendChild(opt);
+                });
+                const otherOpt = document.createElement('option');
+                otherOpt.value = '__other__';
+                otherOpt.textContent = 'Other\u2026';
+                sel.appendChild(otherOpt);
+            })
+            .catch(() => {
+                const otherOpt = document.createElement('option');
+                otherOpt.value = '__other__';
+                otherOpt.textContent = 'Other\u2026';
+                sel.appendChild(otherOpt);
+            });
+        sel.addEventListener('change', function () {
+            if (otherRow) {
+                otherRow.style.display = sel.value === '__other__' ? '' : 'none';
+            }
+        });
+    }());
+
     // Live station form
     document.getElementById('live-record-form').addEventListener('submit', async e => {
         e.preventDefault();
@@ -277,16 +320,32 @@
         submitBtn.disabled = true;
         submitBtn.textContent = 'Queuing\u2026';
         resultEl.innerHTML = '';
+        const feedSelect = document.getElementById('live-feed-select');
+        const feedNameInput = document.getElementById('live-feed-name');
+        let podcastFeedName = null;
+        if (feedSelect) {
+            const val = feedSelect.value;
+            if (val === '__other__') {
+                const custom = feedNameInput ? feedNameInput.value.trim() : '';
+                if (custom) podcastFeedName = custom;
+            } else if (val !== '') {
+                podcastFeedName = val;
+            }
+        }
         try {
+            const body = {
+                source_type:      'live',
+                source_id:        form.station.value,
+                duration_seconds: parseInt(form.duration.value, 10),
+                output_format:    form.format.value,
+            };
+            if (podcastFeedName) {
+                body.podcast_feed_name = podcastFeedName;
+            }
             const resp = await fetch('/api/recordings', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                    source_type:      'live',
-                    source_id:        form.station.value,
-                    duration_seconds: parseInt(form.duration.value, 10),
-                    output_format:    form.format.value,
-                })
+                body: JSON.stringify(body)
             });
             const data = await resp.json();
             if (resp.ok) {

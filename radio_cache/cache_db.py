@@ -59,10 +59,11 @@ CREATE TABLE IF NOT EXISTS categories (
 );
 
 CREATE TABLE IF NOT EXISTS podcast_feeds (
-    slug        TEXT PRIMARY KEY,
-    name        TEXT NOT NULL UNIQUE COLLATE NOCASE,
-    created_at  TEXT NOT NULL DEFAULT '',
-    updated_at  TEXT NOT NULL DEFAULT ''
+    slug             TEXT PRIMARY KEY,
+    name             TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    created_at       TEXT NOT NULL DEFAULT '',
+    updated_at       TEXT NOT NULL DEFAULT '',
+    cover_image_url  TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS completed_recordings (
@@ -178,10 +179,26 @@ class CacheDB:
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA foreign_keys=ON")
         self._conn.executescript(_CREATE_TABLES_SQL)
+        self._migrate()
 
     def close(self) -> None:
         """Close the database connection."""
         self._conn.close()
+
+    def _migrate(self) -> None:
+        """Apply incremental schema migrations for existing databases."""
+        existing_cols = {
+            row[1]
+            for row in self._conn.execute(
+                "PRAGMA table_info(podcast_feeds)"
+            ).fetchall()
+        }
+        if "cover_image_url" not in existing_cols:
+            self._conn.execute(
+                "ALTER TABLE podcast_feeds ADD COLUMN "
+                "cover_image_url TEXT NOT NULL DEFAULT ''"
+            )
+            self._conn.commit()
 
     def __enter__(self) -> CacheDB:
         return self
@@ -285,8 +302,14 @@ class CacheDB:
         ).fetchone()
         return _row_to_programme(row) if row else None
 
-    def ensure_podcast_feed(self, name: str) -> PodcastFeed:
-        """Create or return a saved podcast feed for *name*."""
+    def ensure_podcast_feed(
+        self, name: str, cover_image_url: str = ""
+    ) -> PodcastFeed:
+        """Create or return a saved podcast feed for *name*.
+
+        When *cover_image_url* is supplied and the feed already exists, the
+        cover image is updated only if the caller provides a non-empty value.
+        """
         cleaned = " ".join(name.split()).strip()
         if not cleaned:
             raise ValueError("Podcast feed name cannot be empty")
@@ -294,9 +317,12 @@ class CacheDB:
         now = datetime.now(UTC).isoformat()
         existing = self.get_podcast_feed(slug)
         if existing is not None:
+            new_cover = cover_image_url if cover_image_url else existing.cover_image_url
             self._conn.execute(
-                "UPDATE podcast_feeds SET name = ?, updated_at = ? WHERE slug = ?",
-                (cleaned, now, slug),
+                "UPDATE podcast_feeds "
+                "SET name = ?, updated_at = ?, cover_image_url = ? "
+                "WHERE slug = ?",
+                (cleaned, now, new_cover, slug),
             )
             self._conn.commit()
             return PodcastFeed(
@@ -305,26 +331,34 @@ class CacheDB:
                 created_at=existing.created_at,
                 updated_at=now,
                 recording_count=existing.recording_count,
+                cover_image_url=new_cover,
             )
         self._conn.execute(
-            "INSERT INTO podcast_feeds (slug, name, created_at, updated_at) "
-            "VALUES (?, ?, ?, ?)",
-            (slug, cleaned, now, now),
+            "INSERT INTO podcast_feeds "
+            "(slug, name, created_at, updated_at, cover_image_url) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (slug, cleaned, now, now, cover_image_url),
         )
         self._conn.commit()
-        return PodcastFeed(slug=slug, name=cleaned, created_at=now, updated_at=now)
+        return PodcastFeed(
+            slug=slug,
+            name=cleaned,
+            created_at=now,
+            updated_at=now,
+            cover_image_url=cover_image_url,
+        )
 
     def get_podcast_feed(self, slug: str) -> PodcastFeed | None:
         """Return one saved podcast feed by slug."""
         row = self._conn.execute(
             """
-            SELECT f.slug, f.name, f.created_at, f.updated_at,
+            SELECT f.slug, f.name, f.created_at, f.updated_at, f.cover_image_url,
                    COUNT(r.job_id) AS recording_count
             FROM podcast_feeds f
             LEFT JOIN completed_recordings r
               ON r.podcast_feed_slug = f.slug
             WHERE f.slug = ?
-            GROUP BY f.slug, f.name, f.created_at, f.updated_at
+            GROUP BY f.slug, f.name, f.created_at, f.updated_at, f.cover_image_url
             """,
             (slug,),
         ).fetchone()
@@ -334,12 +368,12 @@ class CacheDB:
         """List all saved podcast feeds, newest-updated first."""
         rows = self._conn.execute(
             """
-            SELECT f.slug, f.name, f.created_at, f.updated_at,
+            SELECT f.slug, f.name, f.created_at, f.updated_at, f.cover_image_url,
                    COUNT(r.job_id) AS recording_count
             FROM podcast_feeds f
             LEFT JOIN completed_recordings r
               ON r.podcast_feed_slug = f.slug
-            GROUP BY f.slug, f.name, f.created_at, f.updated_at
+            GROUP BY f.slug, f.name, f.created_at, f.updated_at, f.cover_image_url
             ORDER BY f.updated_at DESC, f.name COLLATE NOCASE ASC
             """
         ).fetchall()
@@ -1362,6 +1396,7 @@ def _row_to_podcast_feed(row: sqlite3.Row) -> PodcastFeed:
         created_at=row["created_at"],
         updated_at=row["updated_at"],
         recording_count=int(row["recording_count"]),
+        cover_image_url=row["cover_image_url"] if row["cover_image_url"] else "",
     )
 
 

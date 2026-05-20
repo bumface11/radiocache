@@ -96,6 +96,7 @@ class PodcastFeed:
     created_at: str = ""
     updated_at: str = ""
     recording_count: int = 0
+    cover_image_url: str = ""
 
 
 # ── Pydantic API schemas ────────────────────────────────────────────────
@@ -131,6 +132,14 @@ class RecordingRequest(BaseModel):
         description=(
             "Optional saved podcast feed name. Existing names append to the same "
             "feed; new names create a new feed."
+        ),
+    )
+    podcast_feed_cover_image_url: str | None = Field(
+        default=None,
+        max_length=500,
+        description=(
+            "Optional cover image URL for the podcast feed. Only used when "
+            "creating a new named feed."
         ),
     )
 

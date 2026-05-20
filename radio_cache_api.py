@@ -1006,13 +1006,20 @@ def _list_recording_job_dicts(
     return jobs[:limit]
 
 
-def _podcast_feed_response(request: Request, slug: str, name: str, count: int) -> dict:
+def _podcast_feed_response(
+    request: Request,
+    slug: str,
+    name: str,
+    count: int,
+    cover_image_url: str = "",
+) -> dict:
     """Build a JSON payload for a saved named podcast feed."""
     return {
         "slug": slug,
         "name": name,
         "recording_count": count,
         "url": f"{str(request.base_url).rstrip('/')}/api/podcast.xml?feed={slug}",
+        "cover_image_url": cover_image_url,
     }
 
 
@@ -1303,8 +1310,9 @@ async def create_recording(
                     "message": "Podcast feed name cannot be blank",
                 },
             )
+        cover_image_url = (body.podcast_feed_cover_image_url or "").strip()
         with _get_db() as db:
-            feed = db.ensure_podcast_feed(podcast_feed_name)
+            feed = db.ensure_podcast_feed(podcast_feed_name, cover_image_url)
         podcast_feed_slug = feed.slug
         podcast_feed_name = feed.name
 
@@ -1368,6 +1376,7 @@ async def list_podcast_feeds(request: Request) -> dict:
                 slug=feed.slug,
                 name=feed.name,
                 count=feed.recording_count,
+                cover_image_url=feed.cover_image_url,
             )
             for feed in feeds
         ],
@@ -1584,11 +1593,13 @@ async def podcast_feed(
     })
     channel = SubElement(rss, "channel")
     feed_name = "Radio Cache Recordings"
+    feed_cover_image_url = ""
     if feed:
         with _get_db() as db:
             saved_feed = db.get_podcast_feed(feed)
         if saved_feed is not None:
             feed_name = saved_feed.name
+            feed_cover_image_url = saved_feed.cover_image_url
     SubElement(channel, "title").text = feed_name
     SubElement(channel, "link").text = base + "/recordings"
     if feed:
@@ -1598,7 +1609,8 @@ async def podcast_feed(
     else:
         SubElement(channel, "description").text = "Recordings captured by Radio Cache"
     SubElement(channel, f"{{{ITUNES}}}author").text = "BBC"
-    SubElement(channel, f"{{{ITUNES}}}image", href=base + "/static/radio_cache/style.css")
+    if feed_cover_image_url:
+        SubElement(channel, f"{{{ITUNES}}}image", href=feed_cover_image_url)
 
     cutoff = datetime.now(timezone.utc) - timedelta(days=_PODCAST_MAX_AGE_DAYS)
     completed: list[dict[str, object]] = []
