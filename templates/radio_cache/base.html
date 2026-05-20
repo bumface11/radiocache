@@ -291,12 +291,14 @@
                 const items = [];
                 if (coverImageUrl) {
                     seen.add(coverImageUrl);
-                    items.push({url: coverImageUrl, label: 'Current'});
+                    items.push({url: coverImageUrl, label: 'Current', isEpisode: false});
                 }
+                let episodeIdx = 0;
                 (episodeThumbnails || []).forEach(function (url) {
                     if (url && !seen.has(url)) {
                         seen.add(url);
-                        items.push({url: url, label: ''});
+                        episodeIdx++;
+                        items.push({url: url, label: '', altText: 'Episode ' + episodeIdx, isEpisode: true});
                     }
                 });
 
@@ -318,7 +320,7 @@
 
                     const img = document.createElement('img');
                     img.src = item.url;
-                    img.alt = item.label || ('Episode ' + (idx + 1));
+                    img.alt = item.altText || item.label || '';
                     img.style.width = '80px';
                     img.style.height = '80px';
                     img.style.objectFit = 'cover';

@@ -411,18 +411,19 @@ class CacheDB:
     ) -> list[str]:
         """Return distinct non-empty episode thumbnail URLs for a feed.
 
-        Results are ordered by ``completed_at`` descending (newest first) and
-        de-duplicated, capped at *limit*.  Only completed recordings whose
-        source is a known programme entry are included.
+        Results are ordered by the most recent ``completed_at`` for each
+        thumbnail URL, newest first, and capped at *limit*.  Only completed
+        recordings whose source is a known programme entry are included.
         """
         rows = self._conn.execute(
             """
-            SELECT DISTINCT p.thumbnail_url
+            SELECT p.thumbnail_url
             FROM completed_recordings r
             JOIN programmes p ON p.pid = r.source_id
             WHERE r.podcast_feed_slug = ?
               AND p.thumbnail_url != ''
-            ORDER BY r.completed_at DESC
+            GROUP BY p.thumbnail_url
+            ORDER BY MAX(r.completed_at) DESC
             LIMIT ?
             """,
             (slug, limit),
