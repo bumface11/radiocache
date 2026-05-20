@@ -408,6 +408,7 @@
         const helpEl = document.getElementById('rc-cover-modal-help');
         const saveBtn = document.getElementById('rc-cover-modal-save');
         let _currentSlug = null;
+        let _currentBtn = null;
         let _selectedUrl = null;
 
         function _buildPicker(coverImageUrl, episodeThumbnails) {
@@ -472,6 +473,7 @@
             const btn = e.target.closest('.rc-cover-btn');
             if (!btn) return;
             _currentSlug = btn.dataset.feedSlug;
+            _currentBtn = btn;
             const feedName = btn.dataset.feedName || _currentSlug;
             if (helpEl) { helpEl.textContent = 'Select a cover image for \u201c' + feedName + '\u201d.'; }
             pickerEl.innerHTML = '<div class="text-muted small">Loading\u2026</div>';
@@ -490,6 +492,9 @@
             if (!_currentSlug || !_selectedUrl) return;
             saveBtn.disabled = true;
             saveBtn.textContent = 'Saving\u2026';
+            // Clear any previous error.
+            const errEl = coverModal.querySelector('#rc-cover-modal-error');
+            if (errEl) { errEl.remove(); }
             try {
                 const r = await fetch('/api/podcast-feeds/' + encodeURIComponent(_currentSlug), {
                     method: 'PATCH',
@@ -497,14 +502,36 @@
                     body: JSON.stringify({cover_image_url: _selectedUrl})
                 });
                 if (r.ok) {
+                    // Update the cover thumbnail in the DOM without a full reload.
+                    if (_currentBtn) {
+                        const img = _currentBtn.querySelector('img');
+                        const placeholder = _currentBtn.querySelector('span');
+                        if (img) {
+                            img.src = _selectedUrl;
+                        } else if (placeholder) {
+                            const newImg = document.createElement('img');
+                            newImg.src = _selectedUrl;
+                            newImg.alt = _currentBtn.dataset.feedName || '';
+                            newImg.style.cssText = 'width:40px;height:40px;object-fit:cover;border-radius:4px';
+                            placeholder.replaceWith(newImg);
+                        }
+                    }
                     bsModal.hide();
-                    // Refresh the page so the new cover thumbnail is visible.
-                    window.location.reload();
                 } else {
+                    const errDiv = document.createElement('div');
+                    errDiv.id = 'rc-cover-modal-error';
+                    errDiv.className = 'alert alert-danger py-1 mt-2 mb-0 small';
+                    errDiv.textContent = 'Failed to save cover image. Please try again.';
+                    pickerEl.after(errDiv);
                     saveBtn.disabled = false;
                     saveBtn.textContent = 'Save';
                 }
             } catch {
+                const errDiv = document.createElement('div');
+                errDiv.id = 'rc-cover-modal-error';
+                errDiv.className = 'alert alert-danger py-1 mt-2 mb-0 small';
+                errDiv.textContent = 'Request failed \u2014 check your connection.';
+                pickerEl.after(errDiv);
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'Save';
             }
@@ -513,6 +540,7 @@
         coverModal.addEventListener('hidden.bs.modal', function () {
             _currentSlug = null;
             _selectedUrl = null;
+            _currentBtn = null;
         });
     }());
 
