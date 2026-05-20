@@ -307,8 +307,10 @@ class CacheDB:
     ) -> PodcastFeed:
         """Create or return a saved podcast feed for *name*.
 
-        When *cover_image_url* is supplied and the feed already exists, the
-        cover image is updated only if the caller provides a non-empty value.
+        When *cover_image_url* is non-empty and the feed already exists the
+        stored cover image is replaced.  Passing an empty string leaves the
+        existing image unchanged — empty string means "no update", not
+        "clear the image".
         """
         cleaned = " ".join(name.split()).strip()
         if not cleaned:

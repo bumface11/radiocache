@@ -232,36 +232,45 @@
             let pendingResolve = null;
 
             function _buildFeedOptions(feeds) {
-                // Keep just the "Default feed" option and rebuild the named feed options.
+                // Rebuild the feed radio options (default + last 5 named + other).
                 feedOptionsEl.innerHTML = '';
 
+                // Helper: create one form-check radio row using safe DOM APIs.
+                function _makeRadio(id, value, labelText, checked) {
+                    const div = document.createElement('div');
+                    div.className = 'form-check';
+                    const input = document.createElement('input');
+                    input.className = 'form-check-input';
+                    input.type = 'radio';
+                    input.name = 'rc-feed-choice';
+                    input.id = id;
+                    input.value = value;   // safe: DOM property, no injection
+                    if (checked) { input.checked = true; }
+                    const label = document.createElement('label');
+                    label.className = 'form-check-label';
+                    label.htmlFor = id;
+                    label.textContent = labelText; // safe: textContent, no injection
+                    div.appendChild(input);
+                    div.appendChild(label);
+                    return div;
+                }
+
                 // Default feed option (always first, pre-selected).
-                const defaultDiv = document.createElement('div');
-                defaultDiv.className = 'form-check';
-                defaultDiv.innerHTML =
-                    '<input class="form-check-input" type="radio" name="rc-feed-choice" id="rc-feed-default" value="" checked>'
-                    + '<label class="form-check-label" for="rc-feed-default">Default feed</label>';
-                feedOptionsEl.appendChild(defaultDiv);
+                feedOptionsEl.appendChild(
+                    _makeRadio('rc-feed-default', '', 'Default feed', true)
+                );
 
                 // Last 5 named feeds.
                 feeds.slice(0, 5).forEach(function (feed, i) {
-                    const id = 'rc-feed-named-' + i;
-                    const div = document.createElement('div');
-                    div.className = 'form-check';
-                    div.innerHTML =
-                        '<input class="form-check-input" type="radio" name="rc-feed-choice" id="' + id + '" value="' + feed.name.replace(/"/g, '&quot;') + '">'
-                        + '<label class="form-check-label" for="' + id + '">' + feed.name.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</label>';
-                    feedOptionsEl.appendChild(div);
+                    feedOptionsEl.appendChild(
+                        _makeRadio('rc-feed-named-' + i, feed.name, feed.name, false)
+                    );
                 });
 
                 // "Other…" option for free-text entry.
-                const otherId = 'rc-feed-other';
-                const otherDiv = document.createElement('div');
-                otherDiv.className = 'form-check';
-                otherDiv.innerHTML =
-                    '<input class="form-check-input" type="radio" name="rc-feed-choice" id="' + otherId + '" value="__other__">'
-                    + '<label class="form-check-label" for="' + otherId + '">Other&hellip;</label>';
-                feedOptionsEl.appendChild(otherDiv);
+                feedOptionsEl.appendChild(
+                    _makeRadio('rc-feed-other', '__other__', 'Other\u2026', false)
+                );
 
                 // Wire up change events.
                 feedOptionsEl.querySelectorAll('input[type=radio]').forEach(function (radio) {
