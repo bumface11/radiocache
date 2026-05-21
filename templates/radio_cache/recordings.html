@@ -174,6 +174,7 @@
         not_supported: 'bg-warning text-dark',
         cancelled:     'bg-secondary',
     };
+    const FEED_CUSTOM_VALUE = '__custom__';
 
     function esc(s) {
         return (s || '').toString()
@@ -430,8 +431,8 @@
 
     function toggleCustomFeedField() {
         if (!feedSelect || !feedCustomName) return;
-        feedCustomName.classList.toggle('d-none', feedSelect.value !== '__custom__');
-        if (feedSelect.value === '__custom__') {
+        feedCustomName.classList.toggle('d-none', feedSelect.value !== FEED_CUSTOM_VALUE);
+        if (feedSelect.value === FEED_CUSTOM_VALUE) {
             feedCustomName.focus();
         }
     }
@@ -444,13 +445,13 @@
         availableFeeds = data.feeds || [];
         feedSelect.innerHTML = availableFeeds.map(feed => (
             '<option value="' + esc(feed.slug || '') + '">' + esc(feed.name || 'Default') + '</option>'
-        )).join('') + '<option value="__custom__">Custom name…</option>';
+        )).join('') + '<option value="' + FEED_CUSTOM_VALUE + '">Custom name…</option>';
         const hasCurrentSlug = availableFeeds.some(feed => (feed.slug || '') === (currentSlug || ''));
         if (hasCurrentSlug) {
             feedSelect.value = currentSlug || '';
             feedCustomName.value = '';
         } else if (currentName) {
-            feedSelect.value = '__custom__';
+            feedSelect.value = FEED_CUSTOM_VALUE;
             feedCustomName.value = currentName;
         } else {
             feedSelect.value = '';
@@ -482,7 +483,7 @@
         feedModalSave.addEventListener('click', async function () {
             if (!feedModalJobId || !feedSelect || !feedCustomName) return;
             let nextFeedName = '';
-            if (feedSelect.value === '__custom__') {
+            if (feedSelect.value === FEED_CUSTOM_VALUE) {
                 nextFeedName = feedCustomName.value.trim();
             } else if (feedSelect.value) {
                 const selected = availableFeeds.find(feed => (feed.slug || '') === feedSelect.value);
