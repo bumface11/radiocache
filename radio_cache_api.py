@@ -598,7 +598,7 @@ async def recordings_page(request: Request) -> HTMLResponse:
     """
     with _get_db() as db:
         stats = db.stats()
-        podcast_feeds = db.list_podcast_feeds()
+    podcast_feeds = _list_podcast_feed_payloads(request)
     return templates.TemplateResponse(
         request,
         "recordings.html",
@@ -946,6 +946,7 @@ from radio_cache.recording.job_manager import get_job_manager  # noqa: E402
 from radio_cache.recording.models import (  # noqa: E402
     CompletedRecording,
     PodcastFeedCoverUpdate,
+    RecordingFeedUpdate,
     RecordingRequest,
     RecordingStatus,
     job_to_dict,
@@ -1015,13 +1016,48 @@ def _podcast_feed_response(
     cover_image_url: str = "",
 ) -> dict:
     """Build a JSON payload for a saved named podcast feed."""
+    url = f"{str(request.base_url).rstrip('/')}/api/podcast.xml"
+    if slug:
+        url = f"{url}?feed={slug}"
     return {
         "slug": slug,
         "name": name,
         "recording_count": count,
-        "url": f"{str(request.base_url).rstrip('/')}/api/podcast.xml?feed={slug}",
+        "url": url,
         "cover_image_url": cover_image_url,
+        "is_default": slug == "",
     }
+
+
+def _list_podcast_feed_payloads(request: Request) -> list[dict]:
+    """Return default plus named podcast feeds for UI/API consumers."""
+    with _get_db() as db:
+        feeds = db.list_podcast_feeds()
+        default_rows = db.query(
+            "SELECT COUNT(job_id) AS recording_count "
+            "FROM completed_recordings "
+            "WHERE podcast_feed_slug = ''"
+        )
+    default_count = int(default_rows[0]["recording_count"]) if default_rows else 0
+    return [
+        _podcast_feed_response(
+            request=request,
+            slug="",
+            name="Default",
+            count=default_count,
+            cover_image_url="",
+        ),
+        *[
+            _podcast_feed_response(
+                request=request,
+                slug=feed.slug,
+                name=feed.name,
+                count=feed.recording_count,
+                cover_image_url=feed.cover_image_url,
+            )
+            for feed in feeds
+        ],
+    ]
 
 
 def _persist_completed_recording(job_id: str) -> None:
@@ -1299,23 +1335,28 @@ async def create_recording(
     """
     podcast_feed_slug = ""
     podcast_feed_name = ""
-    if body.podcast_feed_name is not None:
-        podcast_feed_name = " ".join(body.podcast_feed_name.split()).strip()
-        if not podcast_feed_name:
-            from fastapi import HTTPException
+    with _get_db() as db:
+        if body.podcast_feed_name is not None:
+            podcast_feed_name = " ".join(body.podcast_feed_name.split()).strip()
+            if not podcast_feed_name:
+                from fastapi import HTTPException
 
-            raise HTTPException(
-                status_code=422,
-                detail={
-                    "error": "invalid_podcast_feed_name",
-                    "message": "Podcast feed name cannot be blank",
-                },
-            )
-        cover_image_url = (body.podcast_feed_cover_image_url or "").strip()
-        with _get_db() as db:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": "invalid_podcast_feed_name",
+                        "message": "Podcast feed name cannot be blank",
+                    },
+                )
+            cover_image_url = (body.podcast_feed_cover_image_url or "").strip()
             feed = db.ensure_podcast_feed(podcast_feed_name, cover_image_url)
-        podcast_feed_slug = feed.slug
-        podcast_feed_name = feed.name
+            podcast_feed_slug = feed.slug
+            podcast_feed_name = feed.name
+        else:
+            recent_feed = db.get_most_recent_podcast_feed()
+            if recent_feed is not None:
+                podcast_feed_slug = recent_feed.slug
+                podcast_feed_name = recent_feed.name
 
     if body.source_type == "live" and body.duration_seconds is None:
         body.duration_seconds = 1800
@@ -1367,20 +1408,10 @@ async def list_recordings(
 @app.get("/api/podcast-feeds")
 async def list_podcast_feeds(request: Request) -> dict:
     """List saved named podcast feeds."""
-    with _get_db() as db:
-        feeds = db.list_podcast_feeds()
+    feeds = _list_podcast_feed_payloads(request)
     return {
         "count": len(feeds),
-        "feeds": [
-            _podcast_feed_response(
-                request,
-                slug=feed.slug,
-                name=feed.name,
-                count=feed.recording_count,
-                cover_image_url=feed.cover_image_url,
-            )
-            for feed in feeds
-        ],
+        "feeds": feeds,
     }
 
 
@@ -1433,6 +1464,40 @@ async def update_podcast_feed_cover(slug: str, body: PodcastFeedCoverUpdate) -> 
         "name": updated.name if updated else feed.name,
         "cover_image_url": body.cover_image_url,
     }
+
+
+@app.patch("/api/recordings/{job_id}/podcast-feed")
+async def update_recording_podcast_feed(job_id: str, body: RecordingFeedUpdate) -> dict:
+    """Update the feed assignment for a completed recording."""
+    cleaned_name = ""
+    if body.podcast_feed_name:
+        cleaned_name = " ".join(body.podcast_feed_name.split()).strip()
+    with _get_db() as db:
+        podcast_feed_slug = ""
+        podcast_feed_name = ""
+        if cleaned_name:
+            feed = db.ensure_podcast_feed(cleaned_name)
+            podcast_feed_slug = feed.slug
+            podcast_feed_name = feed.name
+        updated = db.set_completed_recording_feed(
+            job_id=job_id,
+            podcast_feed_slug=podcast_feed_slug,
+            podcast_feed_name=podcast_feed_name,
+        )
+    if updated is None:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Recording not found")
+    manager = get_job_manager()
+    existing_job = manager.get_job(job_id)
+    if existing_job is not None:
+        manager.update_status(
+            job_id,
+            existing_job.status,
+            podcast_feed_slug=updated.podcast_feed_slug,
+            podcast_feed_name=updated.podcast_feed_name,
+        )
+    return _completed_recording_to_job_dict(updated)
 
 
 @app.get("/api/recordings/stream")
