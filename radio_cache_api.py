@@ -1033,17 +1033,18 @@ def _list_podcast_feed_payloads(request: Request) -> list[dict]:
     """Return default plus named podcast feeds for UI/API consumers."""
     with _get_db() as db:
         feeds = db.list_podcast_feeds()
-        default_row = db.query(
+        default_rows = db.query(
             "SELECT COUNT(job_id) AS recording_count "
             "FROM completed_recordings "
             "WHERE podcast_feed_slug = ''"
-        )[0]
+        )
+    default_count = int(default_rows[0]["recording_count"]) if default_rows else 0
     return [
         _podcast_feed_response(
             request=request,
             slug="",
             name="Default",
-            count=int(default_row["recording_count"]),
+            count=default_count,
             cover_image_url="",
         ),
         *[
