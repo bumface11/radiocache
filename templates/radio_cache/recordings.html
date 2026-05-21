@@ -451,7 +451,7 @@
         availableFeeds = data.feeds || [];
         feedSelect.innerHTML = availableFeeds.map(feed => (
             '<option value="' + esc(feed.slug || '') + '">'
-            + esc(typeof feed.name === 'string' ? feed.name : 'Default')
+            + esc(feedLabel(feed.name, feed.slug))
             + '</option>'
         )).join('') + '<option value="' + FEED_CUSTOM_VALUE + '">Custom name…</option>';
         const hasCurrentSlug = availableFeeds.some(feed => (feed.slug || '') === (currentSlug || ''));
