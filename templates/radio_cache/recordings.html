@@ -196,6 +196,14 @@
         return iso.slice(0, 16).replace('T', ' ');
     }
 
+    function feedUrl(slug) {
+        return slug ? '/api/podcast.xml?feed=' + encodeURIComponent(slug) : '/api/podcast.xml';
+    }
+
+    function feedLabel(name, slug) {
+        return name || slug || 'Default';
+    }
+
     function renderJob(j) {
         const badgeCls  = STATUS_BADGE[j.status] || 'bg-secondary';
         const label     = j.status.replace('_', ' ');
@@ -219,11 +227,9 @@
             ? '<span class="badge bg-info text-dark me-1">Live</span>' + esc(j.source_id)
             : '<span class="badge bg-secondary me-1">Programme</span>' + esc(j.source_id);
         const feedBadge = '<a class="badge text-bg-warning text-decoration-none" href="'
-            + (j.podcast_feed_slug
-                ? '/api/podcast.xml?feed=' + encodeURIComponent(j.podcast_feed_slug)
-                : '/api/podcast.xml')
+            + feedUrl(j.podcast_feed_slug)
             + '" target="_blank">'
-            + esc(j.podcast_feed_name || j.podcast_feed_slug || 'Default') + '</a>';
+            + esc(feedLabel(j.podcast_feed_name, j.podcast_feed_slug)) + '</a>';
 
         const errorHtml = j.error_message
             ? '<p class="text-danger small mt-1 mb-0">' + esc(j.error_message) + '</p>' : '';
@@ -444,7 +450,9 @@
         const data = await resp.json();
         availableFeeds = data.feeds || [];
         feedSelect.innerHTML = availableFeeds.map(feed => (
-            '<option value="' + esc(feed.slug || '') + '">' + esc(feed.name || 'Default') + '</option>'
+            '<option value="' + esc(feed.slug || '') + '">'
+            + esc(typeof feed.name === 'string' ? feed.name : 'Default')
+            + '</option>'
         )).join('') + '<option value="' + FEED_CUSTOM_VALUE + '">Custom name…</option>';
         const hasCurrentSlug = availableFeeds.some(feed => (feed.slug || '') === (currentSlug || ''));
         if (hasCurrentSlug) {
