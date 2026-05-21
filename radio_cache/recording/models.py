@@ -153,6 +153,19 @@ class PodcastFeedCoverUpdate(BaseModel):
     )
 
 
+class RecordingFeedUpdate(BaseModel):
+    """Request body for ``PATCH /api/recordings/{job_id}/podcast-feed``."""
+
+    podcast_feed_name: str | None = Field(
+        default=None,
+        max_length=80,
+        description=(
+            "Named feed to assign to the recording. Use empty/null to move "
+            "it back to the default feed."
+        ),
+    )
+
+
 def job_to_dict(job: RecordingJob) -> dict:
     """Serialise a :class:`RecordingJob` to a JSON-compatible dict."""
     return {

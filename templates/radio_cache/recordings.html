@@ -66,17 +66,6 @@
                 <div class="col-sm-2 d-flex align-items-end">
                     <button type="submit" class="btn btn-danger btn-sm w-100">Record</button>
                 </div>
-                <div class="col-12">
-                    <label class="form-label" for="live-feed-select">Podcast feed <span class="text-muted">(optional)</span></label>
-                    <select class="form-select form-select-sm" id="live-feed-select" name="feed_select">
-                        <option value="">Default feed</option>
-                        <!-- Recent named feeds inserted by JS -->
-                    </select>
-                    <div id="live-feed-other-row" class="mt-2" style="display:none">
-                        <input class="form-control form-control-sm" id="live-feed-name" name="feed_name"
-                               maxlength="80" placeholder="New feed name">
-                    </div>
-                </div>
             </form>
             <div id="live-record-result" class="mt-2"></div>
         </div>
@@ -93,8 +82,9 @@
 {% if podcast_feeds %}
 <div class="card mb-3">
     <div class="card-body py-3">
-        <h6 class="card-title mb-3">Saved podcast feeds</h6>
-        <div class="d-flex flex-column gap-2">
+        <h6 class="card-title mb-2">Saved podcast feeds</h6>
+        <div class="small text-muted mb-2">Recent feeds only (scroll for more)</div>
+        <div class="d-flex flex-column gap-2" style="max-height:200px;overflow:auto">
             {% for feed in podcast_feeds %}
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <button class="btn p-0 border-0 bg-transparent rc-cover-btn flex-shrink-0"
@@ -230,6 +220,11 @@
               + ' href="/api/recordings/' + encodeURIComponent(j.job_id) + '/download"'
               + ' download>Download</a>' : '';
 
+        const reassignFeedBtn = j.status === 'completed' && j.output_path
+            ? '<button class="btn btn-sm btn-outline-secondary reassign-feed-btn flex-shrink-0"'
+              + ' data-job-id="' + esc(j.job_id) + '"'
+              + ' data-feed-name="' + esc(j.podcast_feed_name || '') + '">Feed</button>' : '';
+
         const podcastBtn = j.status === 'completed' && j.output_path
             ? '<a class="btn btn-sm btn-outline-warning flex-shrink-0"'
               + ' href="' + (j.podcast_feed_slug
@@ -247,10 +242,10 @@
             + '<span>' + sourceLabel + '</span>'
             + feedBadge
             + '</div>'
-            + progressHtml + errorHtml + pathHtml
-            + '<div class="text-muted" style="font-size:0.75rem">' + timing + '</div>'
-            + '</div>'
-            + '<div class="d-flex gap-2">' + downloadBtn + podcastBtn + cancelBtn + '</div>'
+             + progressHtml + errorHtml + pathHtml
+             + '<div class="text-muted" style="font-size:0.75rem">' + timing + '</div>'
+             + '</div>'
+            + '<div class="d-flex gap-2">' + downloadBtn + reassignFeedBtn + podcastBtn + cancelBtn + '</div>'
             + '</div></div></div>';
     }
 
@@ -315,38 +310,6 @@
         openStream();
     });
 
-    // Populate live feed selector with last 5 named feeds
-    (function () {
-        const sel = document.getElementById('live-feed-select');
-        const otherRow = document.getElementById('live-feed-other-row');
-        if (!sel) return;
-        fetch('/api/podcast-feeds')
-            .then(r => r.ok ? r.json() : {feeds: []})
-            .then(data => {
-                (data.feeds || []).slice(0, 5).forEach(feed => {
-                    const opt = document.createElement('option');
-                    opt.value = feed.name;
-                    opt.textContent = feed.name;
-                    sel.appendChild(opt);
-                });
-                const otherOpt = document.createElement('option');
-                otherOpt.value = '__other__';
-                otherOpt.textContent = 'Other\u2026';
-                sel.appendChild(otherOpt);
-            })
-            .catch(() => {
-                const otherOpt = document.createElement('option');
-                otherOpt.value = '__other__';
-                otherOpt.textContent = 'Other\u2026';
-                sel.appendChild(otherOpt);
-            });
-        sel.addEventListener('change', function () {
-            if (otherRow) {
-                otherRow.style.display = sel.value === '__other__' ? '' : 'none';
-            }
-        });
-    }());
-
     // Live station form
     document.getElementById('live-record-form').addEventListener('submit', async e => {
         e.preventDefault();
@@ -356,18 +319,6 @@
         submitBtn.disabled = true;
         submitBtn.textContent = 'Queuing\u2026';
         resultEl.innerHTML = '';
-        const feedSelect = document.getElementById('live-feed-select');
-        const feedNameInput = document.getElementById('live-feed-name');
-        let podcastFeedName = null;
-        if (feedSelect) {
-            const val = feedSelect.value;
-            if (val === '__other__') {
-                const custom = feedNameInput ? feedNameInput.value.trim() : '';
-                if (custom) podcastFeedName = custom;
-            } else if (val !== '') {
-                podcastFeedName = val;
-            }
-        }
         try {
             const body = {
                 source_type:      'live',
@@ -375,9 +326,6 @@
                 duration_seconds: parseInt(form.duration.value, 10),
                 output_format:    form.format.value,
             };
-            if (podcastFeedName) {
-                body.podcast_feed_name = podcastFeedName;
-            }
             const resp = await fetch('/api/recordings', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -397,6 +345,33 @@
         }
         submitBtn.disabled = false;
         submitBtn.textContent = 'Record';
+    });
+
+    // Reassign completed recording feed quickly from the recordings list.
+    document.getElementById('jobs-container').addEventListener('click', async e => {
+        const btn = e.target.closest('.reassign-feed-btn');
+        if (!btn) return;
+        const currentFeed = btn.dataset.feedName || '';
+        const promptLabel = currentFeed
+            ? 'Podcast feed name (blank = default feed):'
+            : 'Podcast feed name (blank = default feed):';
+        const nextFeed = window.prompt(promptLabel, currentFeed);
+        if (nextFeed === null) return;
+        btn.disabled = true;
+        try {
+            const resp = await fetch('/api/recordings/' + encodeURIComponent(btn.dataset.jobId) + '/podcast-feed', {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({podcast_feed_name: nextFeed})
+            });
+            if (resp.ok) {
+                openStream();
+            } else {
+                btn.disabled = false;
+            }
+        } catch {
+            btn.disabled = false;
+        }
     });
 
     // Cover image picker for saved feeds

@@ -461,6 +461,42 @@ class CacheDB:
         ).fetchall()
         return [_row_to_podcast_feed(row) for row in rows]
 
+    def get_most_recent_podcast_feed(self) -> PodcastFeed | None:
+        """Return the most recently used saved podcast feed, if any."""
+        feeds = self.list_podcast_feeds()
+        return feeds[0] if feeds else None
+
+    def _default_podcast_feed_cover_from_recording(
+        self,
+        *,
+        feed_slug: str,
+        source_type: str,
+        source_id: str,
+        updated_at: str,
+    ) -> None:
+        """Populate a feed cover from a recording thumbnail when missing."""
+        if source_type != "programme":
+            return
+        thumb_row = self._conn.execute(
+            "SELECT thumbnail_url FROM programmes WHERE pid = ?",
+            (source_id,),
+        ).fetchone()
+        thumbnail_url = str(thumb_row["thumbnail_url"]) if thumb_row else ""
+        if not thumbnail_url:
+            return
+        self._conn.execute(
+            """
+            UPDATE podcast_feeds
+            SET cover_image_url = CASE
+                    WHEN cover_image_url = '' THEN ?
+                    ELSE cover_image_url
+                END,
+                updated_at = ?
+            WHERE slug = ?
+            """,
+            (thumbnail_url, updated_at, feed_slug),
+        )
+
     def save_completed_recording(self, recording: CompletedRecording) -> None:
         """Insert or update a persisted completed recording."""
         if recording.podcast_feed_name:
@@ -502,11 +538,43 @@ class CacheDB:
         )
         if recording.podcast_feed_slug:
             updated_at = recording.completed_at or datetime.now(UTC).isoformat()
-            self._conn.execute(
-                "UPDATE podcast_feeds SET updated_at = ? WHERE slug = ?",
-                (updated_at, recording.podcast_feed_slug),
+            self._default_podcast_feed_cover_from_recording(
+                feed_slug=recording.podcast_feed_slug,
+                source_type=recording.source_type,
+                source_id=recording.source_id,
+                updated_at=updated_at,
             )
         self._conn.commit()
+
+    def set_completed_recording_feed(
+        self,
+        *,
+        job_id: str,
+        podcast_feed_slug: str = "",
+        podcast_feed_name: str = "",
+    ) -> CompletedRecording | None:
+        """Update the saved podcast feed assignment for a completed recording."""
+        existing = self.get_completed_recording(job_id)
+        if existing is None:
+            return None
+        self._conn.execute(
+            """
+            UPDATE completed_recordings
+            SET podcast_feed_slug = ?, podcast_feed_name = ?
+            WHERE job_id = ?
+            """,
+            (podcast_feed_slug, podcast_feed_name, job_id),
+        )
+        if podcast_feed_slug:
+            updated_at = existing.completed_at or datetime.now(UTC).isoformat()
+            self._default_podcast_feed_cover_from_recording(
+                feed_slug=podcast_feed_slug,
+                source_type=existing.source_type,
+                source_id=existing.source_id,
+                updated_at=updated_at,
+            )
+        self._conn.commit()
+        return self.get_completed_recording(job_id)
 
     def get_completed_recording(self, job_id: str) -> CompletedRecording | None:
         """Return one completed recording by job ID."""

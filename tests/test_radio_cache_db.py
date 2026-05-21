@@ -164,6 +164,65 @@ class TestCacheDB:
         recordings = db.list_completed_recordings(feed_slug="feed-a")
         assert [recording.job_id for recording in recordings] == ["job-a"]
 
+    def test_get_most_recent_podcast_feed(self, db: CacheDB) -> None:
+        """Most recently updated feed is returned for default assignment."""
+        db.ensure_podcast_feed("Feed A")
+        db.ensure_podcast_feed("Feed B")
+        most_recent = db.get_most_recent_podcast_feed()
+        assert most_recent is not None
+        assert most_recent.slug == "feed-b"
+
+    def test_new_feed_cover_defaults_to_first_recording_thumbnail(
+        self, db: CacheDB
+    ) -> None:
+        """New feeds pick up the first recording thumbnail as cover image."""
+        db.upsert_programme(
+            Programme(
+                pid="thumb-ep-1",
+                title="Thumb Episode 1",
+                thumbnail_url="https://example.com/thumb-1.jpg",
+            )
+        )
+        db.save_completed_recording(
+            CompletedRecording(
+                job_id="job-thumb-cover-1",
+                source_type="programme",
+                source_id="thumb-ep-1",
+                output_format="m4a",
+                output_path="/tmp/job-thumb-cover-1.m4a",
+                podcast_feed_slug="thumb-feed",
+                podcast_feed_name="Thumb Feed",
+                completed_at="2026-05-17T10:30:00+00:00",
+            )
+        )
+        feed = db.get_podcast_feed("thumb-feed")
+        assert feed is not None
+        assert feed.cover_image_url == "https://example.com/thumb-1.jpg"
+
+    def test_set_completed_recording_feed_updates_assignment(
+        self, db: CacheDB
+    ) -> None:
+        """Completed recordings can be moved to another feed after creation."""
+        db.save_completed_recording(
+            CompletedRecording(
+                job_id="job-move-1",
+                source_type="programme",
+                source_id="p001",
+                output_format="m4a",
+                output_path="/tmp/job-move-1.m4a",
+                podcast_feed_slug="",
+                podcast_feed_name="",
+            )
+        )
+        updated = db.set_completed_recording_feed(
+            job_id="job-move-1",
+            podcast_feed_slug="feed-c",
+            podcast_feed_name="Feed C",
+        )
+        assert updated is not None
+        assert updated.podcast_feed_slug == "feed-c"
+        assert updated.podcast_feed_name == "Feed C"
+
     def test_bulk_upsert(self, db: CacheDB) -> None:
         """Bulk upsert inserts multiple programmes."""
         progs = [

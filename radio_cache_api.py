@@ -946,6 +946,7 @@ from radio_cache.recording.job_manager import get_job_manager  # noqa: E402
 from radio_cache.recording.models import (  # noqa: E402
     CompletedRecording,
     PodcastFeedCoverUpdate,
+    RecordingFeedUpdate,
     RecordingRequest,
     RecordingStatus,
     job_to_dict,
@@ -1299,23 +1300,28 @@ async def create_recording(
     """
     podcast_feed_slug = ""
     podcast_feed_name = ""
-    if body.podcast_feed_name is not None:
-        podcast_feed_name = " ".join(body.podcast_feed_name.split()).strip()
-        if not podcast_feed_name:
-            from fastapi import HTTPException
+    with _get_db() as db:
+        if body.podcast_feed_name is not None:
+            podcast_feed_name = " ".join(body.podcast_feed_name.split()).strip()
+            if not podcast_feed_name:
+                from fastapi import HTTPException
 
-            raise HTTPException(
-                status_code=422,
-                detail={
-                    "error": "invalid_podcast_feed_name",
-                    "message": "Podcast feed name cannot be blank",
-                },
-            )
-        cover_image_url = (body.podcast_feed_cover_image_url or "").strip()
-        with _get_db() as db:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "error": "invalid_podcast_feed_name",
+                        "message": "Podcast feed name cannot be blank",
+                    },
+                )
+            cover_image_url = (body.podcast_feed_cover_image_url or "").strip()
             feed = db.ensure_podcast_feed(podcast_feed_name, cover_image_url)
-        podcast_feed_slug = feed.slug
-        podcast_feed_name = feed.name
+            podcast_feed_slug = feed.slug
+            podcast_feed_name = feed.name
+        else:
+            recent_feed = db.get_most_recent_podcast_feed()
+            if recent_feed is not None:
+                podcast_feed_slug = recent_feed.slug
+                podcast_feed_name = recent_feed.name
 
     if body.source_type == "live" and body.duration_seconds is None:
         body.duration_seconds = 1800
@@ -1433,6 +1439,31 @@ async def update_podcast_feed_cover(slug: str, body: PodcastFeedCoverUpdate) -> 
         "name": updated.name if updated else feed.name,
         "cover_image_url": body.cover_image_url,
     }
+
+
+@app.patch("/api/recordings/{job_id}/podcast-feed")
+async def update_recording_podcast_feed(job_id: str, body: RecordingFeedUpdate) -> dict:
+    """Update the feed assignment for a completed recording."""
+    cleaned_name = ""
+    if body.podcast_feed_name:
+        cleaned_name = " ".join(body.podcast_feed_name.split()).strip()
+    with _get_db() as db:
+        podcast_feed_slug = ""
+        podcast_feed_name = ""
+        if cleaned_name:
+            feed = db.ensure_podcast_feed(cleaned_name)
+            podcast_feed_slug = feed.slug
+            podcast_feed_name = feed.name
+        updated = db.set_completed_recording_feed(
+            job_id=job_id,
+            podcast_feed_slug=podcast_feed_slug,
+            podcast_feed_name=podcast_feed_name,
+        )
+    if updated is None:
+        from fastapi import HTTPException
+
+        raise HTTPException(status_code=404, detail="Recording not found")
+    return _completed_recording_to_job_dict(updated)
 
 
 @app.get("/api/recordings/stream")

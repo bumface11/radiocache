@@ -488,18 +488,15 @@
             const btn = e.target.closest('.record-btn');
             if (!btn || btn.dataset.recording) return;
             const pid = btn.dataset.pid;
-            if (!pid || typeof window.rcPromptForPodcastFeed !== 'function') return;
-            const result = await window.rcPromptForPodcastFeed(1);
-            if (result === null) return;
-            const {feedName, coverImageUrl} = result;
+            if (!pid) return;
             btn.dataset.recording = '1';
             const origHtml = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
             try {
-                const resp = await rcCreateRecording(pid, feedName, coverImageUrl);
+                const resp = await rcCreateRecording(pid);
                 if (resp.ok) {
-                    btn.innerHTML = feedName ? '&#10003; Feed queued' : '&#10003; Queued';
+                    btn.innerHTML = '&#10003; Queued';
                     btn.classList.replace('btn-outline-danger', 'btn-success');
                     btn.disabled = false;
                     btn.title = 'View Recordings';
