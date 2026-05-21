@@ -20,7 +20,7 @@
     <div class="card-body py-3">
         <h6 class="card-title mb-2">Saved podcast feeds</h6>
         <div class="small text-muted mb-2">Recent feeds only (scroll for more)</div>
-        <div class="d-flex flex-column gap-2" id="saved-feeds-list" style="max-height:200px;overflow:auto">
+        <div class="d-flex flex-column gap-2" id="saved-feeds-list" style="max-height:140px;overflow:auto">
             {% for feed in podcast_feeds %}
             <div class="d-flex flex-wrap align-items-center gap-2">
                 {% if feed.is_default %}
@@ -42,7 +42,6 @@
                 </button>
                 {% endif %}
                 <span class="badge text-bg-warning">{{ feed.name }}</span>
-                <code class="small flex-grow-1">{{ feed.url | replace(request.base_url|string, '') }}</code>
                 <button class="btn btn-sm btn-outline-primary copy-feed-url-btn"
                         data-feed-url="{{ feed.url }}"
                         type="button">Copy URL</button>
@@ -276,7 +275,6 @@
     }
 
     function renderSavedFeed(feed) {
-        const feedPath = (feed.url || '').replace(location.origin, '') || '/api/podcast.xml';
         const coverHtml = feed.cover_image_url
             ? '<img src="' + esc(feed.cover_image_url) + '" alt="' + esc(feed.name) + '"'
               + ' style="width:40px;height:40px;object-fit:cover;border-radius:4px">'
@@ -295,10 +293,9 @@
         return '<div class="d-flex flex-wrap align-items-center gap-2">'
             + iconHtml
             + '<span class="badge text-bg-warning">' + esc(feed.name) + '</span>'
-            + '<code class="small flex-grow-1">' + esc(feedPath) + '</code>'
             + '<button class="btn btn-sm btn-outline-primary copy-feed-url-btn"'
-            + ' type="button" data-feed-url="' + esc(feed.url || (location.origin + feedPath)) + '">Copy URL</button>'
-            + '<a class="btn btn-sm btn-outline-warning" href="' + esc(feedPath) + '" target="_blank">Open</a>'
+            + ' type="button" data-feed-url="' + esc(feed.url || (location.origin + '/api/podcast.xml')) + '">Copy URL</button>'
+            + '<a class="btn btn-sm btn-outline-warning" href="' + esc(feed.url || '/api/podcast.xml') + '" target="_blank">Open</a>'
             + '</div>';
     }
 
