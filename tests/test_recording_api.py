@@ -282,9 +282,15 @@ class TestPodcastFeeds:
 
         assert resp.status_code == 200
         body = resp.json()
-        assert body["count"] == 1
-        assert body["feeds"][0]["slug"] == "late-night-drama"
-        assert body["feeds"][0]["name"] == "Late Night Drama"
+        assert body["count"] == 2
+        assert body["feeds"][0]["slug"] == ""
+        assert body["feeds"][0]["name"] == "Default"
+        assert body["feeds"][0]["is_default"] is True
+        assert body["feeds"][0]["url"].endswith("/api/podcast.xml")
+        assert body["feeds"][1]["slug"] == "late-night-drama"
+        assert body["feeds"][1]["name"] == "Late Night Drama"
+        assert body["feeds"][1]["is_default"] is False
+        assert body["feeds"][1]["url"].endswith("/api/podcast.xml?feed=late-night-drama")
 
     def test_get_podcast_feed_thumbnails(self, tmp_path: Path) -> None:
         from radio_cache.cache_db import CacheDB
@@ -338,6 +344,43 @@ class TestPodcastFeeds:
         body = resp.json()
         assert body["cover_image_url"] == "https://example.com/cover.jpg"
         assert body["episode_thumbnails"] == ["https://example.com/ep1.jpg"]
+
+    def test_list_saved_podcast_feeds_includes_default_recording_count(
+        self, tmp_path: Path
+    ) -> None:
+        from radio_cache.cache_db import CacheDB
+
+        db_path = str(tmp_path / "default_feed_count.db")
+        recording_path = tmp_path / "recording-default.m4a"
+        recording_path.write_bytes(b"\x00")
+        with CacheDB(db_path) as db:
+            db.save_completed_recording(
+                CompletedRecording(
+                    job_id="job-default-feed-1",
+                    source_type="programme",
+                    source_id="p00feed1",
+                    output_format="m4a",
+                    output_path=str(recording_path),
+                    created_at="2026-05-17T10:00:00+00:00",
+                    completed_at="2026-05-17T10:30:00+00:00",
+                    podcast_feed_slug="",
+                    podcast_feed_name="",
+                )
+            )
+
+        with (
+            patch("radio_cache_api._DB_PATH", db_path),
+            patch("radio_cache_api._JSON_PATH", "/nonexistent/path.json"),
+            patch("radio_cache_api._run_recording_job"),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app) as client:
+                resp = client.get("/api/podcast-feeds")
+
+        assert resp.status_code == 200
+        default_feed = next(feed for feed in resp.json()["feeds"] if feed["slug"] == "")
+        assert default_feed["recording_count"] == 1
 
     def test_get_podcast_feed_thumbnails_returns_404_for_missing_feed(
         self, tmp_path: Path

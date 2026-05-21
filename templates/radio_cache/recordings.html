@@ -15,8 +15,97 @@
     <button class="btn btn-sm btn-outline-secondary" id="refresh-btn" type="button">Refresh</button>
 </div>
 
+{% if podcast_feeds %}
+<div class="card mb-3">
+    <div class="card-body py-3">
+        <h6 class="card-title mb-2">Saved podcast feeds</h6>
+        <div class="small text-muted mb-2">Recent feeds only (scroll for more)</div>
+        <div class="d-flex flex-column gap-2" id="saved-feeds-list" style="max-height:200px;overflow:auto">
+            {% for feed in podcast_feeds %}
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                {% if feed.is_default %}
+                <span class="d-flex align-items-center justify-content-center flex-shrink-0 bg-secondary text-white"
+                      style="width:40px;height:40px;font-size:1.1rem;border-radius:4px">&#128190;</span>
+                {% else %}
+                <button class="btn p-0 border-0 bg-transparent rc-cover-btn flex-shrink-0"
+                        data-feed-slug="{{ feed.slug }}"
+                        data-feed-name="{{ feed.name }}"
+                        title="Change cover image"
+                        style="width:40px;height:40px;overflow:hidden;border-radius:4px">
+                    {% if feed.cover_image_url %}
+                    <img src="{{ feed.cover_image_url }}" alt="{{ feed.name }}"
+                         style="width:40px;height:40px;object-fit:cover;border-radius:4px">
+                    {% else %}
+                    <span class="d-flex align-items-center justify-content-center w-100 h-100 bg-secondary text-white"
+                          style="font-size:1.1rem;border-radius:4px">&#128190;</span>
+                    {% endif %}
+                </button>
+                {% endif %}
+                <span class="badge text-bg-warning">{{ feed.name }}</span>
+                <code class="small flex-grow-1">{{ feed.url | replace(request.base_url|string, '') }}</code>
+                <button class="btn btn-sm btn-outline-primary copy-feed-url-btn"
+                        data-feed-url="{{ feed.url }}"
+                        type="button">Copy URL</button>
+                <a class="btn btn-sm btn-outline-warning" href="{{ feed.url }}" target="_blank">Open</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Cover image picker modal -->
+<div class="modal fade" id="rc-cover-modal" tabindex="-1"
+     aria-labelledby="rc-cover-modal-title" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rc-cover-modal-title">Choose cover image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3" id="rc-cover-modal-help">Select a cover image for this feed.</p>
+                <div id="rc-cover-modal-picker" class="d-flex flex-wrap gap-2 align-items-start">
+                    <div class="text-muted small">Loading&hellip;</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="rc-cover-modal-save">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Job list -->
+<div id="jobs-summary" class="text-muted small mb-2">Loading&hellip;</div>
+<div id="jobs-container"></div>
+
+<!-- Change recording feed modal -->
+<div class="modal fade" id="rc-feed-modal" tabindex="-1"
+     aria-labelledby="rc-feed-modal-title" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="rc-feed-modal-title">Change feed</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <label for="rc-feed-select" class="form-label">Choose a feed</label>
+                <select id="rc-feed-select" class="form-select form-select-sm mb-2"></select>
+                <input id="rc-feed-custom-name" class="form-control form-control-sm d-none"
+                       type="text" placeholder="New feed name">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="rc-feed-modal-save">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Live station recording form -->
-<div class="card mb-4">
+<div class="card mt-4">
     <div class="card-header py-2">
         <button class="btn btn-link btn-sm text-decoration-none p-0 text-body"
                 type="button" data-bs-toggle="collapse" data-bs-target="#live-record-panel"
@@ -71,71 +160,6 @@
         </div>
     </div>
 </div>
-
-<!-- Podcast feed -->
-<div class="alert alert-light border d-flex align-items-center gap-2 py-2 mb-3" id="podcast-feed-bar">
-    <strong class="text-nowrap">Podcast feed:</strong>
-    <code class="flex-grow-1 text-truncate" id="podcast-url"></code>
-    <button class="btn btn-sm btn-outline-primary flex-shrink-0" id="copy-feed-btn" type="button">Copy URL</button>
-</div>
-
-{% if podcast_feeds %}
-<div class="card mb-3">
-    <div class="card-body py-3">
-        <h6 class="card-title mb-2">Saved podcast feeds</h6>
-        <div class="small text-muted mb-2">Recent feeds only (scroll for more)</div>
-        <div class="d-flex flex-column gap-2" id="saved-feeds-list" style="max-height:200px;overflow:auto">
-            {% for feed in podcast_feeds %}
-            <div class="d-flex flex-wrap align-items-center gap-2">
-                <button class="btn p-0 border-0 bg-transparent rc-cover-btn flex-shrink-0"
-                        data-feed-slug="{{ feed.slug }}"
-                        data-feed-name="{{ feed.name }}"
-                        title="Change cover image"
-                        style="width:40px;height:40px;overflow:hidden;border-radius:4px">
-                    {% if feed.cover_image_url %}
-                    <img src="{{ feed.cover_image_url }}" alt="{{ feed.name }}"
-                         style="width:40px;height:40px;object-fit:cover;border-radius:4px">
-                    {% else %}
-                    <span class="d-flex align-items-center justify-content-center w-100 h-100 bg-secondary text-white"
-                          style="font-size:1.1rem;border-radius:4px">&#128190;</span>
-                    {% endif %}
-                </button>
-                <span class="badge text-bg-warning">{{ feed.name }}</span>
-                <code class="small flex-grow-1">/api/podcast.xml?feed={{ feed.slug }}</code>
-                <a class="btn btn-sm btn-outline-warning" href="/api/podcast.xml?feed={{ feed.slug }}" target="_blank">Open</a>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</div>
-
-<!-- Cover image picker modal -->
-<div class="modal fade" id="rc-cover-modal" tabindex="-1"
-     aria-labelledby="rc-cover-modal-title" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="rc-cover-modal-title">Choose cover image</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p class="text-muted small mb-3" id="rc-cover-modal-help">Select a cover image for this feed.</p>
-                <div id="rc-cover-modal-picker" class="d-flex flex-wrap gap-2 align-items-start">
-                    <div class="text-muted small">Loading&hellip;</div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="rc-cover-modal-save">Save</button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-<!-- Job list -->
-<div id="jobs-summary" class="text-muted small mb-2">Loading&hellip;</div>
-<div id="jobs-container"></div>
 
 {% endblock %}
 
@@ -193,11 +217,12 @@
         const sourceLabel = j.source_type === 'live'
             ? '<span class="badge bg-info text-dark me-1">Live</span>' + esc(j.source_id)
             : '<span class="badge bg-secondary me-1">Programme</span>' + esc(j.source_id);
-        const feedBadge = j.podcast_feed_slug
-            ? '<a class="badge text-bg-warning text-decoration-none" href="/api/podcast.xml?feed='
-              + encodeURIComponent(j.podcast_feed_slug) + '" target="_blank">'
-              + esc(j.podcast_feed_name || j.podcast_feed_slug) + '</a>'
-            : '';
+        const feedBadge = '<a class="badge text-bg-warning text-decoration-none" href="'
+            + (j.podcast_feed_slug
+                ? '/api/podcast.xml?feed=' + encodeURIComponent(j.podcast_feed_slug)
+                : '/api/podcast.xml')
+            + '" target="_blank">'
+            + esc(j.podcast_feed_name || j.podcast_feed_slug || 'Default') + '</a>';
 
         const errorHtml = j.error_message
             ? '<p class="text-danger small mt-1 mb-0">' + esc(j.error_message) + '</p>' : '';
@@ -223,14 +248,8 @@
         const reassignFeedBtn = j.status === 'completed' && j.output_path
             ? '<button class="btn btn-sm btn-outline-secondary reassign-feed-btn flex-shrink-0"'
               + ' data-job-id="' + esc(j.job_id) + '"'
+              + ' data-feed-slug="' + esc(j.podcast_feed_slug || '') + '"'
               + ' data-feed-name="' + esc(j.podcast_feed_name || '') + '">Change feed</button>' : '';
-
-        const podcastBtn = j.status === 'completed' && j.output_path
-            ? '<a class="btn btn-sm btn-outline-warning flex-shrink-0"'
-              + ' href="' + (j.podcast_feed_slug
-                    ? '/api/podcast.xml?feed=' + encodeURIComponent(j.podcast_feed_slug)
-                    : '/api/podcast.xml')
-              + '" target="_blank">Podcast</a>' : '';
 
         return '<div class="card mb-2" id="job-' + esc(j.job_id) + '">'
             + '<div class="card-body py-2">'
@@ -245,27 +264,34 @@
             + progressHtml + errorHtml + pathHtml
             + '<div class="text-muted" style="font-size:0.75rem">' + timing + '</div>'
             + '</div>'
-            + '<div class="d-flex gap-2">' + downloadBtn + reassignFeedBtn + podcastBtn + cancelBtn + '</div>'
+            + '<div class="d-flex gap-2 flex-wrap justify-content-end">' + downloadBtn + reassignFeedBtn + cancelBtn + '</div>'
             + '</div></div></div>';
     }
 
     function renderSavedFeed(feed) {
+        const feedPath = (feed.url || '').replace(location.origin, '') || '/api/podcast.xml';
         const coverHtml = feed.cover_image_url
             ? '<img src="' + esc(feed.cover_image_url) + '" alt="' + esc(feed.name) + '"'
               + ' style="width:40px;height:40px;object-fit:cover;border-radius:4px">'
             : '<span class="d-flex align-items-center justify-content-center w-100 h-100 bg-secondary text-white"'
               + ' style="font-size:1.1rem;border-radius:4px">&#128190;</span>';
+        const iconHtml = feed.is_default
+            ? '<span class="d-flex align-items-center justify-content-center flex-shrink-0 bg-secondary text-white"'
+              + ' style="width:40px;height:40px;font-size:1.1rem;border-radius:4px">&#128190;</span>'
+            : '<button class="btn p-0 border-0 bg-transparent rc-cover-btn flex-shrink-0"'
+              + ' data-feed-slug="' + esc(feed.slug) + '"'
+              + ' data-feed-name="' + esc(feed.name) + '"'
+              + ' title="Change cover image"'
+              + ' style="width:40px;height:40px;overflow:hidden;border-radius:4px">'
+              + coverHtml
+              + '</button>';
         return '<div class="d-flex flex-wrap align-items-center gap-2">'
-            + '<button class="btn p-0 border-0 bg-transparent rc-cover-btn flex-shrink-0"'
-            + ' data-feed-slug="' + esc(feed.slug) + '"'
-            + ' data-feed-name="' + esc(feed.name) + '"'
-            + ' title="Change cover image"'
-            + ' style="width:40px;height:40px;overflow:hidden;border-radius:4px">'
-            + coverHtml
-            + '</button>'
+            + iconHtml
             + '<span class="badge text-bg-warning">' + esc(feed.name) + '</span>'
-            + '<code class="small flex-grow-1">/api/podcast.xml?feed=' + esc(feed.slug) + '</code>'
-            + '<a class="btn btn-sm btn-outline-warning" href="/api/podcast.xml?feed=' + encodeURIComponent(feed.slug) + '" target="_blank">Open</a>'
+            + '<code class="small flex-grow-1">' + esc(feedPath) + '</code>'
+            + '<button class="btn btn-sm btn-outline-primary copy-feed-url-btn"'
+            + ' type="button" data-feed-url="' + esc(feed.url || (location.origin + feedPath)) + '">Copy URL</button>'
+            + '<a class="btn btn-sm btn-outline-warning" href="' + esc(feedPath) + '" target="_blank">Open</a>'
             + '</div>';
     }
 
@@ -293,7 +319,7 @@
             summary.textContent = 'No recordings yet.';
             container.innerHTML = '<div class="alert alert-info">'
                 + 'Use the <strong>Record</strong> button on any episode, '
-                + 'or record a live station using the form above.'
+                + 'or record a live station using the form below.'
                 + '</div>';
         } else {
             summary.textContent = data.count + ' job' + (data.count === 1 ? '' : 's');
@@ -344,6 +370,18 @@
         openStream();
     });
 
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.copy-feed-url-btn');
+        if (!btn) return;
+        const feedUrl = btn.dataset.feedUrl || '';
+        if (!feedUrl) return;
+        navigator.clipboard.writeText(feedUrl).then(() => {
+            const original = btn.textContent;
+            btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = original || 'Copy URL'; }, 1500);
+        });
+    });
+
     // Live station form
     document.getElementById('live-record-form').addEventListener('submit', async e => {
         e.preventDefault();
@@ -382,29 +420,93 @@
     });
 
     // Reassign completed recording feed quickly from the recordings list.
+    const feedModalEl = document.getElementById('rc-feed-modal');
+    const feedSelect = document.getElementById('rc-feed-select');
+    const feedCustomName = document.getElementById('rc-feed-custom-name');
+    const feedModalSave = document.getElementById('rc-feed-modal-save');
+    const feedModal = feedModalEl ? new bootstrap.Modal(feedModalEl) : null;
+    let feedModalJobId = '';
+    let availableFeeds = [];
+
+    function toggleCustomFeedField() {
+        if (!feedSelect || !feedCustomName) return;
+        feedCustomName.classList.toggle('d-none', feedSelect.value !== '__custom__');
+        if (feedSelect.value === '__custom__') {
+            feedCustomName.focus();
+        }
+    }
+
+    async function loadFeedOptions(currentSlug, currentName) {
+        if (!feedSelect || !feedCustomName) return;
+        const resp = await fetch('/api/podcast-feeds');
+        if (!resp.ok) throw new Error('Failed to load feeds');
+        const data = await resp.json();
+        availableFeeds = data.feeds || [];
+        feedSelect.innerHTML = availableFeeds.map(feed => (
+            '<option value="' + esc(feed.slug || '') + '">' + esc(feed.name || 'Default') + '</option>'
+        )).join('') + '<option value="__custom__">Custom name…</option>';
+        const hasCurrentSlug = availableFeeds.some(feed => (feed.slug || '') === (currentSlug || ''));
+        if (hasCurrentSlug) {
+            feedSelect.value = currentSlug || '';
+            feedCustomName.value = '';
+        } else if (currentName) {
+            feedSelect.value = '__custom__';
+            feedCustomName.value = currentName;
+        } else {
+            feedSelect.value = '';
+            feedCustomName.value = '';
+        }
+        toggleCustomFeedField();
+    }
+
     document.getElementById('jobs-container').addEventListener('click', async e => {
         const btn = e.target.closest('.reassign-feed-btn');
         if (!btn) return;
-        const currentFeed = btn.dataset.feedName || '';
-        const nextFeed = window.prompt('Podcast feed name (blank = default feed):', currentFeed);
-        if (nextFeed === null) return;
-        btn.disabled = true;
+        if (!feedModal || !feedSelect || !feedCustomName || !feedModalSave) return;
+        feedModalJobId = btn.dataset.jobId || '';
+        feedModalSave.disabled = true;
         try {
-            const resp = await fetch('/api/recordings/' + encodeURIComponent(btn.dataset.jobId) + '/podcast-feed', {
-                method: 'PATCH',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({podcast_feed_name: nextFeed})
-            });
-            if (resp.ok) {
-                await refreshSavedFeedsList();
-                openStream();
-            } else {
-                btn.disabled = false;
-            }
+            await loadFeedOptions(btn.dataset.feedSlug || '', btn.dataset.feedName || '');
+            feedModal.show();
+            feedModalSave.disabled = false;
         } catch {
-            btn.disabled = false;
+            feedModalSave.disabled = false;
         }
     });
+
+    if (feedSelect) {
+        feedSelect.addEventListener('change', toggleCustomFeedField);
+    }
+
+    if (feedModalSave) {
+        feedModalSave.addEventListener('click', async function () {
+            if (!feedModalJobId || !feedSelect || !feedCustomName) return;
+            let nextFeedName = '';
+            if (feedSelect.value === '__custom__') {
+                nextFeedName = feedCustomName.value.trim();
+            } else if (feedSelect.value) {
+                const selected = availableFeeds.find(feed => (feed.slug || '') === feedSelect.value);
+                nextFeedName = selected ? (selected.name || '') : '';
+            }
+            feedModalSave.disabled = true;
+            try {
+                const resp = await fetch('/api/recordings/' + encodeURIComponent(feedModalJobId) + '/podcast-feed', {
+                    method: 'PATCH',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({podcast_feed_name: nextFeedName})
+                });
+                if (resp.ok) {
+                    await refreshSavedFeedsList();
+                    openStream();
+                    if (feedModal) feedModal.hide();
+                } else {
+                    feedModalSave.disabled = false;
+                }
+            } catch {
+                feedModalSave.disabled = false;
+            }
+        });
+    }
 
     // Cover image picker for saved feeds
     (function () {
@@ -550,17 +652,6 @@
             _currentBtn = null;
         });
     }());
-
-    // Podcast feed URL
-    const feedUrl = location.origin + '/api/podcast.xml';
-    document.getElementById('podcast-url').textContent = feedUrl;
-    document.getElementById('copy-feed-btn').addEventListener('click', () => {
-        navigator.clipboard.writeText(feedUrl).then(() => {
-            const btn = document.getElementById('copy-feed-btn');
-            btn.textContent = 'Copied!';
-            setTimeout(() => { btn.textContent = 'Copy URL'; }, 1500);
-        });
-    });
 
     // Initial load
     openStream();

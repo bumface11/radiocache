@@ -598,7 +598,7 @@ async def recordings_page(request: Request) -> HTMLResponse:
     """
     with _get_db() as db:
         stats = db.stats()
-        podcast_feeds = db.list_podcast_feeds()
+    podcast_feeds = _list_podcast_feed_payloads(request)
     return templates.TemplateResponse(
         request,
         "recordings.html",
@@ -1016,13 +1016,47 @@ def _podcast_feed_response(
     cover_image_url: str = "",
 ) -> dict:
     """Build a JSON payload for a saved named podcast feed."""
+    url = f"{str(request.base_url).rstrip('/')}/api/podcast.xml"
+    if slug:
+        url = f"{url}?feed={slug}"
     return {
         "slug": slug,
         "name": name,
         "recording_count": count,
-        "url": f"{str(request.base_url).rstrip('/')}/api/podcast.xml?feed={slug}",
+        "url": url,
         "cover_image_url": cover_image_url,
+        "is_default": slug == "",
     }
+
+
+def _list_podcast_feed_payloads(request: Request) -> list[dict]:
+    """Return default plus named podcast feeds for UI/API consumers."""
+    with _get_db() as db:
+        feeds = db.list_podcast_feeds()
+        default_row = db.query(
+            "SELECT COUNT(job_id) AS recording_count "
+            "FROM completed_recordings "
+            "WHERE podcast_feed_slug = ''"
+        )[0]
+    return [
+        _podcast_feed_response(
+            request=request,
+            slug="",
+            name="Default",
+            count=int(default_row["recording_count"]),
+            cover_image_url="",
+        ),
+        *[
+            _podcast_feed_response(
+                request=request,
+                slug=feed.slug,
+                name=feed.name,
+                count=feed.recording_count,
+                cover_image_url=feed.cover_image_url,
+            )
+            for feed in feeds
+        ],
+    ]
 
 
 def _persist_completed_recording(job_id: str) -> None:
@@ -1373,20 +1407,10 @@ async def list_recordings(
 @app.get("/api/podcast-feeds")
 async def list_podcast_feeds(request: Request) -> dict:
     """List saved named podcast feeds."""
-    with _get_db() as db:
-        feeds = db.list_podcast_feeds()
+    feeds = _list_podcast_feed_payloads(request)
     return {
         "count": len(feeds),
-        "feeds": [
-            _podcast_feed_response(
-                request,
-                slug=feed.slug,
-                name=feed.name,
-                count=feed.recording_count,
-                cover_image_url=feed.cover_image_url,
-            )
-            for feed in feeds
-        ],
+        "feeds": feeds,
     }
 
 
