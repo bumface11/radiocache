@@ -1463,6 +1463,15 @@ async def update_recording_podcast_feed(job_id: str, body: RecordingFeedUpdate) 
         from fastapi import HTTPException
 
         raise HTTPException(status_code=404, detail="Recording not found")
+    manager = get_job_manager()
+    existing_job = manager.get_job(job_id)
+    if existing_job is not None:
+        manager.update_status(
+            job_id,
+            existing_job.status,
+            podcast_feed_slug=updated.podcast_feed_slug,
+            podcast_feed_name=updated.podcast_feed_name,
+        )
     return _completed_recording_to_job_dict(updated)
 
 

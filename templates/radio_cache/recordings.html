@@ -84,7 +84,7 @@
     <div class="card-body py-3">
         <h6 class="card-title mb-2">Saved podcast feeds</h6>
         <div class="small text-muted mb-2">Recent feeds only (scroll for more)</div>
-        <div class="d-flex flex-column gap-2" style="max-height:200px;overflow:auto">
+        <div class="d-flex flex-column gap-2" id="saved-feeds-list" style="max-height:200px;overflow:auto">
             {% for feed in podcast_feeds %}
             <div class="d-flex flex-wrap align-items-center gap-2">
                 <button class="btn p-0 border-0 bg-transparent rc-cover-btn flex-shrink-0"
@@ -223,7 +223,7 @@
         const reassignFeedBtn = j.status === 'completed' && j.output_path
             ? '<button class="btn btn-sm btn-outline-secondary reassign-feed-btn flex-shrink-0"'
               + ' data-job-id="' + esc(j.job_id) + '"'
-              + ' data-feed-name="' + esc(j.podcast_feed_name || '') + '">Feed</button>' : '';
+              + ' data-feed-name="' + esc(j.podcast_feed_name || '') + '">Change feed</button>' : '';
 
         const podcastBtn = j.status === 'completed' && j.output_path
             ? '<a class="btn btn-sm btn-outline-warning flex-shrink-0"'
@@ -247,6 +247,40 @@
             + '</div>'
             + '<div class="d-flex gap-2">' + downloadBtn + reassignFeedBtn + podcastBtn + cancelBtn + '</div>'
             + '</div></div></div>';
+    }
+
+    function renderSavedFeed(feed) {
+        const coverHtml = feed.cover_image_url
+            ? '<img src="' + esc(feed.cover_image_url) + '" alt="' + esc(feed.name) + '"'
+              + ' style="width:40px;height:40px;object-fit:cover;border-radius:4px">'
+            : '<span class="d-flex align-items-center justify-content-center w-100 h-100 bg-secondary text-white"'
+              + ' style="font-size:1.1rem;border-radius:4px">&#128190;</span>';
+        return '<div class="d-flex flex-wrap align-items-center gap-2">'
+            + '<button class="btn p-0 border-0 bg-transparent rc-cover-btn flex-shrink-0"'
+            + ' data-feed-slug="' + esc(feed.slug) + '"'
+            + ' data-feed-name="' + esc(feed.name) + '"'
+            + ' title="Change cover image"'
+            + ' style="width:40px;height:40px;overflow:hidden;border-radius:4px">'
+            + coverHtml
+            + '</button>'
+            + '<span class="badge text-bg-warning">' + esc(feed.name) + '</span>'
+            + '<code class="small flex-grow-1">/api/podcast.xml?feed=' + esc(feed.slug) + '</code>'
+            + '<a class="btn btn-sm btn-outline-warning" href="/api/podcast.xml?feed=' + encodeURIComponent(feed.slug) + '" target="_blank">Open</a>'
+            + '</div>';
+    }
+
+    async function refreshSavedFeedsList() {
+        const list = document.getElementById('saved-feeds-list');
+        if (!list) return;
+        try {
+            const resp = await fetch('/api/podcast-feeds');
+            if (!resp.ok) return;
+            const data = await resp.json();
+            const feeds = data.feeds || [];
+            list.innerHTML = feeds.map(renderSavedFeed).join('');
+        } catch {
+            // Keep current list if refresh fails.
+        }
     }
 
     let es = null;
@@ -362,6 +396,7 @@
                 body: JSON.stringify({podcast_feed_name: nextFeed})
             });
             if (resp.ok) {
+                await refreshSavedFeedsList();
                 openStream();
             } else {
                 btn.disabled = false;

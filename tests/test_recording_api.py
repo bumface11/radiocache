@@ -434,11 +434,79 @@ class TestPodcastFeeds:
                     "/api/recordings/job-feed-move-1/podcast-feed",
                     json={"podcast_feed_name": "Moved Feed"},
                 )
+                list_resp = client.get("/api/recordings")
+                feeds_resp = client.get("/api/podcast-feeds")
 
         assert resp.status_code == 200
         body = resp.json()
         assert body["podcast_feed_slug"] == "moved-feed"
         assert body["podcast_feed_name"] == "Moved Feed"
+        assert list_resp.status_code == 200
+        listed = next(
+            job for job in list_resp.json()["jobs"] if job["job_id"] == "job-feed-move-1"
+        )
+        assert listed["podcast_feed_slug"] == "moved-feed"
+        assert listed["podcast_feed_name"] == "Moved Feed"
+        assert feeds_resp.status_code == 200
+        assert any(feed["slug"] == "moved-feed" for feed in feeds_resp.json()["feeds"])
+
+    def test_patch_completed_recording_feed_updates_live_job_view(
+        self, tmp_path: Path
+    ) -> None:
+        from radio_cache.cache_db import CacheDB
+
+        db_path = str(tmp_path / "patch_recording_feed_live_job.db")
+        recording_path = tmp_path / "recording-live-job.m4a"
+        recording_path.write_bytes(b"\x00")
+        manager = JobManager()
+        job = manager.create_job(
+            "programme",
+            "p00feed1",
+            "m4a",
+            podcast_feed_slug="old-feed",
+            podcast_feed_name="Old Feed",
+        )
+        manager.update_status(
+            job.job_id,
+            "completed",
+            output_path=str(recording_path),
+            completed_at="2026-05-17T10:30:00+00:00",
+        )
+        with CacheDB(db_path) as db:
+            db.save_completed_recording(
+                CompletedRecording(
+                    job_id=job.job_id,
+                    source_type="programme",
+                    source_id="p00feed1",
+                    output_format="m4a",
+                    output_path=str(recording_path),
+                    created_at=job.created_at,
+                    completed_at="2026-05-17T10:30:00+00:00",
+                    podcast_feed_slug="old-feed",
+                    podcast_feed_name="Old Feed",
+                )
+            )
+
+        with (
+            patch("radio_cache_api._DB_PATH", db_path),
+            patch("radio_cache_api._JSON_PATH", "/nonexistent/path.json"),
+            patch("radio_cache_api.get_job_manager", return_value=manager),
+            patch("radio_cache_api._run_recording_job"),
+        ):
+            from radio_cache_api import app
+
+            with TestClient(app) as client:
+                patch_resp = client.patch(
+                    f"/api/recordings/{job.job_id}/podcast-feed",
+                    json={"podcast_feed_name": "New Feed"},
+                )
+                list_resp = client.get("/api/recordings")
+
+        assert patch_resp.status_code == 200
+        assert list_resp.status_code == 200
+        listed = list_resp.json()["jobs"][0]
+        assert listed["podcast_feed_slug"] == "new-feed"
+        assert listed["podcast_feed_name"] == "New Feed"
 
     def test_save_default_feed_recording_does_not_raise(
         self, tmp_path: Path
