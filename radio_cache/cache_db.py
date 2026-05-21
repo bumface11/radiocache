@@ -462,7 +462,7 @@ class CacheDB:
         return [_row_to_podcast_feed(row) for row in rows]
 
     def get_most_recent_podcast_feed(self) -> PodcastFeed | None:
-        """Return the most recently used saved podcast feed, if any."""
+        """Return the newest saved feed by ``updated_at DESC``, if any."""
         feeds = self.list_podcast_feeds()
         return feeds[0] if feeds else None
 
