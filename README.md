@@ -93,6 +93,20 @@ Useful options:
 The script prints a table with `avg`, `p50`, `p95`, `min`, and `max` timings in
 milliseconds for each operation/query pair.
 
+## Debugging BBC PID Category Discovery
+
+Use this helper when a BBC Sounds PID is expected in a category (for example
+`comedy`) but is not being discovered by refresh ingestion:
+
+```bash
+python scripts/debug_bbc_pid_discovery.py b01c7s27
+python scripts/debug_bbc_pid_discovery.py b01c7s27 --category comedy --category drama --pages 10
+```
+
+It fetches `https://www.bbc.co.uk/programmes/<pid>.json` and prints resolved
+PID/title/container/ancestor/category details, then scans RMS playable category
+pages to report whether that PID appears in each requested category slug.
+
 ## BBC Programme Identifiers
 
 The BBC API exposes several identifier fields for each programme.  Only the
