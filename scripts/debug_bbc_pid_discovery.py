@@ -211,7 +211,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     for slug in categories:
-        success = success and _inspect_category(pid, slug, args.pages)
+        success = _inspect_category(pid, slug, args.pages) and success
 
     return 0 if success else 1
 
