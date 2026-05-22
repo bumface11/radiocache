@@ -174,7 +174,7 @@ def _inspect_category(pid: str, slug: str, max_pages: int) -> bool:
     return True
 
 
-def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
+def _parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("pid", help="BBC programme PID to inspect (e.g. b01c7s27)")
     parser.add_argument(
@@ -195,7 +195,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    args = parse_args(argv)
+    args = _parse_args(argv)
     if args.pages < 1:
         print("ERROR: --pages must be >= 1")
         return 1
