@@ -208,7 +208,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     categories = [c.strip() for c in args.categories if c.strip()] or ["comedy"]
     ok = _print_programme_detail(pid)
     for slug in categories:
-        ok = _inspect_category(pid, slug, args.pages) and ok
+        ok = ok and _inspect_category(pid, slug, args.pages)
 
     return 0 if ok else 1
 

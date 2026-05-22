@@ -50,7 +50,7 @@ def test_found_in_category_reports_match(capsys: pytest.CaptureFixture[str]) -> 
         }
 
     with patch.object(module, "_fetch_json", side_effect=fake_fetch):
-        code = module.main(["b01c7s27", "--category", "comedy", "--pages", "2"])
+        code = module.main(["b01c7s27", "--category", "comedy"])
 
     out = capsys.readouterr().out
     assert code == 0
