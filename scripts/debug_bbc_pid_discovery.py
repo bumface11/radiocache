@@ -162,10 +162,8 @@ def _inspect_category(pid: str, slug: str, max_pages: int) -> bool:
             return True
 
         total = payload.get("total")
-        if (
-            isinstance(total, int)
-            and offset + len(items) >= total
-            or len(items) < _PAGE_LIMIT
+        if isinstance(total, int) and (
+            offset + len(items) >= total or len(items) < _PAGE_LIMIT
         ):
             break
 
@@ -208,10 +206,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     categories = [c.strip() for c in args.categories if c.strip()] or ["comedy"]
-    if not categories:
-        print("ERROR: At least one non-empty category slug is required")
-        return 1
-
     ok = _print_programme_detail(pid)
     for slug in categories:
         ok = _inspect_category(pid, slug, args.pages) and ok
