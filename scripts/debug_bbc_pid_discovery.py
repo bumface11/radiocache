@@ -31,7 +31,10 @@ def _extract_category_titles(item: dict) -> list[str]:
 
         current = cat
         while isinstance(current, dict) and current:
-            title = current.get("title") or current.get("id")
+            title_value = current.get("title")
+            title = (
+                title_value if title_value is not None else current.get("id")
+            )
             if isinstance(title, str) and title and title not in seen:
                 seen.add(title)
                 titles.append(title)
@@ -211,7 +214,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     for slug in categories:
-        success = _inspect_category(pid, slug, args.pages) and success
+        category_ok = _inspect_category(pid, slug, args.pages)
+        success = category_ok and success
 
     return 0 if success else 1
 
