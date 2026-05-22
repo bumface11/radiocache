@@ -206,11 +206,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
 
     categories = [c.strip() for c in args.categories if c.strip()] or ["comedy"]
-    ok = _print_programme_detail(pid)
-    for slug in categories:
-        ok = ok and _inspect_category(pid, slug, args.pages)
+    success = _print_programme_detail(pid)
+    if not success:
+        return 1
 
-    return 0 if ok else 1
+    for slug in categories:
+        success = success and _inspect_category(pid, slug, args.pages)
+
+    return 0 if success else 1
 
 
 if __name__ == "__main__":
