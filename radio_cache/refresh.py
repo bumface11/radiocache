@@ -32,7 +32,7 @@ logger = logging.getLogger(__name__)
 RefreshDepth = Literal["recent", "full"]
 
 _RECENT_MAX_PAGES: Final[int] = 3
-_FULL_MAX_PAGES: Final[int] = 50
+_FULL_MAX_PAGES: Final[int] = 100
 
 _DEFAULT_GITHUB_URL: str = (
     "https://raw.githubusercontent.com/bumface11/radiocache/main/"
