@@ -63,7 +63,7 @@ _BBC_CATEGORIES_API: Final[str] = (
 )
 
 _PAGE_LIMIT: Final[int] = 30
-_DEFAULT_MAX_PAGES: Final[int] = 50
+_DEFAULT_MAX_PAGES: Final[int] = 100
 _REQUEST_DELAY_SECS: Final[float] = 1.0
 _REQUEST_TIMEOUT_SECS: Final[int] = 30
 _USER_AGENT: Final[str] = (

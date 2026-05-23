@@ -5,6 +5,7 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 from radio_cache.bbc_feed_parser import (
+    _DEFAULT_MAX_PAGES,
     _PAGE_LIMIT,
     _parse_programme_item,
     fetch_all_category_slugs,
@@ -348,6 +349,39 @@ class TestFetchDramaProgrammes:
 
         assert len(result) == 11 * _PAGE_LIMIT
         assert "p10_29" in pids
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_default_reaches_page_98(self, mock_fetch: MagicMock) -> None:
+        """Default max_pages should still discover programmes on page 98."""
+        target_page = 98
+        pages = []
+        for page in range(target_page + 1):
+            items = [
+                {
+                    "urn": f"urn:bbc:radio:episode:p{page:03d}_{i:02d}",
+                    "title": f"Episode {page}-{i}",
+                }
+                for i in range(_PAGE_LIMIT)
+            ]
+            if page == target_page:
+                items[0] = {
+                    "urn": "urn:bbc:radio:episode:m000gbgq",
+                    "title": "Accountancy",
+                }
+            pages.append(
+                {
+                    "data": items,
+                    "total": (target_page + 1) * _PAGE_LIMIT,
+                }
+            )
+        pages.append({"data": [], "total": (target_page + 1) * _PAGE_LIMIT})
+        mock_fetch.side_effect = pages
+
+        result = fetch_drama_programmes(category_slugs=["comedy"], delay=0)
+        pids = {p.pid for p in result}
+
+        assert _DEFAULT_MAX_PAGES > target_page
+        assert "m000gbgq" in pids
 
     @patch("radio_cache.bbc_feed_parser._fetch_json")
     def test_includes_tleo_distinct(self, mock_fetch: MagicMock) -> None:
