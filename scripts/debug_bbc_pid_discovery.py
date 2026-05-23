@@ -48,6 +48,28 @@ def _extract_category_titles(item: dict) -> list[str]:
     return titles
 
 
+def _resolve_display_pid(
+    requested_pid: str,
+    raw_programme: dict,
+    parsed_pid: str | None,
+) -> str:
+    if parsed_pid:
+        return parsed_pid
+
+    urn = raw_programme.get("urn")
+    if isinstance(urn, str) and ":" in urn:
+        urn_pid = urn.rsplit(":", 1)[-1].strip()
+        if urn_pid:
+            return urn_pid
+
+    for key in ("pid", "id"):
+        value = raw_programme.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+
+    return requested_pid
+
+
 def _print_programme_detail(pid: str) -> bool:
     url = f"{_BBC_PROGRAMMES_API}/{pid}.json"
     payload = _fetch_json(url)
@@ -61,12 +83,14 @@ def _print_programme_detail(pid: str) -> bool:
         return False
 
     parsed = _parse_programme_item(raw_programme)
+    resolved_pid = _resolve_display_pid(
+        requested_pid=pid,
+        raw_programme=raw_programme,
+        parsed_pid=parsed.pid if parsed is not None else None,
+    )
     print(f"=== Programme detail: {pid} ===")
     print(f"Request URL: {url}")
-    print(
-        "Resolved PID: "
-        f"{parsed.pid if parsed is not None else '<unable to resolve from URN>'}"
-    )
+    print(f"Resolved PID: {resolved_pid}")
 
     titles = raw_programme.get("titles")
     if isinstance(titles, dict):

@@ -91,3 +91,26 @@ def test_programme_detail_fetch_failure_returns_error(
     out = capsys.readouterr().out
     assert code == 1
     assert "ERROR: Failed to fetch programme detail" in out
+
+
+def test_resolved_pid_falls_back_to_programme_pid_field(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    module = _load_module()
+
+    def fake_fetch(url: str) -> dict[str, Any]:
+        if url.endswith("/m000gbgq.json"):
+            return {
+                "programme": {
+                    "pid": "m000gbgq",
+                    "titles": {"primary": "Example Programme"},
+                }
+            }
+        return {"data": [], "total": 0}
+
+    with patch.object(module, "_fetch_json", side_effect=fake_fetch):
+        code = module.main(["m000gbgq", "--category", "comedy"])
+
+    out = capsys.readouterr().out
+    assert code == 0
+    assert "Resolved PID: m000gbgq" in out
