@@ -78,6 +78,7 @@ def test_not_found_is_not_an_error(capsys: pytest.CaptureFixture[str]) -> None:
     out = capsys.readouterr().out
     assert code == 0
     assert "NOT FOUND in category 'comedy'" in out
+    assert "Hint: RMS category pages are date-ordered" in out
 
 
 def test_programme_detail_fetch_failure_returns_error(

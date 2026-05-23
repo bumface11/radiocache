@@ -198,6 +198,10 @@ def _inspect_category(pid: str, slug: str, max_pages: int) -> bool:
         f"NOT FOUND in category '{slug}' "
         f"after checking {checked_pages} page(s), {checked_items} item(s)"
     )
+    print(
+        "  Hint: RMS category pages are date-ordered and may omit older items. "
+        "Try a larger --pages value and/or additional --category slugs."
+    )
     return True
 
 
