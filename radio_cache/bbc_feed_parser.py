@@ -103,6 +103,25 @@ _SLUG_DISPLAY_NAMES: Final[dict[str, str]] = {
     "period-drama": "Period Drama",
 }
 
+_ALLOWED_CHANNELS_NORMALIZED: Final[set[str]] = {
+    "radio 4",
+    "radio 4 extra",
+    "radio 3",
+}
+
+
+def _normalize_channel(channel: str) -> str:
+    """Return a normalized channel string for allowlist comparison."""
+    normalized = (channel or "").strip().lower()
+    if normalized.startswith("bbc "):
+        normalized = normalized[4:]
+    return " ".join(normalized.split())
+
+
+def _is_allowed_channel(channel: str) -> bool:
+    """Return ``True`` when the channel is in the ingest allowlist."""
+    return _normalize_channel(channel) in _ALLOWED_CHANNELS_NORMALIZED
+
 
 def _fetch_json(url: str) -> dict | list | None:
     """Fetch JSON from *url* with polite request headers.
@@ -513,6 +532,8 @@ def fetch_drama_programmes(
                 prog = _parse_programme_item(item)
                 if prog is None:
                     continue
+                if not _is_allowed_channel(prog.channel):
+                    continue
 
                 # Gather categories from the parsed item
                 item_cats: set[str] = set(
@@ -709,7 +730,7 @@ def _fetch_container_episodes(
 
         for item in items:
             prog = _parse_programme_item(item)
-            if prog is not None:
+            if prog is not None and _is_allowed_channel(prog.channel):
                 episodes.append(prog)
 
         total = data.get("total", 0)

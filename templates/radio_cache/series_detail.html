@@ -71,10 +71,7 @@
             <div class="flex-grow-1">
                 <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
                     <h6 class="mb-0">
-                        {% if ep.episode_number %}
-                            <span class="badge bg-secondary me-1">Ep {{ ep.episode_number }}</span>
-                        {% endif %}
-                        {{ ep.title }}
+                        {{ ep.title }}{% if ep.episode_number %} (Ep {{ ep.episode_number }}){% endif %}
                         {% if ep.first_broadcast and (ep.first_broadcast | is_recent_broadcast) %}
                             <span class="badge text-bg-success ms-1">Recent</span>
                         {% endif %}
@@ -95,6 +92,13 @@
                 </p>
                 <div class="collapse mt-2" id="info-series-{{ ep.pid }}">
                     <div class="border rounded p-2 small text-muted">
+                        <div><strong>PID:</strong> {{ ep.pid }}</div>
+                        {% if ep.episode_number %}<div><strong>Episode:</strong> {{ ep.episode_number }}</div>{% endif %}
+                        {% if ep.first_broadcast %}<div><strong>First broadcast:</strong> {{ ep.first_broadcast | format_short_date }}</div>{% endif %}
+                        {% if ep.duration_secs %}<div><strong>Duration:</strong> {{ ep.duration_secs | format_duration }}</div>{% endif %}
+                        {% if ep.channel %}<div><strong>Channel:</strong> {{ ep.channel }}</div>{% endif %}
+                        {% if ep.series_title %}<div><strong>Series:</strong> {{ ep.series_title }}</div>{% endif %}
+                        {% if ep.brand_title %}<div><strong>Brand:</strong> {{ ep.brand_title }}</div>{% endif %}
                         {% if ep.categories %}<div><strong>Categories:</strong> {{ ep.categories }}</div>{% endif %}
                         {% if ep.available_until %}<div><strong>Available until:</strong> {{ ep.available_until | format_short_date }}</div>{% endif %}
                     </div>

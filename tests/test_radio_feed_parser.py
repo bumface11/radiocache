@@ -332,6 +332,7 @@ class TestFetchDramaProgrammes:
                         f"urn:bbc:radio:episode:p{page:02d}_{i:02d}"
                     ),
                     "title": f"Episode {page}-{i}",
+                    "network": {"short_title": "Radio 4"},
                 }
                 for i in range(_PAGE_LIMIT)
             ]
@@ -360,6 +361,7 @@ class TestFetchDramaProgrammes:
                 {
                     "urn": f"urn:bbc:radio:episode:p{page:03d}_{i:02d}",
                     "title": f"Episode {page}-{i}",
+                    "network": {"short_title": "Radio 4"},
                 }
                 for i in range(_PAGE_LIMIT)
             ]
@@ -367,6 +369,7 @@ class TestFetchDramaProgrammes:
                 items[0] = {
                     "urn": "urn:bbc:radio:episode:m000gbgq",
                     "title": "Accountancy",
+                    "network": {"short_title": "Radio 4"},
                 }
             pages.append(
                 {
@@ -394,7 +397,11 @@ class TestFetchDramaProgrammes:
     @patch("radio_cache.bbc_feed_parser._fetch_json")
     def test_deduplicates_across_categories(self, mock_fetch: MagicMock) -> None:
         """Programmes seen in multiple categories are returned once."""
-        item = {"urn": "urn:bbc:radio:episode:b09dup", "title": "Shared Drama"}
+        item = {
+            "urn": "urn:bbc:radio:episode:b09dup",
+            "title": "Shared Drama",
+            "network": {"short_title": "Radio 4"},
+        }
         mock_fetch.return_value = {"data": [item], "total": 1}
         result = fetch_drama_programmes(
             category_slugs=["drama", "thriller"], max_pages=1, delay=0
@@ -405,7 +412,11 @@ class TestFetchDramaProgrammes:
     @patch("radio_cache.bbc_feed_parser._fetch_json")
     def test_slug_used_as_category_fallback(self, mock_fetch: MagicMock) -> None:
         """Slug display name is recorded as category when API returns no categories."""
-        item = {"urn": "urn:bbc:radio:episode:b09nocat", "title": "No Category Item"}
+        item = {
+            "urn": "urn:bbc:radio:episode:b09nocat",
+            "title": "No Category Item",
+            "network": {"short_title": "Radio 4"},
+        }
         mock_fetch.return_value = {"data": [item], "total": 1}
         result = fetch_drama_programmes(
             category_slugs=["thriller"], max_pages=1, delay=0
@@ -416,7 +427,11 @@ class TestFetchDramaProgrammes:
     @patch("radio_cache.bbc_feed_parser._fetch_json")
     def test_categories_merged_across_slugs(self, mock_fetch: MagicMock) -> None:
         """When a programme appears in two slug searches its categories are merged."""
-        item = {"urn": "urn:bbc:radio:episode:b09multi", "title": "Multi Genre"}
+        item = {
+            "urn": "urn:bbc:radio:episode:b09multi",
+            "title": "Multi Genre",
+            "network": {"short_title": "Radio 4"},
+        }
         mock_fetch.return_value = {"data": [item], "total": 1}
         result = fetch_drama_programmes(
             category_slugs=["drama", "thriller"], max_pages=1, delay=0
@@ -433,6 +448,7 @@ class TestFetchDramaProgrammes:
             "urn": "urn:bbc:radio:episode:b09apicat",
             "title": "API Category Item",
             "categories": [{"id": "crime", "title": "Crime"}],
+            "network": {"short_title": "Radio 4"},
         }
         mock_fetch.return_value = {"data": [item], "total": 1}
         result = fetch_drama_programmes(
@@ -452,6 +468,7 @@ class TestFetchDramaProgrammes:
             {
                 "urn": f"urn:bbc:radio:episode:old{i}",
                 "title": f"Old {i}",
+                "network": {"short_title": "Radio 4"},
             }
             for i in range(_PAGE_LIMIT)
         ]
@@ -468,6 +485,37 @@ class TestFetchDramaProgrammes:
 
         assert len(result) == _PAGE_LIMIT
         assert mock_fetch.call_count == 1
+
+    @patch("radio_cache.bbc_feed_parser._fetch_json")
+    def test_filters_to_allowed_channels(self, mock_fetch: MagicMock) -> None:
+        """Only Radio 4/4 Extra/3 programmes are included in results."""
+        mock_fetch.return_value = {
+            "data": [
+                {
+                    "urn": "urn:bbc:radio:episode:allow1",
+                    "title": "Allowed 1",
+                    "network": {"short_title": "Radio 4"},
+                },
+                {
+                    "urn": "urn:bbc:radio:episode:allow2",
+                    "title": "Allowed 2",
+                    "network": {"short_title": "BBC Radio 4 Extra"},
+                },
+                {
+                    "urn": "urn:bbc:radio:episode:deny1",
+                    "title": "Denied",
+                    "network": {"short_title": "Radio 2"},
+                },
+            ],
+            "total": 3,
+        }
+        result = fetch_drama_programmes(
+            category_slugs=["drama"],
+            max_pages=1,
+            delay=0,
+        )
+        pids = {p.pid for p in result}
+        assert pids == {"allow1", "allow2"}
 
 
 class TestFetchAllCategorySlugs:
@@ -521,7 +569,11 @@ class TestFetchContainerEpisodes:
     def test_fetches_episodes_for_container(self, mock_fetch: MagicMock) -> None:
         """Returns episodes from the container endpoint."""
         items = [
-            {"urn": f"urn:bbc:radio:episode:ep{i}", "title": f"Ep {i}"}
+            {
+                "urn": f"urn:bbc:radio:episode:ep{i}",
+                "title": f"Ep {i}",
+                "network": {"short_title": "Radio 4"},
+            }
             for i in range(3)
         ]
         mock_fetch.return_value = {"data": items, "total": 3}
@@ -542,11 +594,19 @@ class TestFetchContainerEpisodes:
     def test_paginates(self, mock_fetch: MagicMock) -> None:
         """Pages through container results."""
         page1 = [
-            {"urn": f"urn:bbc:radio:episode:ep{i}", "title": f"Ep {i}"}
+            {
+                "urn": f"urn:bbc:radio:episode:ep{i}",
+                "title": f"Ep {i}",
+                "network": {"short_title": "Radio 4"},
+            }
             for i in range(_PAGE_LIMIT)
         ]
         page2 = [
-            {"urn": "urn:bbc:radio:episode:last", "title": "Last"}
+            {
+                "urn": "urn:bbc:radio:episode:last",
+                "title": "Last",
+                "network": {"short_title": "Radio 4"},
+            }
         ]
         mock_fetch.side_effect = [
             {"data": page1, "total": _PAGE_LIMIT + 1},
@@ -578,14 +638,27 @@ class TestBackfillContainers:
             "title": "Latest Episode",
             "container": {"id": "series1", "title": "My Series"},
             "brand": {"id": "brand1", "title": "My Brand"},
+            "network": {"short_title": "Radio 4"},
         }
         category_response = {"data": [category_item], "total": 1}
 
         # Phase 2: container backfill returns more episodes
         backfill_items = [
-            {"urn": "urn:bbc:radio:episode:ep1", "title": "Latest Episode"},
-            {"urn": "urn:bbc:radio:episode:ep2", "title": "Older Episode"},
-            {"urn": "urn:bbc:radio:episode:ep3", "title": "Oldest Episode"},
+            {
+                "urn": "urn:bbc:radio:episode:ep1",
+                "title": "Latest Episode",
+                "network": {"short_title": "Radio 4"},
+            },
+            {
+                "urn": "urn:bbc:radio:episode:ep2",
+                "title": "Older Episode",
+                "network": {"short_title": "Radio 4"},
+            },
+            {
+                "urn": "urn:bbc:radio:episode:ep3",
+                "title": "Oldest Episode",
+                "network": {"short_title": "Radio 4"},
+            },
         ]
         backfill_response = {"data": backfill_items, "total": 3}
 
@@ -613,11 +686,16 @@ class TestBackfillContainers:
             "urn": "urn:bbc:radio:episode:ep1",
             "title": "Episode",
             "container": {"id": "series1", "title": "Series"},
+            "network": {"short_title": "Radio 4"},
         }
         category_response = {"data": [category_item], "total": 1}
 
         backfill_items = [
-            {"urn": "urn:bbc:radio:episode:ep2", "title": "Backfill Ep"},
+            {
+                "urn": "urn:bbc:radio:episode:ep2",
+                "title": "Backfill Ep",
+                "network": {"short_title": "Radio 4"},
+            },
         ]
         backfill_response = {"data": backfill_items, "total": 1}
 
@@ -639,6 +717,7 @@ class TestBackfillContainers:
             "urn": "urn:bbc:radio:episode:ep1",
             "title": "Ep",
             "container": {"id": "series1", "title": "Series"},
+            "network": {"short_title": "Radio 4"},
         }
         mock_fetch.return_value = {"data": [item], "total": 1}
         result = fetch_drama_programmes(
