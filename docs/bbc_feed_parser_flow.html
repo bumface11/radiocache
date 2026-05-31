@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Explain BBC feed parser data scenarios with HTML flow diagrams</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121a31;
+      --panel-2: #172245;
+      --text: #e9eefc;
+      --muted: #a8b5dd;
+      --accent: #7db2ff;
+      --ok: #78d5a3;
+      --warn: #ffd27d;
+      --line: #354576;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 1.25rem;
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      line-height: 1.45;
+      color: var(--text);
+      background: linear-gradient(180deg, #070b16, var(--bg));
+    }
+    main { max-width: 1000px; margin: 0 auto; }
+    h1, h2, h3 { line-height: 1.2; margin: 0 0 0.55rem; }
+    h1 { font-size: 1.55rem; }
+    h2 { font-size: 1.15rem; margin-top: 1.2rem; }
+    h3 { font-size: 1rem; margin-top: 0.9rem; }
+    p, li { color: var(--muted); margin: 0.35rem 0; }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0.9rem;
+      margin-top: 0.8rem;
+    }
+    .note {
+      border-left: 3px solid var(--accent);
+      padding-left: 0.65rem;
+      margin-top: 0.55rem;
+    }
+    code {
+      background: #0d1530;
+      border: 1px solid #27386d;
+      border-radius: 5px;
+      padding: 0.08rem 0.35rem;
+      color: #dbe7ff;
+    }
+    .chips { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.45rem; }
+    .chip {
+      border: 1px solid #32518f;
+      background: #0f1c3e;
+      color: #c8d9ff;
+      border-radius: 999px;
+      padding: 0.2rem 0.58rem;
+      font-size: 0.84rem;
+    }
+    .grid { display: grid; gap: 0.8rem; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); }
+    .flow {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel-2);
+      margin-top: 0.5rem;
+    }
+    .small { font-size: 0.88rem; }
+    .strong { color: var(--text); }
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    ul { padding-left: 1.1rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Explain BBC feed parser data scenarios with HTML flow diagrams</h1>
+    <div class="panel">
+      <p>
+        This page summarizes the data-handling logic in
+        <code>radio_cache/bbc_feed_parser.py</code> on <code>main</code>.
+        It focuses on how category scans, fallback tags, backfill, and
+        programme parsing interact to produce a deduplicated output list.
+      </p>
+      <p class="note small">
+        Scope note: this is an implementation guide for current behavior,
+        not a formal architecture spec.
+      </p>
+    </div>
+
+    <h2>Glossary</h2>
+    <div class="panel grid small">
+      <div><span class="strong">PID</span>: BBC identifier used for episode/brand/series rows (episode PID is derived from URN tail for playable items).</div>
+      <div><span class="strong">Brand</span>: Top-level programme container (e.g. show-level parent).</div>
+      <div><span class="strong">Series</span>: Sub-container under a brand. Can be a true BBC series PID, or a synthetic key in playable-listing cases.</div>
+      <div><span class="strong">Slug</span>: Category key used with playable API (e.g. <code>drama</code>, <code>thriller</code>).</div>
+      <div><span class="strong">Container backfill</span>: Optional second pass that fetches all episodes for discovered brand/series containers.</div>
+      <div><span class="strong">Inherited categories</span>: Category tags gathered during slug scans and applied to episodes found during container backfill.</div>
+    </div>
+
+    <h2>1) Basic category listing ingestion</h2>
+    <div class="panel">
+      <p>For each slug, the parser pages through playable listing items, parses each item, channel-filters it, then stores/merges by episode PID.</p>
+      <svg class="flow" viewBox="0 0 900 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Basic category listing flow">
+        <defs>
+          <marker id="arrowA" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L9,3 z" fill="#9cc2ff" />
+          </marker>
+        </defs>
+        <rect x="20" y="50" width="130" height="54" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="85" y="73" fill="#e9eefc" text-anchor="middle" font-size="14">Slug page</text>
+        <text x="85" y="91" fill="#c8d9ff" text-anchor="middle" font-size="12">items[]</text>
+        <line x1="150" y1="77" x2="245" y2="77" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowA)"/>
+        <rect x="245" y="50" width="150" height="54" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="320" y="73" fill="#e9eefc" text-anchor="middle" font-size="14">_parse_programme_item</text>
+        <line x1="395" y1="77" x2="490" y2="77" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowA)"/>
+        <rect x="490" y="50" width="120" height="54" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="550" y="74" fill="#e9eefc" text-anchor="middle" font-size="14">Channel</text>
+        <text x="550" y="91" fill="#c8d9ff" text-anchor="middle" font-size="12">allowlist</text>
+        <line x1="610" y1="77" x2="705" y2="77" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowA)"/>
+        <rect x="705" y="50" width="175" height="54" rx="8" fill="#1f3c35" stroke="#62c99a"/>
+        <text x="792" y="74" fill="#e9eefc" text-anchor="middle" font-size="14">pid_to_prog + pid_to_cats</text>
+        <text x="792" y="91" fill="#c8d9ff" text-anchor="middle" font-size="12">insert/merge</text>
+      </svg>
+    </div>
+
+    <h2>2) Slug/category fallback when item categories are empty</h2>
+    <div class="panel">
+      <p>If playable item <code>categories</code> is empty/missing, the parser still tags the programme with the slug display name used to discover it.</p>
+      <div class="chips small">
+        <span class="chip">slug=thriller</span><span class="chip">item.categories=[]</span><span class="chip">stored categories include “Thriller”</span>
+      </div>
+      <svg class="flow" viewBox="0 0 900 120" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Slug fallback flow">
+        <defs><marker id="arrowB" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#9cc2ff"/></marker></defs>
+        <rect x="30" y="34" width="200" height="52" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="130" y="65" fill="#e9eefc" text-anchor="middle" font-size="14">parsed item_cats = ∅</text>
+        <line x1="230" y1="60" x2="385" y2="60" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowB)"/>
+        <rect x="385" y="34" width="220" height="52" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="495" y="65" fill="#e9eefc" text-anchor="middle" font-size="14">add slug display name</text>
+        <line x1="605" y1="60" x2="760" y2="60" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowB)"/>
+        <rect x="760" y="34" width="110" height="52" rx="8" fill="#1f3c35" stroke="#62c99a"/>
+        <text x="815" y="66" fill="#e9eefc" text-anchor="middle" font-size="14">tagged</text>
+      </svg>
+    </div>
+
+    <h2>3) Category merging across multiple slug scans</h2>
+    <div class="panel">
+      <p>When the same episode PID appears in multiple slugs, category sets are merged instead of overwritten.</p>
+      <p class="small"><span class="strong">Example:</span> PID <code>m000abcd</code> found in <code>drama</code> and later <code>thriller</code> → merged set includes both <code>Drama</code> and <code>Thriller</code>.</p>
+      <svg class="flow" viewBox="0 0 900 140" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Cross slug category merge">
+        <defs><marker id="arrowC" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#9cc2ff"/></marker></defs>
+        <rect x="30" y="22" width="220" height="42" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="140" y="48" fill="#e9eefc" text-anchor="middle" font-size="13">first scan: m000abcd → {Drama}</text>
+        <rect x="30" y="76" width="220" height="42" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="140" y="102" fill="#e9eefc" text-anchor="middle" font-size="13">second scan: m000abcd → {Thriller}</text>
+        <line x1="250" y1="43" x2="450" y2="70" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowC)"/>
+        <line x1="250" y1="97" x2="450" y2="70" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowC)"/>
+        <rect x="450" y="46" width="220" height="50" rx="8" fill="#1f3c35" stroke="#62c99a"/>
+        <text x="560" y="66" fill="#e9eefc" text-anchor="middle" font-size="13">pid_to_cats[m000abcd]</text>
+        <text x="560" y="84" fill="#c8ffd9" text-anchor="middle" font-size="13">= {Drama, Thriller}</text>
+      </svg>
+    </div>
+
+    <h2>4) Container backfill + inherited categories</h2>
+    <div class="panel">
+      <p>
+        With <code>backfill_containers=True</code>, the parser expands discovered
+        <code>series_pid</code> / <code>brand_pid</code> containers to capture older episodes.
+        This is important when category pages only expose recent episodes for large brands/containers.
+      </p>
+      <p class="small">Synthetic IDs containing <code>::</code> are excluded from container backfill (not valid BBC container PIDs).</p>
+      <svg class="flow" viewBox="0 0 900 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Container backfill with inherited categories">
+        <defs><marker id="arrowD" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#9cc2ff"/></marker></defs>
+        <rect x="24" y="27" width="250" height="56" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="149" y="51" fill="#e9eefc" text-anchor="middle" font-size="13">slug scans discover episodes</text>
+        <text x="149" y="69" fill="#c8d9ff" text-anchor="middle" font-size="12">(+ their merged categories)</text>
+        <line x1="274" y1="55" x2="420" y2="55" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowD)"/>
+        <rect x="420" y="27" width="220" height="56" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="530" y="51" fill="#e9eefc" text-anchor="middle" font-size="13">map container_pid</text>
+        <text x="530" y="69" fill="#c8d9ff" text-anchor="middle" font-size="12">to inherited categories</text>
+        <line x1="640" y1="55" x2="785" y2="55" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowD)"/>
+        <rect x="785" y="27" width="92" height="56" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="831" y="52" fill="#e9eefc" text-anchor="middle" font-size="13">fetch all</text>
+        <text x="831" y="69" fill="#c8d9ff" text-anchor="middle" font-size="12">container eps</text>
+        <line x1="831" y1="83" x2="831" y2="126" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowD)"/>
+        <rect x="640" y="126" width="237" height="36" rx="8" fill="#1f3c35" stroke="#62c99a"/>
+        <text x="758" y="149" fill="#e9eefc" text-anchor="middle" font-size="12">ep categories = ep_cats ∪ inherited_cats</text>
+      </svg>
+      <p class="small">Concrete case: a very large brand/container where category paging sees only recent episodes; container backfill pulls older catalogue episodes and applies inherited tags from the discovery pass.</p>
+    </div>
+
+    <h2>5) Priority brand backfill (without container backfill)</h2>
+    <div class="panel">
+      <p>
+        If <code>priority_brands</code> is provided while
+        <code>backfill_containers=False</code>, the parser runs a smaller brand-focused backfill
+        (up to 5 pages each) to pull fresh episodes for active brands.
+      </p>
+      <svg class="flow" viewBox="0 0 900 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Priority brand backfill flow">
+        <defs><marker id="arrowE" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#9cc2ff"/></marker></defs>
+        <rect x="20" y="29" width="250" height="52" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="145" y="60" fill="#e9eefc" text-anchor="middle" font-size="14">if priority_brands and not backfill_containers</text>
+        <line x1="270" y1="55" x2="455" y2="55" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowE)"/>
+        <rect x="455" y="29" width="190" height="52" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="550" y="52" fill="#e9eefc" text-anchor="middle" font-size="13">for each brand_pid:</text>
+        <text x="550" y="68" fill="#c8d9ff" text-anchor="middle" font-size="12">fetch container pages (max 5)</text>
+        <line x1="645" y1="55" x2="830" y2="55" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowE)"/>
+        <rect x="830" y="29" width="50" height="52" rx="8" fill="#1f3c35" stroke="#62c99a"/>
+        <text x="855" y="61" fill="#e9eefc" text-anchor="middle" font-size="14">merge</text>
+      </svg>
+    </div>
+
+    <h2>6) <code>_parse_programme_item()</code> brand/series derivation paths</h2>
+    <div class="panel">
+      <h3>6a) Ancestor-rich detail payloads</h3>
+      <p>When two or more ancestors are present, ancestor[0] and ancestor[1] are used as real brand/series IDs and titles, and episode title prefers tertiary/entity title.</p>
+
+      <h3>6b) Playable listing with synthetic series derivation</h3>
+      <p>If container type is <code>brand</code> and there is secondary + tertiary/entity title, the parser derives synthetic series key <code>brand_pid::secondary_title</code> (unless one of the exceptions below applies).</p>
+
+      <h3>6c) Collapse of known synthetic-series brands</h3>
+      <p>Known brands (currently The Archers + Omnibus IDs) collapse to a canonical brand-level series rather than per-headline synthetic series rows.</p>
+
+      <h3>6d) Date-like secondary titles do not become series</h3>
+      <p>Secondary labels matching <code>DD/MM/YYYY</code> are treated as date labels, not real series; series fields are left empty in that branch.</p>
+
+      <svg class="flow" viewBox="0 0 900 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="_parse_programme_item brand series derivation">
+        <defs><marker id="arrowF" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#9cc2ff"/></marker></defs>
+        <rect x="320" y="10" width="260" height="42" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="450" y="36" fill="#e9eefc" text-anchor="middle" font-size="13">start: parse titles/container/ancestors</text>
+
+        <line x1="450" y1="52" x2="450" y2="82" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowF)"/>
+        <rect x="305" y="82" width="290" height="38" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="450" y="106" fill="#e9eefc" text-anchor="middle" font-size="12">ancestors >= 2 ?</text>
+
+        <line x1="305" y1="101" x2="150" y2="101" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowF)"/>
+        <text x="220" y="92" fill="#c8d9ff" font-size="11">yes</text>
+        <rect x="20" y="72" width="130" height="58" rx="8" fill="#1f3c35" stroke="#62c99a"/>
+        <text x="85" y="95" fill="#e9eefc" text-anchor="middle" font-size="11">use ancestor</text>
+        <text x="85" y="112" fill="#e9eefc" text-anchor="middle" font-size="11">brand + series</text>
+
+        <line x1="595" y1="101" x2="745" y2="101" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowF)"/>
+        <text x="665" y="92" fill="#c8d9ff" font-size="11">no</text>
+        <rect x="745" y="72" width="140" height="58" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="815" y="94" fill="#e9eefc" text-anchor="middle" font-size="11">container==brand</text>
+        <text x="815" y="112" fill="#e9eefc" text-anchor="middle" font-size="11">and secondary+episode?</text>
+
+        <line x1="815" y1="130" x2="815" y2="162" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowF)"/>
+        <rect x="675" y="162" width="210" height="38" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="780" y="186" fill="#e9eefc" text-anchor="middle" font-size="11">derive synthetic brand::secondary</text>
+
+        <line x1="675" y1="181" x2="500" y2="230" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowF)"/>
+        <rect x="388" y="212" width="224" height="30" rx="8" fill="#1f3c35" stroke="#62c99a"/>
+        <text x="500" y="231" fill="#e9eefc" text-anchor="middle" font-size="11">except collapse-list/date-label cases</text>
+      </svg>
+
+      <p class="small">
+        Extra guard: if row is synthetic <code>brand::series</code> and episode title equals series title,
+        it is canonicalized back to one brand-level series.
+      </p>
+    </div>
+
+    <h2>7) Final deduplication and merged category output</h2>
+    <div class="panel">
+      <p>Final output iterates one programme per PID and replaces its category string with the fully merged category set, sorted alphabetically for deterministic results.</p>
+      <svg class="flow" viewBox="0 0 900 110" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Final merged output flow">
+        <defs><marker id="arrowG" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#9cc2ff"/></marker></defs>
+        <rect x="30" y="30" width="230" height="50" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="145" y="50" fill="#e9eefc" text-anchor="middle" font-size="13">for each pid in pid_to_prog</text>
+        <text x="145" y="67" fill="#c8d9ff" text-anchor="middle" font-size="12">read pid_to_cats[pid]</text>
+        <line x1="260" y1="55" x2="470" y2="55" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowG)"/>
+        <rect x="470" y="30" width="190" height="50" rx="8" fill="#203162" stroke="#5f84d6"/>
+        <text x="565" y="50" fill="#e9eefc" text-anchor="middle" font-size="13">merged = join(sorted(set))</text>
+        <text x="565" y="67" fill="#c8d9ff" text-anchor="middle" font-size="12">replace categories if changed</text>
+        <line x1="660" y1="55" x2="870" y2="55" stroke="#9cc2ff" stroke-width="2" marker-end="url(#arrowG)"/>
+        <rect x="760" y="30" width="120" height="50" rx="8" fill="#1f3c35" stroke="#62c99a"/>
+        <text x="820" y="58" fill="#e9eefc" text-anchor="middle" font-size="13">deduped list</text>
+      </svg>
+      <p class="small ok">Result: one row per PID with categories merged from all discovery paths.</p>
+    </div>
+
+    <div class="panel small">
+      <p class="strong">Quick accuracy checklist for this page</p>
+      <ul>
+        <li>Matches current <code>fetch_drama_programmes()</code> two-pass behavior (slug scan + optional backfill path).</li>
+        <li>Reflects current <code>_parse_programme_item()</code> branch conditions and synthetic-series exceptions.</li>
+        <li>Uses examples aligned with code comments and logic (e.g. drama+thriller merge, large-container backfill motivation).</li>
+      </ul>
+    </div>
+  </main>
+</body>
+</html>
