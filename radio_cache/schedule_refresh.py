@@ -12,11 +12,11 @@ get_iplayer's schedule-based sweep:
    category metadata, fetch ``/programmes/{pid}.json`` individually to
    obtain the three-level ``broader.category`` hierarchy.
 
-The output is written to **separate** database and cache files so it
-does not interfere with the category-first approach:
+The output is written to the **same** database and cache files used by the
+dev server:
 
-- ``radio_cache_schedule.db`` (SQLite database)
-- ``radio_schedule.cache`` (get_iplayer-compatible flat file)
+- ``radio_cache.db`` (SQLite database)
+- ``radio.cache`` (get_iplayer-compatible flat file)
 
 Run as a CLI::
 

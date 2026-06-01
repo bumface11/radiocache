@@ -261,10 +261,10 @@ class TestScheduleRefresh:
         assert Path(db_path).exists()
         assert Path(cache_path).exists()
 
-    def test_default_paths_are_separate_from_category_approach(self) -> None:
-        """Default output paths differ from the category-first module."""
-        assert _DEFAULT_DB_PATH != "radio_cache.db"
-        assert _DEFAULT_CACHE_PATH != "radio.cache"
+    def test_default_paths_match_dev_server(self) -> None:
+        """Default output paths match what the dev server reads."""
+        assert _DEFAULT_DB_PATH == "radio_cache.db"
+        assert _DEFAULT_CACHE_PATH == "radio.cache"
 
     def test_network_ids_cover_allowed_channels(self) -> None:
         """Network IDs list covers Radio 4, Radio 4 Extra, Radio 3."""
