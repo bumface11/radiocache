@@ -11,6 +11,7 @@ from radio_cache.schedule_refresh import (
     _DEFAULT_CACHE_PATH,
     _DEFAULT_DB_PATH,
     _NETWORK_IDS,
+    _parse_categories_from_programmes_json,
     enrich_categories,
     fetch_schedule_programmes,
     schedule_refresh,
@@ -18,7 +19,11 @@ from radio_cache.schedule_refresh import (
 
 
 def _make_programme(
-    pid: str, categories: str = "", channel: str = "BBC Radio 4",
+    pid: str,
+    categories: str = "",
+    channel: str = "BBC Radio 4",
+    brand_pid: str = "",
+    series_pid: str = "",
 ) -> Programme:
     return Programme(
         pid=pid,
@@ -30,11 +35,15 @@ def _make_programme(
         programme_type="episode",
         channel=channel,
         categories=categories,
+        brand_pid=brand_pid,
+        series_pid=series_pid,
         url=f"https://www.bbc.co.uk/sounds/play/{pid}",
     )
 
 
-def _make_api_response(pids: list[str], total: int | None = None) -> dict[str, Any]:
+def _make_api_response(
+    pids: list[str], total: int | None = None,
+) -> dict[str, Any]:
     """Build a fake BBC RMS API response."""
     items = []
     for pid in pids:
@@ -46,12 +55,17 @@ def _make_api_response(pids: list[str], total: int | None = None) -> dict[str, A
             "availability": {"to": "2026-12-01T00:00:00Z"},
             "release": {"date": "2026-01-01T00:00:00Z"},
             "network": {"short_title": "Radio 4", "id": "bbc_radio_fourfm"},
-            "container": {"type": "series", "id": "s001", "title": "Test Series"},
+            "container": {
+                "type": "series", "id": "s001", "title": "Test Series",
+            },
             "image_url": "",
             "categories": [],
             "type": "episode",
         })
-    return {"data": items, "total": total if total is not None else len(items)}
+    return {
+        "data": items,
+        "total": total if total is not None else len(items),
+    }
 
 
 class TestFetchScheduleProgrammes:
@@ -97,60 +111,127 @@ class TestFetchScheduleProgrammes:
         assert progs == []
 
 
+class TestParseCategoriesFromProgrammesJson:
+    """Tests for the /programmes/{pid}.json category parser."""
+
+    def test_parses_three_level_hierarchy(self) -> None:
+        """Extracts broadest-first from broader.category nesting."""
+        data = {
+            "programme": {
+                "categories": [
+                    {
+                        "title": "Thriller",
+                        "broader": {
+                            "category": {
+                                "title": "Drama",
+                                "broader": {
+                                    "category": {"title": "Audio"}
+                                },
+                            }
+                        },
+                    }
+                ]
+            }
+        }
+        result = _parse_categories_from_programmes_json(data)
+        assert result == "Audio,Drama,Thriller"
+
+    def test_returns_empty_for_no_categories(self) -> None:
+        """Returns empty string when categories list is empty."""
+        data: dict[str, Any] = {"programme": {"categories": []}}
+        assert _parse_categories_from_programmes_json(data) == ""
+
+    def test_deduplicates_categories(self) -> None:
+        """Same category appearing multiple times is deduplicated."""
+        data = {
+            "programme": {
+                "categories": [
+                    {"title": "Drama"},
+                    {"title": "Drama"},
+                ]
+            }
+        }
+        assert _parse_categories_from_programmes_json(data) == "Drama"
+
+
 class TestEnrichCategories:
     """Tests for Phase 2: category enrichment."""
 
-    def test_enriches_programmes_without_categories(self) -> None:
-        """Programmes missing categories get enriched via detail fetch."""
-        prog_no_cat = _make_programme("m001abc", categories="")
-        prog_with_cat = _make_programme("m001def", categories="Drama")
-
-        detail_prog = _make_programme("m001abc", categories="Thriller,Drama")
+    def test_enriches_programmes_via_brand_pid(self) -> None:
+        """Programmes sharing a brand_pid are enriched with one lookup."""
+        prog1 = _make_programme(
+            "m001abc", categories="", brand_pid="b001",
+        )
+        prog2 = _make_programme(
+            "m001def", categories="", brand_pid="b001",
+        )
+        prog_with_cat = _make_programme("m001ghi", categories="Drama")
 
         with patch(
-            "radio_cache.schedule_refresh.fetch_programme_detail",
-            return_value=detail_prog,
-        ):
+            "radio_cache.schedule_refresh._fetch_categories_for_pid",
+            return_value="Thriller,Drama",
+        ) as mock_fetch:
             result = enrich_categories(
-                [prog_no_cat, prog_with_cat], delay=0,
+                [prog1, prog2, prog_with_cat], delay=0,
             )
 
-        # First programme should now have categories
+        # Only one lookup for the shared brand PID
+        assert mock_fetch.call_count == 1
+        assert mock_fetch.call_args[0][0] == "b001"
+        # Both episodes get the categories
         assert result[0].categories == "Thriller,Drama"
-        # Second programme should be unchanged
-        assert result[1].categories == "Drama"
+        assert result[1].categories == "Thriller,Drama"
+        # Already-categorised programme untouched
+        assert result[2].categories == "Drama"
 
     def test_respects_max_enrichments_cap(self) -> None:
-        """Only enriches up to max_enrichments programmes."""
-        progs = [_make_programme(f"m00{i}", categories="") for i in range(5)]
-        detail = _make_programme("x", categories="Comedy")
+        """Only looks up max_enrichments PIDs."""
+        progs = [
+            _make_programme(f"m00{i}", categories="", brand_pid=f"b00{i}")
+            for i in range(5)
+        ]
 
         call_count = 0
 
-        def mock_detail(pid: str) -> Programme:
+        def mock_fetch(pid: str, delay: float = 1.0) -> str:
             nonlocal call_count
             call_count += 1
-            return detail
+            return "Comedy"
 
         with patch(
-            "radio_cache.schedule_refresh.fetch_programme_detail",
-            side_effect=mock_detail,
+            "radio_cache.schedule_refresh._fetch_categories_for_pid",
+            side_effect=mock_fetch,
         ):
             enrich_categories(progs, delay=0, max_enrichments=2)
 
         assert call_count == 2
 
-    def test_handles_failed_detail_fetch(self) -> None:
-        """Programmes stay un-enriched when detail fetch fails."""
-        prog = _make_programme("m001abc", categories="")
+    def test_handles_failed_fetch(self) -> None:
+        """Programmes stay un-enriched when fetch fails."""
+        prog = _make_programme("m001abc", categories="", brand_pid="b001")
 
         with patch(
-            "radio_cache.schedule_refresh.fetch_programme_detail",
-            return_value=None,
+            "radio_cache.schedule_refresh._fetch_categories_for_pid",
+            return_value="",
         ):
             result = enrich_categories([prog], delay=0)
 
         assert result[0].categories == ""
+
+    def test_orphan_programmes_enriched_by_own_pid(self) -> None:
+        """Programmes without brand/series PID use their own PID."""
+        prog = _make_programme(
+            "m001abc", categories="", brand_pid="", series_pid="",
+        )
+
+        with patch(
+            "radio_cache.schedule_refresh._fetch_categories_for_pid",
+            return_value="Sci-Fi",
+        ) as mock_fetch:
+            result = enrich_categories([prog], delay=0)
+
+        mock_fetch.assert_called_once_with("m001abc", delay=0)
+        assert result[0].categories == "Sci-Fi"
 
 
 class TestScheduleRefresh:

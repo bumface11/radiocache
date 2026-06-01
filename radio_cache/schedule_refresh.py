@@ -26,8 +26,12 @@ Run as a CLI::
 from __future__ import annotations
 
 import argparse
+import dataclasses
+import json
 import logging
 import time
+import urllib.error
+import urllib.request
 from datetime import UTC, datetime
 from typing import Final
 
@@ -35,7 +39,6 @@ from radio_cache.bbc_feed_parser import (
     _fetch_json,
     _is_allowed_channel,
     _parse_programme_item,
-    fetch_programme_detail,
 )
 from radio_cache.cache_db import CacheDB
 from radio_cache.models import Programme
@@ -47,6 +50,7 @@ logger = logging.getLogger(__name__)
 _BBC_PLAYABLE_API: Final[str] = (
     "https://rms.api.bbc.co.uk/v2/programmes/playable"
 )
+_BBC_PROGRAMMES_API: Final[str] = "https://www.bbc.co.uk/programmes"
 
 # BBC network IDs for channels we care about.
 # These map to the allowed channels: Radio 4, Radio 4 Extra, Radio 3.
@@ -59,6 +63,12 @@ _NETWORK_IDS: Final[list[str]] = [
 _PAGE_LIMIT: Final[int] = 30
 _DEFAULT_MAX_PAGES: Final[int] = 200
 _REQUEST_DELAY_SECS: Final[float] = 1.0
+_REQUEST_TIMEOUT_SECS: Final[int] = 30
+_MAX_RETRIES: Final[int] = 3
+_USER_AGENT: Final[str] = (
+    "Mozilla/5.0 (compatible; RadioCacheBot/1.0; "
+    "+https://github.com/bumface11/radiocache)"
+)
 
 # Default output paths (separate from the category-first approach)
 _DEFAULT_DB_PATH: Final[str] = "radio_cache_schedule.db"
@@ -166,6 +176,128 @@ def fetch_schedule_programmes(
 # ── Phase 2: Category enrichment ─────────────────────────────────────
 
 
+def _fetch_json_with_retry(
+    url: str,
+    max_retries: int = _MAX_RETRIES,
+    delay: float = _REQUEST_DELAY_SECS,
+) -> dict | list | None:
+    """Fetch JSON with retry and exponential backoff for transient errors.
+
+    Args:
+        url: URL to fetch.
+        max_retries: Number of retry attempts.
+        delay: Base delay between retries (doubled each attempt).
+
+    Returns:
+        Parsed JSON, or ``None`` on persistent failure.
+    """
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": _USER_AGENT,
+            "Accept": "application/json",
+        },
+    )
+    for attempt in range(max_retries + 1):
+        try:
+            with urllib.request.urlopen(
+                req, timeout=_REQUEST_TIMEOUT_SECS
+            ) as resp:
+                result: dict | list = json.loads(resp.read())
+                return result
+        except (
+            urllib.error.URLError,
+            json.JSONDecodeError,
+            TimeoutError,
+            ConnectionError,
+            OSError,
+        ) as exc:
+            if attempt < max_retries:
+                wait = delay * (2 ** attempt)
+                logger.debug(
+                    "Retry %d/%d for %s after error: %s (wait %.1fs)",
+                    attempt + 1, max_retries, url, exc, wait,
+                )
+                time.sleep(wait)
+            else:
+                logger.warning("Failed to fetch %s after %d attempts: %s",
+                               url, max_retries + 1, exc)
+                return None
+    return None  # pragma: no cover
+
+
+def _parse_categories_from_programmes_json(data: dict) -> str:
+    """Extract categories from a ``/programmes/{pid}.json`` response.
+
+    The ``/programmes/{pid}.json`` endpoint returns a structure like::
+
+        {"programme": {"categories": [{"title": "Drama", "broader": ...}]}}
+
+    This function traverses the three-level ``broader.category`` hierarchy
+    (matching get_iplayer behaviour) and returns a comma-separated string.
+
+    Args:
+        data: Parsed JSON response from the programmes endpoint.
+
+    Returns:
+        Comma-separated category string, or empty string.
+    """
+    prog_data = data.get("programme") or data
+    categories_list = prog_data.get("categories") or []
+    if not isinstance(categories_list, list) or not categories_list:
+        return ""
+
+    cats1: list[str] = []
+    cats2: list[str] = []
+    cats3: list[str] = []
+    for cat in categories_list:
+        if not isinstance(cat, dict):
+            continue
+        title = cat.get("title") or cat.get("id") or ""
+        if title:
+            cats1.append(title)
+        broader = (cat.get("broader") or {}).get("category") or {}
+        if broader:
+            bt = broader.get("title") or broader.get("id") or ""
+            if bt:
+                cats2.append(bt)
+            grandparent = (
+                (broader.get("broader") or {}).get("category") or {}
+            )
+            if grandparent:
+                gt = grandparent.get("title") or grandparent.get("id") or ""
+                if gt:
+                    cats3.append(gt)
+
+    # Assemble deduplicated list broadest-first (mirrors get_iplayer)
+    seen: set[str] = set()
+    all_cats: list[str] = []
+    for cat_title in cats3 + cats2 + cats1:
+        if cat_title and cat_title not in seen:
+            seen.add(cat_title)
+            all_cats.append(cat_title)
+    return ",".join(all_cats)
+
+
+def _fetch_categories_for_pid(
+    pid: str, delay: float = _REQUEST_DELAY_SECS,
+) -> str:
+    """Fetch categories for a single PID from the programmes API.
+
+    Args:
+        pid: BBC programme/brand/series PID.
+        delay: Base delay for retries.
+
+    Returns:
+        Comma-separated category string, or empty string on failure.
+    """
+    url = f"{_BBC_PROGRAMMES_API}/{pid}.json"
+    data = _fetch_json_with_retry(url, delay=delay)
+    if not isinstance(data, dict):
+        return ""
+    return _parse_categories_from_programmes_json(data)
+
+
 def enrich_categories(
     programmes: list[Programme],
     delay: float = _REQUEST_DELAY_SECS,
@@ -173,13 +305,15 @@ def enrich_categories(
 ) -> list[Programme]:
     """Phase 2: Fetch category data for programmes missing it.
 
-    Calls ``/programmes/{pid}.json`` for each programme that has no
-    categories, extracting the ``broader.category`` hierarchy.
+    Enriches at the **brand/series level** to minimise requests: all
+    episodes sharing a brand or series PID inherit the same categories.
+    Only falls back to per-episode lookup when no brand/series PID is
+    available.
 
     Args:
         programmes: List from phase 1.
         delay: Inter-request delay.
-        max_enrichments: Max PIDs to enrich (0 = unlimited).
+        max_enrichments: Max brand/series PIDs to look up (0 = unlimited).
 
     Returns:
         Updated programme list with categories populated where possible.
@@ -190,54 +324,73 @@ def enrich_categories(
         len(needs_enrichment), len(programmes),
     )
 
-    if max_enrichments > 0:
-        needs_enrichment = needs_enrichment[:max_enrichments]
-        logger.info("  (capped to %d enrichments)", max_enrichments)
+    # Group by brand_pid or series_pid to avoid per-episode lookups.
+    # All episodes in a brand/series share the same categories.
+    container_to_pids: dict[str, list[str]] = {}
+    orphan_pids: list[str] = []
+    for prog in needs_enrichment:
+        container = prog.brand_pid or prog.series_pid
+        if container:
+            container_to_pids.setdefault(container, []).append(prog.pid)
+        else:
+            orphan_pids.append(prog.pid)
 
-    enriched_map: dict[str, Programme] = {}
+    lookup_pids = list(container_to_pids.keys()) + orphan_pids
+    logger.info(
+        "  %d unique containers + %d orphans = %d lookups needed "
+        "(vs %d per-episode)",
+        len(container_to_pids), len(orphan_pids),
+        len(lookup_pids), len(needs_enrichment),
+    )
+
+    if max_enrichments > 0:
+        lookup_pids = lookup_pids[:max_enrichments]
+        logger.info("  (capped to %d lookups)", max_enrichments)
+
+    # Fetch categories for each unique container/orphan PID
+    pid_categories: dict[str, str] = {}
     success_count = 0
-    for i, prog in enumerate(needs_enrichment):
-        detail = fetch_programme_detail(prog.pid)
-        if detail and detail.categories:
-            enriched_map[prog.pid] = Programme(
-                pid=prog.pid,
-                title=prog.title,
-                synopsis=prog.synopsis or detail.synopsis,
-                duration_secs=prog.duration_secs or detail.duration_secs,
-                available_until=prog.available_until or detail.available_until,
-                first_broadcast=prog.first_broadcast or detail.first_broadcast,
-                programme_type=prog.programme_type,
-                series_pid=prog.series_pid or detail.series_pid,
-                series_title=prog.series_title or detail.series_title,
-                brand_pid=prog.brand_pid or detail.brand_pid,
-                brand_title=prog.brand_title or detail.brand_title,
-                episode_number=prog.episode_number or detail.episode_number,
-                channel=prog.channel or detail.channel,
-                thumbnail_url=prog.thumbnail_url or detail.thumbnail_url,
-                categories=detail.categories,
-                url=prog.url,
-            )
+    for i, pid in enumerate(lookup_pids):
+        cats = _fetch_categories_for_pid(pid, delay=delay)
+        if cats:
+            pid_categories[pid] = cats
             success_count += 1
 
         if (i + 1) % 50 == 0:
             logger.info(
-                "  enriched %d/%d (%d successful)",
-                i + 1, len(needs_enrichment), success_count,
+                "  looked up %d/%d (%d successful)",
+                i + 1, len(lookup_pids), success_count,
             )
         time.sleep(delay)
 
     logger.info(
-        "Phase 2 complete: enriched %d/%d programmes with categories",
-        success_count, len(needs_enrichment),
+        "Phase 2 complete: %d/%d lookups returned categories",
+        success_count, len(lookup_pids),
     )
 
-    # Build final list replacing enriched items
+    # Apply categories to all programmes
     result: list[Programme] = []
+    enriched_count = 0
     for prog in programmes:
-        if prog.pid in enriched_map:
-            result.append(enriched_map[prog.pid])
+        if prog.categories:
+            result.append(prog)
+            continue
+
+        # Try container first, then the episode PID itself
+        container = prog.brand_pid or prog.series_pid
+        cats = pid_categories.get(container or "") or pid_categories.get(
+            prog.pid, ""
+        )
+        if cats:
+            result.append(dataclasses.replace(prog, categories=cats))
+            enriched_count += 1
         else:
             result.append(prog)
+
+    logger.info(
+        "  Applied categories to %d/%d programmes",
+        enriched_count, len(needs_enrichment),
+    )
     return result
 
 
