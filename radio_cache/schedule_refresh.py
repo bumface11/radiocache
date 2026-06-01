@@ -96,6 +96,10 @@ def _fetch_network_programmes(
         )
         data = _fetch_json(url)
         if data is None or not isinstance(data, dict):
+            logger.warning(
+                "Network %s page %d: no data returned; stopping.",
+                network_id, page + 1,
+            )
             break
 
         items = data.get("data") or []
