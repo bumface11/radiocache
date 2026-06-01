@@ -378,8 +378,9 @@ def enrich_categories(
 
         # Try container first, then the episode PID itself
         container = prog.brand_pid or prog.series_pid
-        cats = pid_categories.get(container or "") or pid_categories.get(
-            prog.pid, ""
+        cats = (
+            (pid_categories.get(container) if container else None)
+            or pid_categories.get(prog.pid, "")
         )
         if cats:
             result.append(dataclasses.replace(prog, categories=cats))
