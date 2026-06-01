@@ -70,9 +70,9 @@ _USER_AGENT: Final[str] = (
     "+https://github.com/bumface11/radiocache)"
 )
 
-# Default output paths (separate from the category-first approach)
-_DEFAULT_DB_PATH: Final[str] = "radio_cache_schedule.db"
-_DEFAULT_CACHE_PATH: Final[str] = "radio_schedule.cache"
+# Default output paths (same as category-first so the dev server picks them up)
+_DEFAULT_DB_PATH: Final[str] = "radio_cache.db"
+_DEFAULT_CACHE_PATH: Final[str] = "radio.cache"
 
 
 # ── Phase 1: Schedule sweep ──────────────────────────────────────────
