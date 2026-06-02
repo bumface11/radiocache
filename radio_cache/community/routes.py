@@ -226,11 +226,14 @@ async def get_programme_rating(
     with _get_community_db() as db:
         summary = db.get_rating_summary(programme_pid)
         user_score = None
-        user = _get_current_user(rc_session)
-        if user:
-            user_rating = db.get_user_rating(user.user_id, programme_pid)
-            if user_rating:
-                user_score = user_rating.score
+        if rc_session:
+            user = db.get_session_user(rc_session)
+            if user:
+                user_rating = db.get_user_rating(
+                    user.user_id, programme_pid
+                )
+                if user_rating:
+                    user_score = user_rating.score
 
     return JSONResponse({
         "average_score": summary.average_score,

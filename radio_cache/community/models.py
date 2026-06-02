@@ -94,7 +94,7 @@ class RatingSummary:
     total_ratings: int = 0
 
 
-@dataclass(frozen=True, slots=True)
+@dataclass(slots=True)
 class Discussion:
     """A comment in a threaded discussion about a programme.
 

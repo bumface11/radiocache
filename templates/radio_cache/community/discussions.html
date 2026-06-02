@@ -72,7 +72,8 @@ function replyTo(commentId, displayName) {
     document.getElementById('rc-parent-id').value = commentId;
     const indicator = document.getElementById('rc-reply-indicator');
     indicator.classList.remove('d-none');
-    indicator.querySelector('span') || (indicator.childNodes[0].textContent = 'Replying to ' + displayName + ' ');
+    const textNode = indicator.childNodes[0];
+    if (textNode) { textNode.textContent = 'Replying to ' + displayName + ' '; }
     document.getElementById('rc-comment-body').focus();
 }
 
