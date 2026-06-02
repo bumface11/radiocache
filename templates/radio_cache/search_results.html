@@ -143,6 +143,7 @@
                                 <div class="get-iplayer-cmd" title="Click to copy">
                                     get_iplayer --pid={{ ep.pid }} --type=radio
                                 </div>
+                                <div class="rc-rating-widget" data-pid="{{ ep.pid }}"></div>
                             </div>
                             <div class="text-end ms-3">
                                 {% if ep.duration_secs %}
@@ -241,6 +242,7 @@
                 <div class="get-iplayer-cmd" title="Click to copy">
                     get_iplayer --pid={{ prog.pid }} --type=radio
                 </div>
+                <div class="rc-rating-widget" data-pid="{{ prog.pid }}"></div>
             </div>
             <div class="card-footer small text-muted d-flex justify-content-between align-items-center">
                 <span>

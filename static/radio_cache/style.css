@@ -1042,3 +1042,43 @@ footer:hover { opacity: 1; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.25); }
+
+/* ── Community: rating widget ──────────────────────────────── */
+.rc-rating-widget {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin-top: .35rem;
+}
+.rc-stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+}
+.rc-star-btn {
+    background: none;
+    border: none;
+    padding: 2px;
+    cursor: pointer;
+    color: rgba(255, 193, 7, .5);
+    transition: color var(--rc-transition-fast), transform var(--rc-transition-fast);
+    line-height: 1;
+}
+.rc-star-btn:hover,
+.rc-star-btn.active {
+    color: #ffc107;
+    transform: scale(1.15);
+}
+.rc-star-btn:focus-visible {
+    outline: 2px solid var(--rc-accent);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+.rc-rating-summary {
+    white-space: nowrap;
+}
+.rc-disc-link {
+    font-size: .75rem;
+    padding: .15rem .5rem;
+}
