@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Discussion – Radio Cache Community{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <h2 class="mb-2">Discussion</h2>
+        <p class="text-muted mb-4">
+            Programme: <code>{{ programme_pid }}</code>
+            <a href="/search?q={{ programme_pid }}" class="ms-2">View programme</a>
+        </p>
+
+        {% if user %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <form id="rc-comment-form">
+                    <div class="mb-2">
+                        <textarea class="form-control" id="rc-comment-body" name="body"
+                                  rows="3" placeholder="Share your thoughts..."
+                                  maxlength="2000" required></textarea>
+                    </div>
+                    <input type="hidden" id="rc-parent-id" name="parent_id" value="">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span id="rc-reply-indicator" class="text-muted small d-none">
+                            Replying to a comment
+                            <button type="button" class="btn btn-sm btn-link" onclick="cancelReply()">Cancel</button>
+                        </span>
+                        <button type="submit" class="btn btn-primary btn-sm ms-auto">Post Comment</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-secondary mb-4">
+            <a href="/community/login">Sign in</a> to join the discussion.
+        </div>
+        {% endif %}
+
+        <div id="rc-comments">
+            {% for comment in comments %}
+            {{ render_comment(comment, 0) }}
+            {% endfor %}
+            {% if not comments %}
+            <p class="text-muted">No comments yet. Be the first to start the discussion!</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% macro render_comment(comment, depth) %}
+<div class="card mb-2 {% if depth > 0 %}ms-4{% endif %}" data-comment-id="{{ comment.comment_id }}">
+    <div class="card-body py-2 px-3">
+        <div class="d-flex justify-content-between align-items-center mb-1">
+            <strong class="small">{{ comment.display_name or "Anonymous" }}</strong>
+            <span class="text-muted" style="font-size:0.75rem">{{ comment.created_at[:16] if comment.created_at else "" }}</span>
+        </div>
+        <p class="mb-1 small">{{ comment.body }}</p>
+        {% if user %}
+        <button class="btn btn-link btn-sm p-0 text-muted"
+                onclick="replyTo('{{ comment.comment_id }}', '{{ comment.display_name }}')">
+            Reply
+        </button>
+        {% endif %}
+    </div>
+</div>
+{% for reply in comment.replies %}
+{{ render_comment(reply, depth + 1) }}
+{% endfor %}
+{% endmacro %}
+
+<script>
+function replyTo(commentId, displayName) {
+    document.getElementById('rc-parent-id').value = commentId;
+    const indicator = document.getElementById('rc-reply-indicator');
+    indicator.classList.remove('d-none');
+    indicator.querySelector('span') || (indicator.childNodes[0].textContent = 'Replying to ' + displayName + ' ');
+    document.getElementById('rc-comment-body').focus();
+}
+
+function cancelReply() {
+    document.getElementById('rc-parent-id').value = '';
+    document.getElementById('rc-reply-indicator').classList.add('d-none');
+}
+
+document.getElementById('rc-comment-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const body = document.getElementById('rc-comment-body').value.trim();
+    const parentId = document.getElementById('rc-parent-id').value;
+    if (!body) return;
+
+    try {
+        const resp = await fetch('/api/community/discussions/{{ programme_pid }}', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({body, parent_id: parentId})
+        });
+        if (resp.ok) {
+            location.reload();
+        } else {
+            const data = await resp.json();
+            alert(data.error || 'Failed to post comment');
+        }
+    } catch (err) {
+        alert('Network error posting comment');
+    }
+});
+</script>
+{% endblock %}

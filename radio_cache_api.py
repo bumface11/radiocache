@@ -33,6 +33,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from radio_cache.cache_db import CacheDB
+from radio_cache.community.routes import router as community_router
 from radio_cache.models import Programme, format_duration
 from radio_cache.refresh import (
     import_db_snapshot_from_github,
@@ -150,6 +151,7 @@ app.mount(
     StaticFiles(directory=str(_BASE_DIR / "static" / "radio_cache")),
     name="static",
 )
+app.include_router(community_router)
 templates = Jinja2Templates(directory=str(_BASE_DIR / "templates" / "radio_cache"))
 templates.env.filters["format_duration"] = format_duration
 
