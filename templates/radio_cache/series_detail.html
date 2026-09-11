@@ -106,6 +106,7 @@
                 <div class="get-iplayer-cmd" title="Click to copy">
                     get_iplayer --pid={{ ep.pid }} --type=radio
                 </div>
+                <div class="rc-rating-widget" data-pid="{{ ep.pid }}"></div>
                 <small class="text-muted">
                     {% if ep.first_broadcast %}Broadcast: {{ ep.first_broadcast | format_short_date }}{% endif %}
                     {% if ep.channel %}| {{ ep.channel }}{% endif %}

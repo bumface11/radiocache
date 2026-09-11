@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Profile – Radio Cache Community{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <h2 class="mb-4">Your Profile</h2>
+        <div class="card mb-4">
+            <div class="card-body">
+                <p><strong>Email:</strong> {{ user.email }}</p>
+                <p><strong>Display name:</strong> {{ user.display_name }}</p>
+                <p class="text-muted small mb-0">
+                    Member since {{ user.created_at[:10] if user.created_at else "unknown" }}
+                </p>
+            </div>
+        </div>
+
+        <h5 class="mb-3">Update Display Name</h5>
+        <form method="post" action="/community/profile">
+            <div class="mb-3">
+                <input type="text" class="form-control" name="display_name"
+                       value="{{ user.display_name }}" maxlength="50"
+                       placeholder="Your display name" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Save</button>
+        </form>
+
+        <hr class="my-4">
+        <form method="post" action="/community/logout">
+            <button type="submit" class="btn btn-outline-danger">Sign Out</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

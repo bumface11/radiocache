@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Magic Link Sent – Radio Cache Community{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <h2 class="mb-4">Check your inbox</h2>
+        <p class="text-muted">
+            We've generated a magic link for <strong>{{ email }}</strong>.
+        </p>
+        <div class="alert alert-info">
+            <strong>Development mode:</strong> Click the link below to sign in.
+            In production, this link would be sent via email.
+        </div>
+        <div class="card bg-body-secondary mb-3">
+            <div class="card-body">
+                <a href="{{ magic_url }}" class="text-break">{{ magic_url }}</a>
+            </div>
+        </div>
+        <p class="text-muted small">
+            This link expires in 15 minutes and can only be used once.
+        </p>
+    </div>
+</div>
+{% endblock %}

@@ -7,6 +7,7 @@ __pycache__/
 radio.cache
 radio_cache.db
 radio_cache.db.zip
+community.db
 radio_cache_export.json
 radio_cache_export.json.zip
 *.db-journal
