@@ -118,8 +118,8 @@
                         {{ ep.duration_secs | format_duration }}
                     </span>
                 {% endif %}
-                <a href="{{ ep.url }}" class="btn btn-sm btn-outline-primary"
-                   target="_blank" rel="noopener">BBC Sounds</a>
+                <a href="{{ ep | programme_link }}" class="btn btn-sm btn-outline-primary"
+                                   target="_blank" rel="noopener">{{ 'BBC Programmes' if ep.available_until and (ep.available_until | is_expired) else 'BBC Sounds' }}</a>
                 <button class="btn btn-sm btn-outline-danger record-btn"
                         data-pid="{{ ep.pid }}"
                         title="Save audio file locally">Record</button>

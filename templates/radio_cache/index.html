@@ -4,18 +4,18 @@
 
 {% block content %}
 <div class="search-hero">
-    <h2 class="display-5">C90 recorder</h2>
+    <h1 class="display-5">C90 recorder</h1>
     <p class="lead text-muted">
         Search and browse BBC Radio — record, download, subscribe.
     </p>
-    <form action="/search" method="get" class="row g-2 justify-content-center mt-3">
+    <form action="/search" method="get" class="row g-2 justify-content-center mt-3 rc-home-search">
         <div class="col-md-6">
-            <input type="search" class="form-control form-control" name="q"
-                   placeholder="Search by title, series, genre..."
+            <input type="search" class="form-control form-control-lg" name="q"
+                   placeholder="Search by title, series, genre..." aria-label="Search programmes"
                    autofocus>
         </div>
         <div class="col-md-3">
-            <select name="category" class="form-select form-select">
+            <select name="category" class="form-select form-select-lg" aria-label="Filter by category">
                 <option value="">All categories</option>
                 {% for cat in categories %}
                 <option value="{{ cat.category }}">{{ cat.category }} ({{ cat.programme_count }})</option>
@@ -23,9 +23,14 @@
             </select>
         </div>
         <div class="col-auto">
-            <button type="submit" class="btn btn" style="background:var(--rc-accent);color:#fff">Search</button>
+            <button type="submit" class="btn btn-primary btn-lg">Search</button>
         </div>
     </form>
+    <div class="rc-wordcloud-wrap rc-home-cloud mt-4" id="rc-wordcloud-wrap"
+         data-query="" data-category="" data-sort="" hidden>
+        <div class="small text-muted mb-1">Or explore by what&rsquo;s common in the cache &mdash; click a word to start a search</div>
+        <div id="rc-wordcloud" class="rc-wordcloud" role="list" aria-live="polite"></div>
+    </div>
 </div>
 
 <div class="row mt-4 g-3">
@@ -129,7 +134,7 @@
             </div>
             <div class="card-footer small text-muted d-flex justify-content-between align-items-center">
                 <span>
-                    <a href="{{ prog.url }}" target="_blank" rel="noopener">BBC Sounds</a>
+                    <a href="{{ prog | programme_link }}" target="_blank" rel="noopener">{{ 'BBC Programmes' if prog.available_until and (prog.available_until | is_expired) else 'BBC Sounds' }}</a>
                     {% if prog.first_broadcast %}
                         | {{ prog.first_broadcast | format_short_date }}
                     {% endif %}
@@ -156,4 +161,8 @@
         </p>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/wordcloud.js"></script>
 {% endblock %}

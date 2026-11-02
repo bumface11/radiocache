@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Search: {{ query }} - BBC Radio Drama Cache{% endblock %}
 
@@ -64,6 +64,20 @@
             </div>
         </div>
     </form>
+    {% if query %}
+    <div class="rc-term-chips d-flex flex-wrap gap-2 mt-2" aria-label="Active search terms">
+        {% for term in query.split() %}
+        <a class="rc-term-chip" data-remove-term="{{ term }}" href="#" title="Remove â€œ{{ term }}â€">{{ term }} <span aria-hidden="true">&times;</span></a>
+        {% endfor %}
+    </div>
+    {% endif %}
+    <div class="rc-wordcloud-wrap mt-3" id="rc-wordcloud-wrap"
+         data-query="{{ query }}" data-category="{{ category }}" data-sort="{{ sort }}" hidden>
+        <div class="small text-muted mb-2">
+            Common words{% if query %} in these results{% endif %} &mdash; click one to narrow the search
+        </div>
+        <div id="rc-wordcloud" class="rc-wordcloud" role="list" aria-live="polite"></div>
+    </div>
 </div>
 
 {% if series_groups|length > 1 or (series_groups|length == 1 and series_groups[0].series_pid != 'standalone') %}
@@ -152,8 +166,8 @@
                                     </span>
                                 {% endif %}
                                 <br>
-                                <a href="{{ ep.url }}" class="btn btn-sm btn-outline-primary mt-1"
-                                   target="_blank" rel="noopener">BBC Sounds</a>
+                                <a href="{{ ep | programme_link }}" class="btn btn-sm btn-outline-primary mt-1"
+                                                                   target="_blank" rel="noopener">{{ 'BBC Programmes' if ep.available_until and (ep.available_until | is_expired) else 'BBC Sounds' }}</a>
                                 <br>
                                 <button class="btn btn-sm btn-outline-danger record-btn mt-1"
                                         data-pid="{{ ep.pid }}"
@@ -246,7 +260,7 @@
             </div>
             <div class="card-footer small text-muted d-flex justify-content-between align-items-center">
                 <span>
-                    <a href="{{ prog.url }}" target="_blank" rel="noopener">BBC Sounds</a>
+                    <a href="{{ prog | programme_link }}" target="_blank" rel="noopener">{{ 'BBC Programmes' if prog.available_until and (prog.available_until | is_expired) else 'BBC Sounds' }}</a>
                     {% if prog.first_broadcast %}
                         | {{ prog.first_broadcast | format_short_date }}
                     {% endif %}
@@ -293,5 +307,7 @@
             document.getElementById('rc-search-form').submit();
         });
     });
+
 </script>
+<script src="/static/wordcloud.js"></script>
 {% endblock %}

@@ -27,6 +27,24 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_DB_PATH: Final[str] = "radio_cache.db"
 
+_WORD_RE: Final[re.Pattern[str]] = re.compile(r"[^\W\d_]{3,}")
+
+# Common English filler plus words that appear in nearly every BBC listing.
+_WORD_CLOUD_STOPWORDS: Final[frozenset[str]] = frozenset(
+    """
+    the and for are but not you all any can had her was one our out has have him his
+    how its may new now old see two who boy did get let say she too use way with
+    from that this they them then than there their these those what when where which
+    while will would about after again also been before being between both could does
+    doing down during each even every first into just like made make many more most
+    much must only other over own same should some such take through under until very
+    were your yours here off why per via ever back still well says said tells told
+    gets goes come comes came going back another around because against without within
+    episode episodes series programme programmes radio bbc part presented presenter
+    producer producers presents including features feature
+    """.split()
+)
+
 _CREATE_TABLES_SQL: Final[str] = """
 CREATE TABLE IF NOT EXISTS programmes (
     pid            TEXT PRIMARY KEY,
@@ -700,6 +718,64 @@ class CacheDB:
             """
             row = self._conn.execute(sql, {"query": safe_query}).fetchone()
         return int(row[0]) if row else 0
+
+    def word_frequencies(
+        self,
+        query: str = "",
+        category: str = "",
+        limit: int = 60,
+    ) -> list[dict[str, str | int]]:
+        """Return the most common words across programmes matching a query.
+
+        Words come from titles, synopses, and series/brand titles.  Each
+        word is counted once per series (standalone programmes count as
+        their own group), so a series with thousands of episodes cannot
+        dominate.  Words already in *query* and stopwords are excluded.
+
+        Args:
+            query: Optional FTS query restricting the programmes counted.
+            category: Optional category tag filter.
+            limit: Maximum number of words to return.
+
+        Returns:
+            Dicts with ``word`` and ``count`` (number of series or
+            standalone programmes containing the word), most common first.
+        """
+        params: dict[str, object] = {}
+        where: list[str] = []
+        join = ""
+        if query.strip():
+            safe_query = _sanitise_fts_query(query)
+            join = "JOIN programmes_fts fts ON p.rowid = fts.rowid"
+            where.append("programmes_fts MATCH :query")
+            params["query"] = safe_query
+        if category:
+            where.append(
+                "',' || LOWER(p.categories) || ',' LIKE '%,' || LOWER(:category) || ',%'"
+            )
+            params["category"] = category
+        where_sql = f"WHERE {' AND '.join(where)}" if where else ""
+        rows = self._conn.execute(
+            f"""
+            SELECT COALESCE(NULLIF(p.series_pid, ''), p.pid) AS grp,
+                   p.title, p.synopsis, p.series_title, p.brand_title
+            FROM programmes p {join}
+            {where_sql}
+            """,
+            params,
+        ).fetchall()
+
+        excluded = set(_WORD_RE.findall(query.lower())) | _WORD_CLOUD_STOPWORDS
+        group_words: dict[str, set[str]] = {}
+        for row in rows:
+            text = " ".join(v or "" for v in row[1:]).lower()
+            group_words.setdefault(row[0], set()).update(_WORD_RE.findall(text))
+        counts: dict[str, int] = {}
+        for words in group_words.values():
+            for word in words - excluded:
+                counts[word] = counts.get(word, 0) + 1
+        top = sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))[:limit]
+        return [{"word": w, "count": c} for w, c in top]
 
     def search_groups_count(
         self,

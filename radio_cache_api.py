@@ -20,7 +20,7 @@ from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Final, Literal
+from typing import Any, Final, Literal
 
 from fastapi import FastAPI, Query, Request
 from fastapi.responses import (
@@ -220,6 +220,24 @@ def is_expiring_soon(value: str) -> bool:
     return timedelta(0) <= delta <= timedelta(days=7)
 
 
+def is_expired(value: str) -> bool:
+    """Return True when ``available_until`` is in the past."""
+    dt = _parse_iso_datetime(value)
+    return dt is not None and dt < datetime.now(timezone.utc)
+
+
+def programme_link(prog: Any) -> str:
+    """Return a working BBC link for a programme.
+
+    BBC Sounds 404s once an episode leaves its availability window, so
+    expired episodes link to the permanent BBC programme page instead.
+    """
+    get = prog.get if isinstance(prog, dict) else lambda k, d="": getattr(prog, k, d)
+    if is_expired(get("available_until", "") or ""):
+        return f"https://www.bbc.co.uk/programmes/{get('pid', '')}"
+    return get("url", "") or ""
+
+
 SortOption = Literal[
     "series_order",
     "broadcast_newest",
@@ -295,6 +313,8 @@ def _sort_episodes(episodes: list[Programme], sort_by: SortOption) -> list[Progr
 templates.env.filters["format_short_date"] = format_short_date
 templates.env.filters["is_recent_broadcast"] = is_recent_broadcast
 templates.env.filters["is_expiring_soon"] = is_expiring_soon
+templates.env.filters["is_expired"] = is_expired
+templates.env.filters["programme_link"] = programme_link
 
 
 def _get_db() -> CacheDB:
@@ -642,6 +662,27 @@ async def api_search(
         "count": len(programmes),
         "results": [_prog_dict(p) for p in programmes],
     }
+
+
+@app.get("/api/wordcloud")
+async def api_wordcloud(
+    q: str = Query(default="", description="Search query to narrow the cloud"),
+    category: str = Query(default="", description="Filter by category tag"),
+    limit: int = Query(default=60, ge=5, le=150),
+) -> dict:
+    """Most common words across programmes matching a search.
+
+    Args:
+        q: Free-text search query.
+        category: Optional category tag to filter results.
+        limit: Maximum number of words.
+
+    Returns:
+        Dict with ``words`` (each ``word`` and ``count``).
+    """
+    with _get_db() as db:
+        words = db.word_frequencies(q, category=category, limit=limit)
+    return {"query": q, "category": category, "words": words}
 
 
 @app.get("/api/categories")
