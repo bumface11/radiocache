@@ -1370,14 +1370,51 @@ footer {
 }
 
 /* ── Word cloud ─────────────────────────────────────────────── */
+.rc-wordcloud-wrap {
+    text-align: center;
+}
+
+/* Fixed height so the button doesn't resize when it becomes enabled. */
+.rc-cloud-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    min-width: 11rem;
+    min-height: 2rem;
+}
+
+.rc-cloud-toggle:disabled {
+    opacity: .6;
+}
+
+.rc-wordcloud-panel {
+    margin-top: .75rem;
+}
+
 .rc-wordcloud {
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
     justify-content: center;
     gap: .25rem .9rem;
+    min-height: 8rem;
     padding: .5rem .25rem;
     line-height: 1.25;
+    transition: opacity var(--rc-transition-base), filter var(--rc-transition-base);
+}
+
+.rc-wordcloud.is-loading {
+    opacity: .35;
+    filter: grayscale(1);
+    pointer-events: none;
+}
+
+.rc-wordcloud.is-loading:empty::before {
+    content: "Updating word cloud\2026";
+    width: 100%;
+    align-self: center;
+    color: rgba(244, 241, 235, .6);
 }
 
 .rc-cloud-word {

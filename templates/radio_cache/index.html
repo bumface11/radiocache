@@ -27,9 +27,16 @@
         </div>
     </form>
     <div class="rc-wordcloud-wrap rc-home-cloud mt-4" id="rc-wordcloud-wrap"
-         data-query="" data-category="" data-sort="" hidden>
-        <div class="small text-muted mb-1">Or explore by what&rsquo;s common in the cache &mdash; click a word to start a search</div>
-        <div id="rc-wordcloud" class="rc-wordcloud" role="list" aria-live="polite"></div>
+         data-query="" data-category="" data-sort="">
+        <button type="button" class="btn btn-sm btn-outline-primary rc-cloud-toggle" id="rc-wordcloud-toggle"
+                aria-expanded="false" aria-controls="rc-wordcloud-panel" disabled>
+            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+            <span class="rc-cloud-toggle-label">Word cloud</span>
+        </button>
+        <div id="rc-wordcloud-panel" class="rc-wordcloud-panel" hidden>
+            <div class="small text-muted mb-1">Explore by what&rsquo;s common in the cache &mdash; click a word to start a search</div>
+            <div id="rc-wordcloud" class="rc-wordcloud" role="list" aria-live="polite"></div>
+        </div>
     </div>
 </div>
 

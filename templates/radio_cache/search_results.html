@@ -72,11 +72,18 @@
     </div>
     {% endif %}
     <div class="rc-wordcloud-wrap mt-3" id="rc-wordcloud-wrap"
-         data-query="{{ query }}" data-category="{{ category }}" data-sort="{{ sort }}" hidden>
-        <div class="small text-muted mb-2">
-            Common words{% if query %} in these results{% endif %} &mdash; click one to narrow the search
+         data-query="{{ query }}" data-category="{{ category }}" data-sort="{{ sort }}">
+        <button type="button" class="btn btn-sm btn-outline-primary rc-cloud-toggle" id="rc-wordcloud-toggle"
+                aria-expanded="false" aria-controls="rc-wordcloud-panel" disabled>
+            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+            <span class="rc-cloud-toggle-label">Word cloud</span>
+        </button>
+        <div id="rc-wordcloud-panel" class="rc-wordcloud-panel" hidden>
+            <div class="small text-muted mb-2">
+                Common words{% if query %} in these results{% endif %} &mdash; click one to narrow the search
+            </div>
+            <div id="rc-wordcloud" class="rc-wordcloud" role="list" aria-live="polite"></div>
         </div>
-        <div id="rc-wordcloud" class="rc-wordcloud" role="list" aria-live="polite"></div>
     </div>
 </div>
 
